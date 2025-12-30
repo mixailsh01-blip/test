@@ -11,37 +11,46 @@
  * - Система прав доступа: edit/view для L1 и L2
  */
 
-const GRAPH_HOOK_URL = "https://jolikcisout.beget.app/webhook/pyrus/graph";
+const GRAPH_HOOK_URL = "https://quumahienot.beget.app/webhook/pyrus/graph";
 const MAX_DAYS_IN_MONTH = 31;
 const LOCAL_TZ_OFFSET_MIN = 4 * 60; // GMT+4
 
 // -----------------------------
 // Конфиг вкладок (линий)
 // -----------------------------
-const LINE_KEYS_IN_UI_ORDER = ["ALL", "OP", "OV", "L1", "L2", "AI", "OU"];
-const LINE_LABELS = { ALL: "ВСЕ", OP: "OP", OV: "OV", L1: "L1", L2: "L2", AI: "AI", OU: "OU" };
-
+const LINE_KEYS_IN_UI_ORDER = [
+        "ALL",
+        "OP",
+        "OV",
+        "L2"
+      ],
+const LINE_LABELS = {
+        "ALL": "ВСЕ",
+        "OP": "ОП",
+        "OV": "ПНР",
+        "L2": "ТП"
+      }
 // Жёсткая привязка department_id -> вкладка
 const LINE_DEPT_IDS = {
-  L1: [108368027],
-  L2: [108368026, 171248779, 171248780],
-  OV: [80208117],
-  OP: [108368021, 157753518, 157753516], // важно: порядок групп
-  OU: [108368030],
-  AI: [166353950],
+  L1: [],
+  L2: [167976424],
+  OV: [174349984],
+  OP: [170374055], // важно: порядок групп
+  OU: [168659098],
+  AI: [],
 };
 
 // Руководители/учредители (всегда сверху во "ВСЕ")
-const TOP_MANAGEMENT_IDS = [1167305, 314287]; // Лузин, Сухачев
+const TOP_MANAGEMENT_IDS = [1194300, 1194304]; // Лузин, Сухачев
 
 // Pyrus: значение каталога "Линия/Отдел" (field id=1) в форме явок
 const PYRUS_LINE_ITEM_ID = {
-  L2: 157816613,
-  L1: 165474029,
-  OV: 157816614,
-  OU: 157816622,
-  AI: 168065907,
-  OP: 157816621,
+  L2: 174347209,
+  L1: 174347208,
+  OV: 174347211,
+  OU: 174347216,
+  AI: 174347217,
+  OP: 174347212,
 };
 
 function resolvePyrusLineItemIdByDepartmentId(deptId) {
