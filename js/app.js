@@ -22,12 +22,9 @@ const LINE_KEYS_IN_UI_ORDER = [
         "ALL",
         "OP",
         "OV",
-        "L2",
-		"L1",
-		"AI",
-		"OU"
-      ],
-const LINE_LABELS = { ALL: "ВСЕ", OP: "ОП", OV: "ПНР", L1: "L1", L2: "ТП", AI: "AI", OU: "OU" };
+        "L2"
+      ];
+const LINE_LABELS = { ALL: "ВСЕ", OP: "ОП", OV: "ПНР", L2: "ТП" };
 // Жёсткая привязка department_id -> вкладка
 const LINE_DEPT_IDS = {
   L1: [],
