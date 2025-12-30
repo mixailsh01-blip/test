@@ -2005,7 +2005,7 @@ persistCachedEmployees();
 }
 
 async function loadShiftsCatalog() {
-  const raw = await pyrusApi("/v4/catalogs/281369", "GET");
+  const raw = await pyrusApi("/v4/catalogs/283386", "GET");
   const data = unwrapPyrusData(raw);
 
   const catalog = Array.isArray(data) ? data[0] : data;
@@ -2109,7 +2109,7 @@ async function loadShiftsCatalog() {
 
 
 async function loadVacationsForMonth(year, monthIndex) {
-  const raw = await pyrusApi("/v4/forms/2348174/register", "GET");
+  const raw = await pyrusApi("/v4/forms/2383799/register", "GET");
   const data = unwrapPyrusData(raw);
   const wrapper = Array.isArray(data) ? data[0] : data;
   const tasks = (wrapper && wrapper.tasks) || [];
@@ -2201,7 +2201,7 @@ async function loadVacationsForMonth(year, monthIndex) {
 async function reloadScheduleForCurrentMonth() {
   const { year, monthIndex } = state.monthMeta;
 
-  const raw = await pyrusApi("/v4/forms/2375272/register", "GET");
+  const raw = await pyrusApi("/v4/forms/2383802/register", "GET");
   const data = unwrapPyrusData(raw);
 
   // Отпуска: внешняя система, только отображение
