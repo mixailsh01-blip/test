@@ -13,7 +13,7 @@
 
 const GRAPH_HOOK_URL = "https://quumahienot.beget.app/webhook/pyrus/graph";
 const MAX_DAYS_IN_MONTH = 31;
-const LOCAL_TZ_OFFSET_MIN = 4 * 60; // GMT+4
+const LOCAL_TZ_OFFSET_MIN = 3 * 60; // GMT+4
 
 // -----------------------------
 // Конфиг вкладок (линий)
