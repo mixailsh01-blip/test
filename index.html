@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>График смен</title>
+  <meta name="viewport" content="width=1200, initial-scale=1.0, user-scalable=yes" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- Экран логина -->
+    <div id="login-screen" class="card">
+      <h1>График смен</h1>
+      <p class="muted">Вход по логину и паролю (через n8n <code>/graph</code>).</p>
+
+      <form id="login-form">
+        <div class="field">
+          <span>Логин</span>
+          <input id="login-input" autocomplete="username" />
+        </div>
+
+        <div class="field">
+          <span>Пароль</span>
+          <input
+            id="password-input"
+            type="password"
+            autocomplete="current-password"
+          />
+        </div>
+
+        <button type="submit" class="btn primary full-width" id="login-button">
+          Войти
+        </button>
+        <div id="login-error" class="error"></div>
+      </form>
+    </div>
+
+    <!-- Основной экран -->
+    <div id="main-screen" class="hidden">
+      <div class="top-bar">
+        <div>
+          <h2>График смен</h2>
+          <div id="current-user-label" class="muted"></div>
+        </div>
+
+        <div class="top-bar-right">
+          <button type="button" class="btn toggle" id="btn-theme-toggle">
+            🌙 Тема
+          </button>
+          <button type="button" class="btn toggle" id="btn-logout" title="Сбросить авторизацию">
+            🚪 Выйти
+          </button>
+          <div id="line-tabs" class="line-tabs"></div>
+
+          <div class="month-switcher">
+            <button type="button" class="btn toggle" id="btn-prev-month">
+              &#8249;
+            </button>
+            <span id="current-month-label">Месяц</span>
+            <button type="button" class="btn toggle" id="btn-next-month">
+              &#8250;
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="schedule-container">
+        <button type="button" class="btn toggle mobile-only" id="btn-mobile-toolbar">⚙️ Панель смены</button>
+        <div class="schedule-toolbar">
+          <div class="toolbar-group">
+            <label for="quick-template-select">Шаблон смены</label>
+            <select id="quick-template-select"></select>
+          </div>
+
+          <div class="toolbar-group">
+            <label>Время</label>
+            <div class="toolbar-inline">
+              <input id="quick-time-from" type="time" />
+              <span class="toolbar-separator">—</span>
+              <input id="quick-time-to" type="time" />
+            </div>
+          </div>
+
+          <div class="toolbar-group">
+            <label for="quick-amount">Сумма</label>
+            <input id="quick-amount" type="number" min="0" step="100" />
+          </div>
+
+          <div class="toolbar-actions">
+            <button type="button" class="btn toggle mobile-only" id="btn-mobile-toolbar-close">⬇️ Скрыть</button>
+            <button type="button" class="btn toggle" id="quick-mode-toggle">
+              Быстрое назначение
+            </button>
+            <button type="button" class="btn primary ghost" id="btn-save-pyrus">
+              Сохранить в Pyrus
+            </button>
+          </div>
+        </div>
+        
+        <div class="schedule-scroll">
+          <div id="schedule-root"></div>
+        </div>
+
+        <!-- Легенда цветов смен (динамически генерируется) -->
+        <div class="shift-legend" id="shift-legend">
+          <div class="shift-legend-title">Легенда цветов смен</div>
+          <div class="shift-legend-groups" id="shift-legend-content">
+            <!-- Будет заполнено динамически из JavaScript -->
+          </div>
+        </div>
+
+        <div style="padding: 8px 12px; font-size: 12px; color: var(--text-muted);">
+          Режим: редактирование доступно только при правах <b>edit</b> (сейчас
+          реализован локальный кэш, без отправки в Pyrus).
+        </div>
+
+        <div class="change-log-panel">
+          <div class="change-log-header">
+            <div>
+              <div class="change-log-title">История изменений</div>
+              <div class="change-log-subtitle">
+                Сохраняется локально в браузере, фиксируя добавление, правки и удаление.
+              </div>
+            </div>
+            <button type="button" class="btn toggle" id="btn-clear-history">
+              Очистить историю
+            </button>
+          </div>
+          <div id="change-log-list" class="change-log-list">
+            Пока нет локальных изменений
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/shift-colors.js"></script>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
