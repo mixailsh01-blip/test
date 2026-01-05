@@ -1,61 +1,53 @@
 {
-  "graphHookUrl": "https://jolikcisout.beget.app/webhook/pyrus/graph",
+  "graphHookUrl": "https://quumahienot.beget.app/webhook/pyrus/graph",
   "pyrus": {
     "catalogs": {
-      "shifts": 281369
+      "shifts": 283386
     },
     "forms": {
-      "otpusk": 2348174,
-      "smeni": 2375272
+      "otpusk": 2383799,
+      "smeni": 2383802
     },
     "fields": {
       "otpusk": {
-        "person": 1,
-        "period": 2
+        "person": 2,
+        "period": 1
       },
       "smeni": {
         "person": 8,
-        "due": 4,
-        "amount": 5,
-        "template": 10
+        "due": 5,
+        "amount": 6,
+        "template": 7
       }
     }
   },
   "departments": {
     "byLine": {
       "L1": [
-        108368027
+        
       ],
       "L2": [
-        108368026,
-        171248779,
-        171248780
+        167976424
       ],
       "OV": [
-        80208117
+        174349984
       ],
       "OP": [
-        108368021,
-        157753518,
-        157753516
+        170374055
       ],
       "OU": [
-        108368030
+        168659098
       ],
       "AI": [
-        166353950
+        
       ]
     },
     "orderByLine": {
       "L2": [
-        108368026,
-        171248779,
-        171248780
+        167976424
       ],
       "OP": [
-        108368021,
-        157753518,
-        157753516
+        170374055
       ]
     },
     "byName": {
@@ -77,7 +69,7 @@
     }
   },
   "timezone": {
-    "localOffsetMin": 240
+    "localOffsetMin": 180
   },
   "ui": {
     "lines": {
@@ -85,35 +77,29 @@
         "ALL",
         "OP",
         "OV",
-        "L1",
-        "L2",
-        "AI",
-        "OU"
+        "L2"
       ],
       "labels": {
         "ALL": "ВСЕ",
-        "OP": "OP",
-        "OV": "OV",
-        "L1": "L1",
-        "L2": "L2",
-        "AI": "AI",
-        "OU": "OU"
+        "OP": "ОП",
+        "OV": "ПНР",
+        "L2": "ТП"
       }
     }
   },
   "management": {
     "topManagementIds": [
-      1167305,
-      314287
+      1194300,
+      1194304
     ]
   },
   "pyrusLineItemIdByLine": {
-    "L2": 157816613,
-    "L1": 165474029,
-    "OV": 157816614,
-    "OU": 157816622,
-    "AI": 168065907,
-    "OP": 157816621
+    "L2": 174347209,
+    "L1": 174347208,
+    "OV": 174347211,
+    "OU": 174347216,
+    "AI": 174347217,
+    "OP": 174347212
   },
   "storage": {
     "keys": {
