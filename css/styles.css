@@ -12,8 +12,25 @@
   --table-border: #e0e0e0;
   --table-border-strong: #c0c0c0;
   --table-header-bg: #f1f1f2;
-  --table-header-dayoff-bg: #ead5d5;
-  --table-header-preholiday-bg: #f3e0e0;
+  --calendar-workday-bg: transparent;
+  --calendar-workday-border: var(--table-border-strong);
+  --calendar-workday-dash: transparent;
+  --calendar-weekend-bg: #f2e8e8;
+  --calendar-weekend-border: var(--table-border-strong);
+  --calendar-weekend-dash: transparent;
+  --calendar-holiday-bg: #fadddd;
+  --calendar-holiday-border: #e06b6b;
+  --calendar-holiday-dash: transparent;
+  --calendar-preholiday-bg: #fff4cc;
+  --calendar-preholiday-border: var(--table-border-strong);
+  --calendar-preholiday-dash: #3a3522;
+  --calendar-micro-weekend: #f2e8e8;
+  --calendar-micro-holiday: #e06b6b;
+  --calendar-micro-preholiday: #3a3522;
+
+  --indicator-birthday-bg: #ff2b2b;
+  --indicator-birthday-text: #000000;
+
   --sticky-bg: #ffffff;
   --summary-bg: #f9f9f9;
   --toolbar-bg: rgba(247, 247, 248, 0.95);
@@ -53,8 +70,6 @@
   --vacation-bg: #000000;
   --vacation-text: #ffffff;
 
-  --weekend-bg: rgba(200, 0, 0, 0.12);
-  --weekend-strong: rgba(200, 0, 0, 0.25);
   --shadow-strong: 0 6px 20px rgba(0, 0, 0, 0.06);
   --shadow-soft: 0 4px 12px rgba(0, 0, 0, 0.04);
   --header-height: 64px;
@@ -78,8 +93,25 @@ body.dark-theme {
   --table-border: #333333;
   --table-border-strong: #444444;
   --table-header-bg: #1a1a1a;
-  --table-header-dayoff-bg: #3b2121;
-  --table-header-preholiday-bg: #332525;
+  --calendar-workday-bg: transparent;
+  --calendar-workday-border: var(--table-border-strong);
+  --calendar-workday-dash: transparent;
+  --calendar-weekend-bg: #332626;
+  --calendar-weekend-border: var(--table-border-strong);
+  --calendar-weekend-dash: transparent;
+  --calendar-holiday-bg: #4a2323;
+  --calendar-holiday-border: #c45a5a;
+  --calendar-holiday-dash: transparent;
+  --calendar-preholiday-bg: #e6c65c;
+  --calendar-preholiday-border: var(--table-border-strong);
+  --calendar-preholiday-dash: #d1b84d;
+  --calendar-micro-weekend: #332626;
+  --calendar-micro-holiday: #c45a5a;
+  --calendar-micro-preholiday: #d1b84d;
+
+  --indicator-birthday-bg: #ff2b2b;
+  --indicator-birthday-text: #000000;
+
   --sticky-bg: #181818;
   --summary-bg: #1a1a1a;
   --toolbar-bg: rgba(17, 17, 17, 0.95);
@@ -120,8 +152,6 @@ body.dark-theme {
   --vacation-bg: #bdbdbd;
   --vacation-text: #000000;
 
-  --weekend-bg: rgba(255, 75, 75, 0.15);
-  --weekend-strong: rgba(255, 75, 75, 0.28);
   --shadow-strong: 0 12px 40px rgba(0, 0, 0, 0.5);
   --shadow-soft: 0 8px 24px rgba(0, 0, 0, 0.4);
 }
@@ -470,12 +500,41 @@ body {
     inset 0 1px 0 var(--table-border-strong);
 }
 
-.schedule-table thead th.day-off {
-  background: var(--table-header-dayoff-bg);
+/* Заголовки таблицы — тип дня */
+.schedule-table thead th.day-workday {
+  background: var(--table-header-bg);
 }
 
-.schedule-table thead th.pre-holiday {
-  background: var(--table-header-preholiday-bg);
+.schedule-table thead th.day-weekend {
+  background: var(--calendar-weekend-bg);
+}
+
+/* Контент заголовка */
+.schedule-table thead th .header-text {
+  display: inline-block;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.schedule-table thead th .header-indicator {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  pointer-events: none;
+}
+
+/* Существующие классы (оставляем для совместимости) */
+.schedule-table thead th.day-off,
+.schedule-table thead th.day-weekend {
+  /* дальнейшие правила ниже по файлу */
+}
+
+.schedule-table thead th.day-holiday {
+  background: var(--calendar-holiday-bg);
+}
+
+.schedule-table thead th.day-preholiday {
+  background: var(--calendar-preholiday-bg);
 }
 
 .schedule-table thead tr:nth-child(2) th {
@@ -487,13 +546,81 @@ body {
   font-size: 11px;
 }
 
-.schedule-table .day-off {
-  background: var(--weekend-bg);
+.schedule-table th.day-workday,
+.schedule-table td.day-workday {
+  background: var(--calendar-workday-bg);
+  border-color: var(--calendar-workday-border);
+}
+
+.schedule-table th.day-holiday,
+.schedule-table td.day-holiday {
+  background: var(--calendar-holiday-bg);
+  border-color: var(--calendar-holiday-border);
+}
+
+.schedule-table thead th.day-holiday {
+  border-top: 1px solid var(--calendar-holiday-border);
+}
+
+.schedule-table th.day-weekend,
+.schedule-table td.day-weekend {
+  background: var(--calendar-weekend-bg);
+  border-color: var(--calendar-weekend-border);
+}
+
+.schedule-table th.day-preholiday,
+.schedule-table td.day-preholiday {
+  background: var(--calendar-preholiday-bg);
+  border-color: var(--calendar-preholiday-border);
+}
+
+.schedule-table thead th.day-preholiday {
+  border-bottom: 1px dashed var(--calendar-preholiday-dash);
+}
+
+.schedule-table td.day-preholiday {
+  border-bottom: 1px dashed var(--calendar-preholiday-dash);
+}
+
+.schedule-table thead th.day-holiday,
+.schedule-table thead th.day-weekend,
+.schedule-table thead th.day-preholiday {
+  position: sticky;
+}
+
+.schedule-table thead th.day-holiday::after,
+.schedule-table thead th.day-weekend::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+}
+
+.schedule-table thead th.day-holiday::after {
+  background: var(--calendar-micro-holiday);
+}
+
+.schedule-table thead th.day-weekend::after {
+  background: var(--calendar-micro-weekend);
+  box-shadow: 0 0 0 1px var(--calendar-weekend-border);
+}
+
+.schedule-table thead th.day-preholiday::after {
+  content: "◐";
+  position: absolute;
+  top: 1px;
+  right: 2px;
+  font-size: 6px;
+  line-height: 1;
+  color: var(--calendar-micro-preholiday);
 }
 
 /* предпраздничный (сокращённый рабочий день) — лёгкая метка */
-.pre-holiday {
-  outline: 2px solid rgba(220, 0, 0, 0.25);
+.day-preholiday {
+  outline: 2px solid var(--calendar-preholiday-dash);
   outline-offset: -2px;
 }
 
@@ -762,8 +889,8 @@ body {
   font-size: 10px;
   font-weight: 900;
   letter-spacing: 0.2px;
-  background: #ff2b2b;
-  color: #000;
+  background: var(--indicator-birthday-bg);
+  color: var(--indicator-birthday-text);
   cursor: pointer;
   user-select: none;
   z-index: 3;
@@ -831,8 +958,18 @@ body {
   background-color: var(--bg-alt);
 }
 
-.schedule-table tr.row-hover td.day-off {
-  background-color: var(--weekend-strong);
+.schedule-table tr.row-hover td.day-weekend,
+.schedule-table tr.row-hover td.day-holiday,
+.schedule-table tr.row-hover td.day-preholiday {
+  background-color: var(--calendar-weekend-bg);
+}
+
+.schedule-table tr.row-hover td.day-holiday {
+  background-color: var(--calendar-holiday-bg);
+}
+
+.schedule-table tr.row-hover td.day-preholiday {
+  background-color: var(--calendar-preholiday-bg);
 }
 
 /* ===== Легенда цветов смен ===== */

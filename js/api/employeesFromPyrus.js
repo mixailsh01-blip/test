@@ -1,6 +1,28 @@
 
 import { pyrusFetch } from "./pyrusAuth.js";
 
+const DEFAULT_L1_DEPTS = ["Операторы"];
+const DEFAULT_L2_DEPTS = ["Инженера 5/2", "Инженера 2/2", "Инженеры"];
+const DEFAULT_L2_ORDER = ["Инженеры", "Инженера 5/2", "Инженера 2/2"];
+
+let configCache = null;
+
+async function loadAppConfig() {
+  if (configCache) return configCache;
+
+  try {
+    const res = await fetch("/config.json", { cache: "no-store" });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+    configCache = json && typeof json === "object" ? json : {};
+  } catch (error) {
+    console.warn("Не удалось загрузить config.json, используем значения по умолчанию.", error);
+    configCache = {};
+  }
+
+  return configCache;
+}
+
 /**
  * Загружаем список сотрудников из Pyrus (/members) и раскладываем по линиям L1 / L2.
  * L1 = department_name: "Операторы"
@@ -14,6 +36,20 @@ import { pyrusFetch } from "./pyrusAuth.js";
  * }
  */
 export async function loadEmployeesFromPyrus() {
+  const config = await loadAppConfig();
+  const departmentsConfig = config?.departments?.byName ?? {};
+  const orderByNameConfig = config?.departments?.orderByName ?? {};
+
+  const l1Departments = Array.isArray(departmentsConfig.L1)
+    ? departmentsConfig.L1
+    : DEFAULT_L1_DEPTS;
+  const l2Departments = Array.isArray(departmentsConfig.L2)
+    ? departmentsConfig.L2
+    : DEFAULT_L2_DEPTS;
+  const l2OrderList = Array.isArray(orderByNameConfig.L2)
+    ? orderByNameConfig.L2
+    : DEFAULT_L2_ORDER;
+
   const res = await pyrusFetch("/members", { method: "GET" });
   const json = await res.json();
 
@@ -24,7 +60,8 @@ export async function loadEmployeesFromPyrus() {
   const byId = {};
   const byLine = { L1: [], L2: [], extra: [] };
 
-  const L2_DEPTS = new Set(["Инженера 5/2", "Инженера 2/2", "Инженеры"]);
+  const L1_DEPTS = new Set(l1Departments);
+  const L2_DEPTS = new Set(l2Departments);
 
   for (const m of members) {
     if (m.type !== "user" || m.banned) continue;
@@ -38,7 +75,7 @@ export async function loadEmployeesFromPyrus() {
     employees.push(emp);
     byId[emp.id] = emp;
 
-    if (emp.department_name === "Операторы") {
+    if (L1_DEPTS.has(emp.department_name)) {
       byLine.L1.push(emp);
     } else if (L2_DEPTS.has(emp.department_name)) {
       byLine.L2.push(emp);
@@ -47,8 +84,11 @@ export async function loadEmployeesFromPyrus() {
     }
   }
 
-  // сортировка L2: Инженеры, Инженера 5/2, Инженера 2/2
-  const orderL2 = { "Инженеры": 0, "Инженера 5/2": 1, "Инженера 2/2": 2 };
+  // сортировка L2: по конфигу, затем по имени
+  const orderL2 = l2OrderList.reduce((acc, name, index) => {
+    acc[name] = index;
+    return acc;
+  }, {});
   byLine.L2.sort((a, b) => {
     const oa = orderL2[a.department_name] ?? 99;
     const ob = orderL2[b.department_name] ?? 99;

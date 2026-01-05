@@ -52,7 +52,9 @@ function createTable({ employees, monthMeta, lineKey, shiftsByEmployee, onShiftC
     th.appendChild(weekdayDiv);
 
     if (dayInfo.isWeekend) {
-      th.classList.add("day-off");
+      th.classList.add("day-weekend");
+    } else {
+      th.classList.add("day-workday");
     }
 
     headerRow.appendChild(th);
@@ -87,7 +89,11 @@ function createTable({ employees, monthMeta, lineKey, shiftsByEmployee, onShiftC
     for (const dayInfo of monthMeta.days) {
       const td = document.createElement("td");
       td.className = "shift-cell";
-      if (dayInfo.isWeekend) td.classList.add("day-off");
+      if (dayInfo.isWeekend) {
+        td.classList.add("day-weekend");
+      } else {
+        td.classList.add("day-workday");
+      }
 
       const dateKey = dayInfo.dateKey;
       const shift = empShiftsMap.get(dateKey);

@@ -1,5 +1,11 @@
 // /js/api/pyrusAuth.js
-const N8N_GRAPH_URL = "https://quumahienot.beget.app/webhook/pyrus/graph";
+import { getConfigValue } from "../config.js";
+
+const N8N_GRAPH_URL = getConfigValue("graphHookUrl", {
+  defaultValue: "https://jolikcisout.beget.app/webhook/pyrus/graph",
+  required: true,
+});
+
 
 /**
  * Универсальный вызов Pyrus через n8n-хук /graph с type="pyrus-api".
@@ -79,4 +85,3 @@ export async function pyrusFetch(path, options = {}) {
     }
   };
 }
-

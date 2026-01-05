@@ -1,4 +1,28 @@
 // js/ui/shiftEditor.js
+import { getConfigValue } from "../config.js";
+
+const TIMEZONE_OFFSET_MIN = getConfigValue("timezone.localOffsetMin", {
+  defaultValue: 4 * 60,
+  required: true,
+});
+
+function formatTimezoneLabel(offsetMin) {
+  if (!Number.isFinite(offsetMin)) return "локальное время";
+
+  const sign = offsetMin >= 0 ? "+" : "-";
+  const absMin = Math.abs(offsetMin);
+  const hours = Math.floor(absMin / 60);
+  const minutes = absMin % 60;
+
+  if (minutes === 0) {
+    return `GMT${sign}${hours}`;
+  }
+  return `GMT${sign}${hours}:${String(minutes).padStart(2, "0")}`;
+}
+
+const TIMEZONE_LABEL = formatTimezoneLabel(TIMEZONE_OFFSET_MIN);
+
+
 
 /**
  * Панель редактирования смены.
@@ -33,6 +57,13 @@ let errorEl = null;
 
 let currentCtx = null;
 
+function updateTimezoneLabel() {
+  if (!backdropEl) return;
+  const labelEl = backdropEl.querySelector("#shift-editor-timezone-label");
+  if (!labelEl) return;
+  labelEl.textContent = `Время смены (${TIMEZONE_LABEL})`;
+}
+
 export function initShiftEditor({ getShiftsForLine, onApply }) {
   getShiftsForLineFn = getShiftsForLine;
   onApplyFn = onApply;
@@ -56,13 +87,26 @@ export function initShiftEditor({ getShiftsForLine, onApply }) {
         <div class="shift-editor-row">
           <label for="shift-editor-select">Шаблон смены</label>
           <select id="shift-editor-select"></select>
-        </div>
-        <div class="shift-editor-row">
-          <label>Время смены (локальное GMT+4)</label>
-          <div style="display:flex; gap:6px;">
-            <input id="shift-editor-start" type="time" min="00:00" max="23:59" style="flex:1;" />
-            <input id="shift-editor-end" type="time" min="00:00" max="23:59" style="flex:1;" />
-          </div>
+</div>
+<div class="shift-editor-row">
+  <label>Время смены (локальное ${TIMEZONE_LABEL})</label>
+  <div style="display:flex; gap:6px;">
+    <input
+      id="shift-editor-start"
+      type="time"
+      min="00:00"
+      max="23:59"
+      style="flex:1;"
+    />
+    <input
+      id="shift-editor-end"
+      type="time"
+      min="00:00"
+      max="23:59"
+      style="flex:1;"
+    />
+  </div>
+
         </div>
         <div class="shift-editor-row">
           <label for="shift-editor-amount">Сумма за смену, ₽</label>
@@ -109,6 +153,7 @@ export function initShiftEditor({ getShiftsForLine, onApply }) {
   });
 
   selectShiftEl.addEventListener("change", handleTemplateChange);
+
 }
 
 export function openShiftEditor(context) {

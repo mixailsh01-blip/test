@@ -1,5 +1,11 @@
 
 import { pyrusFetch } from "./pyrusAuth.js";
+import { getConfigValue } from "../config.js";
+
+const PYRUS_CATALOG_IDS = getConfigValue("pyrus.catalogs", {
+  defaultValue: { shifts: 281369 },
+  required: true,
+});
 
 /**
  * Загружаем справочник смен (catalog 281369) и формируем структуры по L1 и L2.
@@ -25,7 +31,7 @@ import { pyrusFetch } from "./pyrusAuth.js";
  * }
  */
 export async function loadShiftsFromCatalog() {
-  const res = await pyrusFetch("/catalogs/281369", { method: "GET" });
+  const res = await pyrusFetch(`/catalogs/${PYRUS_CATALOG_IDS.shifts}`, { method: "GET" });
   const json = await res.json();
 
   const catalog = Array.isArray(json) ? json[0] : json;

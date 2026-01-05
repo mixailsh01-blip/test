@@ -1,6 +1,8 @@
 // js/state/shiftDraftCache.js
+import { config } from "../config.js";
 
-const STORAGE_KEY = "graph_l1l2_shift_drafts_v1";
+const STORAGE_KEY = config.storage.keys.shiftDrafts;
+
 
 /**
  * key = `${employeeId}:${year}-${monthIndex}-${dayNumber}`

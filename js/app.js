@@ -2,6 +2,9 @@
 // Главный модуль SPA для графика смен L1/L2
 // Чистый vanilla JS.
 
+import { config, getConfigValue } from "./config.js";
+
+
 /**
  * Основные сущности:
  * - Авторизация через n8n /graph (type: "auth")
@@ -10,43 +13,37 @@
  * - UI: таблица, ховер строки, анимация ячеек, компактный поповер смены
  * - Система прав доступа: edit/view для L1 и L2
  */
+// Единый источник истины — нормализованный config.
+// window.APP_CONFIG оставляем только как отладочный дамп в config.js, без чтения здесь.
 
-const GRAPH_HOOK_URL = "https://quumahienot.beget.app/webhook/pyrus/graph";
+const GRAPH_HOOK_URL = getConfigValue("graphHookUrl", { required: true });
+
 const MAX_DAYS_IN_MONTH = 31;
-const LOCAL_TZ_OFFSET_MIN = 3 * 60; // GMT+4
+
+// Бизнес-часовой пояс (по умолчанию GMT+4)
+const TIMEZONE_OFFSET_MIN = getConfigValue("timezone.localOffsetMin", {
+  defaultValue: 4 * 60,
+  required: true,
+}); // GMT+4
+
+
 
 // -----------------------------
 // Конфиг вкладок (линий)
 // -----------------------------
-const LINE_KEYS_IN_UI_ORDER = [
-        "ALL",
-        "OP",
-        "OV",
-        "L2"
-      ];
-const LINE_LABELS = { ALL: "ВСЕ", OP: "ОП", OV: "ПНР", L2: "ТП" };
+const LINE_KEYS_IN_UI_ORDER = config.ui.lines.order;
+
+const LINE_LABELS = config.ui.lines.labels;
+
 // Жёсткая привязка department_id -> вкладка
-const LINE_DEPT_IDS = {
-  L1: [],
-  L2: [167976424],
-  OV: [174349984],
-  OP: [170374055], // важно: порядок групп
-  OU: [168659098],
-  AI: [],
-};
+const LINE_DEPT_IDS = config.departments.byLine;
 
 // Руководители/учредители (всегда сверху во "ВСЕ")
-const TOP_MANAGEMENT_IDS = [1194300, 1194304]; // Лузин, Сухачев
+const TOP_MANAGEMENT_IDS = config.management.topManagementIds; // Лузин, Сухачев
 
 // Pyrus: значение каталога "Линия/Отдел" (field id=1) в форме явок
-const PYRUS_LINE_ITEM_ID = {
-  L2: 174347209,
-  L1: 174347208,
-  OV: 174347211,
-  OU: 174347216,
-  AI: 174347217,
-  OP: 174347212,
-};
+const PYRUS_LINE_ITEM_ID = config.pyrusLineItemIdByLine;
+
 
 function resolvePyrusLineItemIdByDepartmentId(deptId) {
   if (deptId == null) return null;
@@ -61,9 +58,16 @@ function resolvePyrusLineItemIdByDepartmentId(deptId) {
 
 // Порядок групп (department_id) для сортировки внутри вкладок
 const DEPT_ORDER_BY_LINE = {
-  L2: LINE_DEPT_IDS.L2.slice(),
-  OP: LINE_DEPT_IDS.OP.slice(),
+  L2: config.departments.orderByLine.L2,
+  OP: config.departments.orderByLine.OP,
 };
+
+const PYRUS_CATALOG_IDS = config.pyrus.catalogs;
+
+const PYRUS_FORM_IDS = config.pyrus.forms;
+
+const PYRUS_FIELD_IDS = config.pyrus.fields;
+
 
 
 // Универсальный helper для n8n-обёртки Pyrus { success, data }
@@ -162,16 +166,37 @@ const scheduleCacheByLine = {
   L2: Object.create(null),
 };
 
-const STORAGE_KEYS = {
-  localChanges: "sm1_local_changes",
-  changeHistory: "sm1_change_history",
-  theme: "sm1_theme_preference",
-  currentLine: "sm1_current_line",
-  employeeFilters: "sm1_employee_filters",
-  cachedEmployees: "sm1_cached_employees",
-  cachedShiftTemplates: "sm1_cached_shift_templates",
-  cachedSchedulePrefix: "sm1_cached_schedule_",
+const STORAGE_KEYS = config.storage.keys;
+
+const CALENDAR_THEME_VAR_MAP = {
+  tableHeaderDayoffBg: "--table-header-dayoff-bg",
+  tableHeaderPreholidayBg: "--table-header-preholiday-bg",
+  calendarHolidayBg: "--calendar-holiday-bg",
+  calendarHolidayBorder: "--calendar-holiday-border",
+  calendarWeekendBg: "--calendar-weekend-bg",
+  calendarPreholidayBg: "--calendar-preholiday-bg",
+  calendarPreholidayDash: "--calendar-preholiday-dash",
+  weekendBg: "--weekend-bg",
+  weekendStrong: "--weekend-strong",
 };
+
+const CALENDAR_INDICATOR_VAR_MAP = {
+  birthdayBg: "--indicator-birthday-bg",
+  birthdayText: "--indicator-birthday-text",
+};
+
+function applyThemeConfigVariables() {
+  const indicators = config.calendar?.indicators ?? {};
+  const rootStyle = document.documentElement.style;
+
+  for (const [key, cssVar] of Object.entries(CALENDAR_INDICATOR_VAR_MAP)) {
+    const value = indicators[key];
+    if (typeof value === "string") {
+      rootStyle.setProperty(cssVar, value);
+    }
+  }
+}
+
 
 function deepClone(obj) {
   return JSON.parse(JSON.stringify(obj));
@@ -197,8 +222,10 @@ function canViewLine(line) {
 // Персистентная авторизация (localStorage + cookie)
 // -----------------------------
 
-const AUTH_STORAGE_KEY = "sm_graph_auth_v1";
-const AUTH_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 дней
+const AUTH_STORAGE_KEY = config.storage.auth.key;
+const AUTH_TTL_MS = config.storage.auth.ttlMs; // 7 дней
+const AUTH_COOKIE_DAYS = config.storage.auth.cookieDays;
+
 
 function setCookie(name, value, days) {
   try {
@@ -234,7 +261,7 @@ function saveAuthCache(login) {
     localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(payload));
   } catch (_) {}
   // Дублируем в cookie (минимальный объём) — на случай очистки localStorage
-  setCookie(AUTH_STORAGE_KEY, JSON.stringify(payload), 7);
+  setCookie(AUTH_STORAGE_KEY, JSON.stringify(payload), AUTH_COOKIE_DAYS);
 }
 
 function loadAuthCache() {
@@ -343,8 +370,7 @@ function convertUtcStartToLocalRange(utcIsoString, durationMinutes) {
   const startUtc = new Date(utcIsoString);
   if (Number.isNaN(startUtc.getTime())) return null;
 
-  const startLocalMs =
-    startUtc.getTime() + LOCAL_TZ_OFFSET_MIN * 60 * 1000;
+  const startLocalMs = startUtc.getTime() + TIMEZONE_OFFSET_MIN * 60 * 1000;
   const startLocalDate = new Date(startLocalMs);
 
   const startHH = String(startLocalDate.getUTCHours()).padStart(2, "0");
@@ -404,8 +430,7 @@ function convertLocalRangeToUtcWithMeta(year, monthIndex, day, startLocal, endLo
     if (startMin == null) return null;
     const hhNum = Math.floor(startMin / 60);
     const mmNum = startMin % 60;
-
-    const offsetMs = LOCAL_TZ_OFFSET_MIN * 60 * 1000;
+    const offsetMs = TIMEZONE_OFFSET_MIN * 60 * 1000;
     const baseUtcMs = Date.UTC(y, m, d, hhNum, mmNum);
     if (!Number.isFinite(baseUtcMs)) return null;
 
@@ -499,11 +524,12 @@ async function pyrusApi(path, method = "GET", body = null) {
 // -----------------------------
 // Производственный календарь РФ (isdayoff.ru) — помесячно, с кэшем и фолбеком на СБ/ВС
 // -----------------------------
-const PROD_CAL_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 дней
+const PROD_CAL_CONFIG = config.calendar.prodCal;
 
-function prodCalCacheKey(year, monthIndex) {
+function prodCalCacheKey(prodCalConfig, year, monthIndex) {
   const mm = String(monthIndex + 1).padStart(2, "0");
-  return `prodcal_ru_${year}-${mm}_pre1`;
+  const prefix = prodCalConfig.cacheKeyPrefix || "";
+  return `${prefix}${year}-${mm}_pre1`;
 }
 
 function formatYmdForKey(year, monthIndex, day) {
@@ -519,12 +545,14 @@ function formatYmdCompact(year, monthIndex, day) {
 }
 
 async function loadProdCalendarForMonth(year, monthIndex) {
-  const cacheKey = prodCalCacheKey(year, monthIndex);
+  const prodCalConfig = PROD_CAL_CONFIG;
+  const cacheKey = prodCalCacheKey(prodCalConfig, year, monthIndex);
+  const ttlMs = Number(prodCalConfig.ttlMs) || 0;
   try {
     const cachedRaw = localStorage.getItem(cacheKey);
     if (cachedRaw) {
       const cached = JSON.parse(cachedRaw);
-      if (cached && cached.fetchedAt && (Date.now() - cached.fetchedAt) < PROD_CAL_TTL_MS && cached.dayTypeByDay) {
+      if (cached && cached.fetchedAt && ttlMs > 0 && (Date.now() - cached.fetchedAt) < ttlMs && cached.dayTypeByDay) {
         return cached;
       }
     }
@@ -533,10 +561,19 @@ async function loadProdCalendarForMonth(year, monthIndex) {
   }
 
   const lastDay = new Date(year, monthIndex + 1, 0).getDate();
+  const urlTemplate = prodCalConfig.urlTemplate;
+  if (!urlTemplate) {
+    throw new Error("ProdCal urlTemplate is missing in config");
+  }
+  const month = String(monthIndex + 1).padStart(2, "0");
   const date1 = formatYmdCompact(year, monthIndex, 1);
   const date2 = formatYmdCompact(year, monthIndex, lastDay);
-
-  const url = `https://isdayoff.ru/api/getdata?date1=${date1}&date2=${date2}&cc=ru&pre=1`;
+  const url = String(urlTemplate)
+    .replace(/{year}/g, String(year))
+    .replace(/{month}/g, month)
+    .replace(/{lastDay}/g, String(lastDay))
+    .replace(/{date1}/g, date1)
+    .replace(/{date2}/g, date2);
 
   const resp = await fetch(url, { method: "GET" });
   const text = (await resp.text()).trim();
@@ -549,7 +586,18 @@ async function loadProdCalendarForMonth(year, monthIndex) {
   const dayTypeByDay = Object.create(null);
   for (let d = 1; d <= lastDay; d++) {
     const ch = text[d - 1];
-    const code = ch === "0" ? 0 : ch === "1" ? 1 : ch === "2" ? 2 : null;
+    // Поддерживаемые коды isdayoff.ru: 0, 1, 2, 4, 8.
+    const code = ch === "0"
+      ? 0
+      : ch === "1"
+        ? 1
+        : ch === "2"
+          ? 2
+          : ch === "4"
+            ? 4
+            : ch === "8"
+              ? 8
+              : null;
     if (code !== null) dayTypeByDay[d] = code;
   }
 
@@ -620,7 +668,7 @@ let employeeFilterPopoverControlsEl = null;
 // Инициализация
 // -----------------------------
 
-function init() {
+async function init() {
   resetLocalEditingState();
   initTheme();
   loadCurrentLinePreference();
@@ -715,6 +763,8 @@ function persistChangeHistory() {
 }
 
 function initTheme() {
+  applyThemeConfigVariables();
+
   const storedTheme = localStorage.getItem(STORAGE_KEYS.theme);
   const preferredTheme = storedTheme === "light" ? "light" : "dark";
   applyTheme(preferredTheme);
@@ -732,11 +782,40 @@ function applyTheme(theme) {
   document.documentElement.setAttribute("data-theme", theme);
   localStorage.setItem(STORAGE_KEYS.theme, theme);
   updateThemeToggleUI();
+  applyCalendarUiTheme(theme);
 
   // Обновление цветов при смене темы
   if (typeof ShiftColors !== 'undefined' && ShiftColors.applyTheme) {
     ShiftColors.applyTheme(theme);
   }
+}
+
+function applyCalendarUiTheme(theme) {
+  const calendarUi = config.calendar?.ui ?? {};
+  const themeKey = theme === "light" ? "light" : "dark";
+  const themeConfig = calendarUi[themeKey] ?? calendarUi.light ?? {};
+  const rootStyle = document.documentElement.style;
+
+  const setVar = (name, value) => {
+    if (typeof value === "string") rootStyle.setProperty(name, value);
+  };
+
+  const applyDayVars = (type, values) => {
+    if (!values) return;
+    setVar(`--calendar-${type}-bg`, values.background);
+    setVar(`--calendar-${type}-border`, values.border);
+    setVar(`--calendar-${type}-dash`, values.dash);
+  };
+
+  applyDayVars("workday", themeConfig.workday);
+  applyDayVars("weekend", themeConfig.weekend);
+  applyDayVars("holiday", themeConfig.holiday);
+  applyDayVars("preholiday", themeConfig.preholiday);
+
+  const micro = themeConfig.microIndicators ?? {};
+  setVar("--calendar-micro-weekend", micro.weekend);
+  setVar("--calendar-micro-holiday", micro.holiday);
+  setVar("--calendar-micro-preholiday", micro.preholiday);
 }
 
 function updateThemeToggleUI() {
@@ -2005,7 +2084,7 @@ persistCachedEmployees();
 }
 
 async function loadShiftsCatalog() {
-  const raw = await pyrusApi("/v4/catalogs/283386", "GET");
+  const raw = await pyrusApi(`/v4/catalogs/${PYRUS_CATALOG_IDS.shifts}`, "GET");
   const data = unwrapPyrusData(raw);
 
   const catalog = Array.isArray(data) ? data[0] : data;
@@ -2109,13 +2188,14 @@ async function loadShiftsCatalog() {
 
 
 async function loadVacationsForMonth(year, monthIndex) {
-  const raw = await pyrusApi("/v4/forms/2383799/register", "GET");
+  const raw = await pyrusApi(`/v4/forms/${PYRUS_FORM_IDS.otpusk}/register`, "GET");
   const data = unwrapPyrusData(raw);
   const wrapper = Array.isArray(data) ? data[0] : data;
   const tasks = (wrapper && wrapper.tasks) || [];
 
   const vacationsByEmployee = Object.create(null);
-  const offsetMs = LOCAL_TZ_OFFSET_MIN * 60 * 1000;
+  const offsetMs = TIMEZONE_OFFSET_MIN * 60 * 1000;
+
 
   const monthStartShiftedMs = Date.UTC(year, monthIndex, 1, 0, 0, 0, 0);
   const monthEndShiftedMs = Date.UTC(year, monthIndex + 1, 1, 0, 0, 0, 0);
@@ -2141,8 +2221,12 @@ async function loadVacationsForMonth(year, monthIndex) {
 
   for (const task of tasks) {
     const fields = task.fields || [];
-    const personField = fields.find((f) => f && f.id === 1 && f.type === "person");
-    const periodField = fields.find((f) => f && f.id === 2 && f.type === "due_date_time");
+    const personField = fields.find(
+      (f) => f && f.id === PYRUS_FIELD_IDS.otpusk?.person && f.type === "person"
+    );
+    const periodField = fields.find(
+      (f) => f && f.id === PYRUS_FIELD_IDS.otpusk?.period && f.type === "due_date_time"
+    );
     if (!personField || !periodField) continue;
 
     const empId = personField.value && personField.value.id;
@@ -2201,7 +2285,7 @@ async function loadVacationsForMonth(year, monthIndex) {
 async function reloadScheduleForCurrentMonth() {
   const { year, monthIndex } = state.monthMeta;
 
-  const raw = await pyrusApi("/v4/forms/2383802/register", "GET");
+  const raw = await pyrusApi(`/v4/forms/${PYRUS_FORM_IDS.smeni}/register`, "GET");
   const data = unwrapPyrusData(raw);
 
   // Отпуска: внешняя система, только отображение
@@ -2267,10 +2351,12 @@ async function reloadScheduleForCurrentMonth() {
 
   for (const task of tasks) {
     const fields = task.fields || [];
-    const dueField = findField(fields, 4);
-    const moneyField = findField(fields, 5);
-    const personField = findField(fields, 8);
-    const shiftField = findField(fields, 10);
+    const dueField = findField(fields, PYRUS_FIELD_IDS.smeni?.due);
+    const moneyField = findField(fields, PYRUS_FIELD_IDS.smeni?.amount);
+    const personField = findField(fields, PYRUS_FIELD_IDS.smeni?.person);
+    const shiftFieldId =
+      PYRUS_FIELD_IDS.smeni?.shift ?? PYRUS_FIELD_IDS.smeni?.template;
+    const shiftField = findField(fields, shiftFieldId);
 
     if (!dueField || !personField || !shiftField) continue;
 
@@ -2456,6 +2542,7 @@ function renderScheduleCurrentLine() {
   thNameWrap.className = "employee-header";
 
   const thNameLabel = document.createElement("span");
+  thNameLabel.className = "header-text";
   thNameLabel.textContent = "Сотрудник";
 
   const filterBtn = document.createElement("button");
@@ -2497,7 +2584,7 @@ function renderScheduleCurrentLine() {
   const weekdayNames = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
   const { year, monthIndex } = state.monthMeta;
   const monthKey = `${year}-${String(monthIndex + 1).padStart(2, "0")}`;
-  const weekendDays = new Set(); // фактически "выходные дни" (по производственному календарю или фолбек СБ/ВС)
+  const dayKindByDay = Object.create(null);
 
   const prod = state.prodCalendar && state.prodCalendar.monthKey === monthKey ? state.prodCalendar : null;
 
@@ -2508,28 +2595,47 @@ function renderScheduleCurrentLine() {
     const dayType = prod && prod.dayTypeByDay ? prod.dayTypeByDay[day] : null;
     const isFallbackWeekend = weekday === "Сб" || weekday === "Вс";
 
-    const isDayOff = dayType === 1 || (dayType == null && isFallbackWeekend);
-    const isPreHoliday = dayType === 2;
+    const dayKind = dayType === 1
+      ? "weekend"
+      : dayType === 8
+        ? "holiday"
+        : dayType === 2
+          ? "preholiday"
+          : dayType === 0 || dayType === 4
+            ? "workday"
+            : dayType == null
+              ? (isFallbackWeekend ? "weekend" : "workday")
+              : null;
 
     const th1 = document.createElement("th");
-    th1.textContent = String(day);
-    if (isDayOff) th1.classList.add("day-off");
-    if (isPreHoliday) th1.classList.add("pre-holiday");
+const th1Label = document.createElement("span");
+th1Label.className = "header-text";
+th1Label.textContent = String(day);
+th1.appendChild(th1Label);
+
+    if (dayKind) {
+      th1.classList.add(`day-${dayKind}`);
+      dayKindByDay[day] = dayKind;
+    }
     headRow1.appendChild(th1);
 
     const th2 = document.createElement("th");
-    th2.textContent = weekday;
+    const th2Label = document.createElement("span");
+    th2Label.className = "header-text";
+    th2Label.textContent = weekday;
+    th2.appendChild(th2Label);
     th2.className = "weekday-header";
-    if (isDayOff) {
-      th2.classList.add("day-off");
-      weekendDays.add(day);
+    if (dayKind) {
+      th2.classList.add(`day-${dayKind}`);
     }
-    if (isPreHoliday) th2.classList.add("pre-holiday");
     headRow2.appendChild(th2);
   }
 
   const thSum1 = document.createElement("th");
-  thSum1.textContent = "Сумма";
+  const thSum1Label = document.createElement("span");
+  thSum1Label.className = "header-text";
+  thSum1Label.textContent = "Сумма";
+  thSum1.appendChild(thSum1Label);
   thSum1.className = "summary-cell";
   headRow1.appendChild(thSum1);
 
@@ -2647,8 +2753,9 @@ function renderScheduleCurrentLine() {
 
       const td = document.createElement("td");
       td.className = "shift-cell";
-      if (weekendDays.has(dayNumber)) {
-        td.classList.add("day-off");
+      const dayKind = dayKindByDay[dayNumber];
+      if (dayKind) {
+        td.classList.add(`day-${dayKind}`);
       }
 
       // Маркер дня рождения (один день). Показываем даже если в этот день есть смена.
@@ -3291,4 +3398,13 @@ function applyLocalChangesToSchedule() {
   }
 }
 
-document.addEventListener("DOMContentLoaded", init);
+const start = () =>
+  init().catch((err) => {
+    console.error("Init error:", err);
+  });
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", start);
+} else {
+  start();
+}
