@@ -3,6 +3,13 @@
 // Чистый vanilla JS.
 
 import { config, getConfigValue } from "./config.js";
+import { createGraphClient } from "./api/graphClient.js";
+import { createPyrusClient } from "./api/pyrusClient.js";
+import { createMembersService } from "./services/membersService.js";
+import { createCatalogsService } from "./services/catalogsService.js";
+import { createVacationsService } from "./services/vacationsService.js";
+import { createScheduleService } from "./services/scheduleService.js";
+import { createProdCalendarService } from "./services/prodCalendarService.js";
 
 
 /**
@@ -68,20 +75,65 @@ const PYRUS_FORM_IDS = config.pyrus.forms;
 
 const PYRUS_FIELD_IDS = config.pyrus.fields;
 
+const LINE_PERMISSION_KEYS = ["ALL", "OP", "OV", "OU", "AI", "L1", "L2"];
 
+const graphClient = createGraphClient({ graphHookUrl: GRAPH_HOOK_URL });
+const pyrusClient = createPyrusClient({ graphClient });
+const membersService = createMembersService({ pyrusClient });
+const catalogsService = createCatalogsService({ pyrusClient });
+const vacationsService = createVacationsService({
+  pyrusClient,
+  formId: PYRUS_FORM_IDS.otpusk,
+  fieldIds: PYRUS_FIELD_IDS.otpusk,
+  timezoneOffsetMin: TIMEZONE_OFFSET_MIN,
+});
+const scheduleService = createScheduleService({
+  pyrusClient,
+  formId: PYRUS_FORM_IDS.smeni,
+});
+const prodCalendarService = createProdCalendarService({ config });
 
-// Универсальный helper для n8n-обёртки Pyrus { success, data }
-function unwrapPyrusData(raw) {
-  if (
-    raw &&
-    typeof raw === "object" &&
-    Object.prototype.hasOwnProperty.call(raw, "data") &&
-    Object.prototype.hasOwnProperty.call(raw, "success")
-  ) {
-    return raw.data;
+const ROLE_MATRIX_BY_LINE = config.auth?.rolePermissions || null;
+
+function buildDefaultPermissions() {
+  const permissions = {};
+  for (const key of LINE_PERMISSION_KEYS) {
+    permissions[key] = "view";
   }
-  return raw;
+  return permissions;
 }
+
+function normalizePermissions(rawPermissions) {
+  const permissions = buildDefaultPermissions();
+  if (!rawPermissions || typeof rawPermissions !== "object") return permissions;
+
+  for (const key of LINE_PERMISSION_KEYS) {
+    const fallback = rawPermissions.ALL || "view";
+    const value = rawPermissions[key] || fallback;
+    permissions[key] = value === "edit" ? "edit" : "view";
+  }
+
+  return permissions;
+}
+
+function resolvePermissionsFromRoles(roles, configMatrix) {
+  const permissions = buildDefaultPermissions();
+  const matrix = configMatrix && typeof configMatrix === "object" ? configMatrix : null;
+  const normalizedRoles = Array.isArray(roles)
+    ? roles.map((role) => String(role).trim()).filter(Boolean)
+    : [];
+
+  if (!matrix || normalizedRoles.length === 0) return permissions;
+
+  for (const key of LINE_PERMISSION_KEYS) {
+    const allowedRoles = Array.isArray(matrix[key]) ? matrix[key] : [];
+    const hasRole = allowedRoles.some((role) => normalizedRoles.includes(String(role)));
+    if (hasRole) permissions[key] = "edit";
+  }
+
+  return permissions;
+}
+
 
 // -----------------------------
 // Глобальное состояние
@@ -90,6 +142,8 @@ function unwrapPyrusData(raw) {
 const state = {
   auth: {
     user: null,
+    roles: null,
+    memberId: null,
     permissions: {
       ALL: "view",
       OP: "view",
@@ -104,6 +158,7 @@ const state = {
     currentLine: "ALL",
     theme: "dark",
     isScheduleCached: false,
+    quickPanelBound: false,
   },
   quickMode: {
     enabled: false,
@@ -166,6 +221,20 @@ const scheduleCacheByLine = {
   L2: Object.create(null),
 };
 
+const DEFAULT_AUTH_PERMISSIONS = {
+  ALL: "view",
+  OP: "view",
+  OV: "view",
+  OU: "view",
+  AI: "view",
+  L1: "view",
+  L2: "view",
+};
+
+const AUTH_PERMISSION_KEYS = Object.keys(DEFAULT_AUTH_PERMISSIONS);
+
+const membersByEmail = new Map();
+
 const STORAGE_KEYS = config.storage.keys;
 
 const CALENDAR_THEME_VAR_MAP = {
@@ -202,6 +271,63 @@ function deepClone(obj) {
   return JSON.parse(JSON.stringify(obj));
 }
 
+function updateCurrentUserLabel(login) {
+  if (!currentUserLabelEl) return;
+  const name = state.auth.user?.name || "";
+  currentUserLabelEl.textContent = name || (login || state.auth.user?.login || "").trim();
+}
+
+function normalizeAuthUser(rawUser, overrides = {}) {
+  if (!rawUser && !overrides.login && !overrides.name && overrides.id == null && !overrides.roles) {
+    return null;
+  }
+  const source = rawUser || {};
+  const id = source.id ?? overrides.id ?? null;
+  const login = String(source.login ?? overrides.login ?? "").trim();
+  let name = String(source.name ?? overrides.name ?? "").trim();
+  if (!name) {
+    const firstName = source.first_name ?? source.firstName ?? overrides.first_name ?? overrides.firstName ?? "";
+    const lastName = source.last_name ?? source.lastName ?? overrides.last_name ?? overrides.lastName ?? "";
+    name = `${lastName} ${firstName}`.trim();
+  }
+  let rolesRaw = source.roles ?? overrides.roles ?? [];
+  if (!Array.isArray(rolesRaw)) rolesRaw = [];
+  const roles = rolesRaw.map((role) => String(role)).filter(Boolean);
+  return {
+    id,
+    login,
+    name,
+    roles,
+  };
+}
+
+function normalizeAuthPermissions(permissions) {
+  const normalized = { ...DEFAULT_AUTH_PERMISSIONS };
+  if (permissions && typeof permissions === "object") {
+    for (const [key, value] of Object.entries(permissions)) {
+      if (value) normalized[key] = value;
+    }
+  }
+  const fallback = normalized.ALL || DEFAULT_AUTH_PERMISSIONS.ALL;
+  for (const key of AUTH_PERMISSION_KEYS) {
+    if (!permissions || !Object.prototype.hasOwnProperty.call(permissions, key)) {
+      normalized[key] = fallback;
+    }
+  }
+  return normalized;
+}
+
+function applyAuthState({ user, permissions, login, name, id, roles } = {}) {
+  state.auth.user = normalizeAuthUser(user, {
+    login,
+    name,
+    id,
+    roles,
+  });
+  state.auth.permissions = normalizeAuthPermissions(permissions);
+  return state.auth.user;
+}
+
 // -----------------------------
 // Проверка прав доступа
 // -----------------------------
@@ -223,8 +349,12 @@ function canViewLine(line) {
 // -----------------------------
 
 const AUTH_STORAGE_KEY = config.storage.auth.key;
-const AUTH_TTL_MS = config.storage.auth.ttlMs; // 7 дней
+const AUTH_TTL_MS =
+  Number(config.storage.auth.sessionTtlMs ?? config.storage.auth.ttlMs) || 0; // 7 дней
 const AUTH_COOKIE_DAYS = config.storage.auth.cookieDays;
+const AUTH_EMAIL_CHECK_KEY = "sm_auth_email_last_check";
+
+const AUTH_METHOD_EMAIL = "email";
 
 
 function setCookie(name, value, days) {
@@ -249,12 +379,40 @@ function clearCookie(name) {
   } catch (_) {}
 }
 
+function clearAllCookies() {
+  try {
+    const cookies = document.cookie.split(";").map((cookie) => cookie.trim()).filter(Boolean);
+    cookies.forEach((cookie) => {
+      const name = cookie.split("=")[0];
+      if (name) clearCookie(name);
+    });
+  } catch (_) {}
+}
+
+function clearAllAppStorage() {
+  try {
+    localStorage.clear();
+  } catch (_) {}
+  try {
+    sessionStorage.clear();
+  } catch (_) {}
+}
+
+function clearAllCacheAndCookies() {
+  clearAllAppStorage();
+  clearAllCookies();
+}
+
 function saveAuthCache(login) {
   // пароль не сохраняем
   const payload = {
     savedAt: Date.now(),
+    authMethod: AUTH_METHOD_EMAIL,
     login: login || "",
     user: state.auth.user || null,
+    roles: state.auth.roles || null,
+    memberId: state.auth.memberId || null,
+
     permissions: state.auth.permissions || null,
   };
   try {
@@ -282,6 +440,21 @@ function loadAuthCache() {
   }
 }
 
+function readRawAuthCache() {
+  let raw = null;
+  try {
+    raw = localStorage.getItem(AUTH_STORAGE_KEY);
+  } catch (_) {}
+  if (!raw) raw = getCookie(AUTH_STORAGE_KEY);
+  if (!raw) return null;
+
+  try {
+    return JSON.parse(raw);
+  } catch (_) {
+    return null;
+  }
+}
+
 function clearAuthCache() {
   try {
     localStorage.removeItem(AUTH_STORAGE_KEY);
@@ -289,20 +462,57 @@ function clearAuthCache() {
   clearCookie(AUTH_STORAGE_KEY);
 }
 
+function getTodayDateString() {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function shouldCheckEmailToday() {
+  let lastCheck = null;
+  try {
+    lastCheck = localStorage.getItem(AUTH_EMAIL_CHECK_KEY);
+  } catch (_) {
+    return true;
+  }
+  return !lastCheck || lastCheck !== getTodayDateString();
+}
+
+function markEmailCheckedToday() {
+  try {
+    localStorage.setItem(AUTH_EMAIL_CHECK_KEY, getTodayDateString());
+  } catch (_) {}
+}
+
 function applyAuthCache(data) {
   if (!data) return false;
-  state.auth.user = data.user || null;
-  state.auth.permissions = data.permissions || state.auth.permissions;
-  // гарантируем ключи вкладок
-  for (const k of ["ALL","OP","OV","OU","AI","L1","L2"]) {
-    if (!Object.prototype.hasOwnProperty.call(state.auth.permissions, k)) {
-      state.auth.permissions[k] = state.auth.permissions.ALL || "view";
-    }
+state.auth.user = data.user || null;
+state.auth.roles = data.roles || state.auth.roles || null;
+state.auth.memberId = data.memberId || state.auth.memberId || null;
+state.auth.login = data.login || state.auth.login || null;
+
+if (state.auth.roles) {
+  state.auth.permissions = resolvePermissionsFromRoles(
+    state.auth.roles,
+    ROLE_MATRIX_BY_LINE
+  );
+} else {
+  state.auth.permissions = normalizePermissions(
+    data.permissions || state.auth.permissions
+  );
+}
+
+// гарантируем ключи вкладок
+for (const k of ["ALL", "OP", "OV", "OU", "AI", "L1", "L2"]) {
+  if (!Object.prototype.hasOwnProperty.call(state.auth.permissions, k)) {
+    state.auth.permissions[k] = state.auth.permissions.ALL || "view";
   }
+}
+
   const login = (data.login || state.auth.user?.login || "").trim();
-  if (currentUserLabelEl) {
-    currentUserLabelEl.textContent = `${state.auth.user?.name || ""}${login ? " (" + login + ")" : ""}`;
-  }
+  updateCurrentUserLabel(login);
   // сохраняем сессию независимо от наличия UI-элементов
   if (login || state.auth.user?.login) saveAuthCache(login);
 
@@ -473,150 +683,6 @@ function convertLocalRangeToUtc(day, startLocal, endLocal) {
 }
 
 // -----------------------------
-// API-слой
-// -----------------------------
-
-async function callGraphApi(type, payload) {
-  if (!type) {
-    throw new Error("callGraphApi: не указан тип хука");
-  }
-
-  const res = await fetch(GRAPH_HOOK_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ type, ...payload }),
-  });
-
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(
-      `Ошибка HTTP ${res.status}: ${res.statusText || ""}\n${text}`
-    );
-  }
-
-  return res.json();
-}
-
-async function auth(login, password) {
-  const result = await callGraphApi("auth", { login, password });
-
-  if (!result || result.status !== "ACCESS_GRANTED") {
-    throw new Error("Доступ запрещён (status != ACCESS_GRANTED)");
-  }
-
-  state.auth.user = result.user || null;
-  state.auth.permissions = result.permissions || { ALL: "view", OP: "view", OV: "view", OU: "view", AI: "view", L1: "view", L2: "view" };
-  // гарантируем ключи вкладок
-  for (const k of ["ALL","OP","OV","OU","AI","L1","L2"]) {
-    if (!Object.prototype.hasOwnProperty.call(state.auth.permissions, k)) {
-      state.auth.permissions[k] = state.auth.permissions.ALL || "view";
-    }
-  }
-  return result;
-}
-
-async function pyrusApi(path, method = "GET", body = null) {
-  const payload = { path, method };
-  if (body) payload.body = body;
-  return callGraphApi("pyrus_api", payload);
-}
-
-// -----------------------------
-// Производственный календарь РФ (isdayoff.ru) — помесячно, с кэшем и фолбеком на СБ/ВС
-// -----------------------------
-const PROD_CAL_CONFIG = config.calendar.prodCal;
-
-function prodCalCacheKey(prodCalConfig, year, monthIndex) {
-  const mm = String(monthIndex + 1).padStart(2, "0");
-  const prefix = prodCalConfig.cacheKeyPrefix || "";
-  return `${prefix}${year}-${mm}_pre1`;
-}
-
-function formatYmdForKey(year, monthIndex, day) {
-  const mm = String(monthIndex + 1).padStart(2, "0");
-  const dd = String(day).padStart(2, "0");
-  return `${year}-${mm}-${dd}`;
-}
-
-function formatYmdCompact(year, monthIndex, day) {
-  const mm = String(monthIndex + 1).padStart(2, "0");
-  const dd = String(day).padStart(2, "0");
-  return `${year}${mm}${dd}`;
-}
-
-async function loadProdCalendarForMonth(year, monthIndex) {
-  const prodCalConfig = PROD_CAL_CONFIG;
-  const cacheKey = prodCalCacheKey(prodCalConfig, year, monthIndex);
-  const ttlMs = Number(prodCalConfig.ttlMs) || 0;
-  try {
-    const cachedRaw = localStorage.getItem(cacheKey);
-    if (cachedRaw) {
-      const cached = JSON.parse(cachedRaw);
-      if (cached && cached.fetchedAt && ttlMs > 0 && (Date.now() - cached.fetchedAt) < ttlMs && cached.dayTypeByDay) {
-        return cached;
-      }
-    }
-  } catch (_) {
-    // ignore cache errors
-  }
-
-  const lastDay = new Date(year, monthIndex + 1, 0).getDate();
-  const urlTemplate = prodCalConfig.urlTemplate;
-  if (!urlTemplate) {
-    throw new Error("ProdCal urlTemplate is missing in config");
-  }
-  const month = String(monthIndex + 1).padStart(2, "0");
-  const date1 = formatYmdCompact(year, monthIndex, 1);
-  const date2 = formatYmdCompact(year, monthIndex, lastDay);
-  const url = String(urlTemplate)
-    .replace(/{year}/g, String(year))
-    .replace(/{month}/g, month)
-    .replace(/{lastDay}/g, String(lastDay))
-    .replace(/{date1}/g, date1)
-    .replace(/{date2}/g, date2);
-
-  const resp = await fetch(url, { method: "GET" });
-  const text = (await resp.text()).trim();
-
-  // Возможные ошибки: 100/101/199
-  if (!resp.ok || /^(100|101|199)$/.test(text) || text.length < lastDay) {
-    throw new Error(`ProdCal error: ${resp.status} ${text}`);
-  }
-
-  const dayTypeByDay = Object.create(null);
-  for (let d = 1; d <= lastDay; d++) {
-    const ch = text[d - 1];
-    // Поддерживаемые коды isdayoff.ru: 0, 1, 2, 4, 8.
-    const code = ch === "0"
-      ? 0
-      : ch === "1"
-        ? 1
-        : ch === "2"
-          ? 2
-          : ch === "4"
-            ? 4
-            : ch === "8"
-              ? 8
-              : null;
-    if (code !== null) dayTypeByDay[d] = code;
-  }
-
-  const payload = {
-    monthKey: `${year}-${String(monthIndex + 1).padStart(2, "0")}`,
-    fetchedAt: Date.now(),
-    dayTypeByDay,
-  };
-
-  try {
-    localStorage.setItem(cacheKey, JSON.stringify(payload));
-  } catch (_) {
-    // ignore storage quota / privacy mode
-  }
-
-  return payload;
-}
-
-// -----------------------------
 // DOM-ссылки
 // -----------------------------
 
@@ -625,12 +691,18 @@ const $ = (sel) => document.querySelector(sel);
 const loginScreenEl = $("#login-screen");
 const mainScreenEl = $("#main-screen");
 
-const loginFormEl = $("#login-form");
-const loginInputEl = $("#login-input");
-const passwordInputEl = $("#password-input");
-const loginErrorEl = $("#login-error");
-const loginButtonEl = $("#login-button");
-
+const emailInputEl = $("#email-input");
+const emailSendButtonEl = $("#email-send-button");
+const emailStepRequestEl = $("#email-step-request");
+const emailStepCodeEl = $("#email-step-code");
+const emailTargetLabelEl = $("#email-target-label");
+const emailChangeButtonEl = $("#email-change-button");
+const otpGroupEl = $("#otp-group");
+const otpInputs = otpGroupEl ? Array.from(otpGroupEl.querySelectorAll(".otp-input")) : [];
+const emailVerifyButtonEl = $("#email-verify-button");
+const emailResendButtonEl = $("#email-resend-button");
+const emailRequestErrorEl = $("#email-request-error");
+const emailCodeErrorEl = $("#email-code-error");
 const currentUserLabelEl = $("#current-user-label");
 const currentMonthLabelEl = $("#current-month-label");
 
@@ -642,6 +714,10 @@ const btnLogoutEl = $("#btn-logout");
 const btnSavePyrusEl = $("#btn-save-pyrus");
 const btnMobileToolbarEl = $("#btn-mobile-toolbar");
 const btnMobileToolbarCloseEl = $("#btn-mobile-toolbar-close");
+const btnLineTabsEl = $("#btn-line-tabs");
+const btnLegendToggleEl = $("#btn-legend-toggle");
+const shiftLegendEl = $("#shift-legend");
+const shiftLegendBackdropEl = $("#shift-legend-backdrop");
 
 const scheduleRootEl = $("#schedule-root");
 const quickTemplateSelectEl = $("#quick-template-select");
@@ -651,6 +727,26 @@ const quickAmountInputEl = $("#quick-amount");
 const quickModeToggleEl = $("#quick-mode-toggle");
 const changeLogListEl = $("#change-log-list");
 const btnClearHistoryEl = $("#btn-clear-history");
+
+function syncLoginBodyState() {
+  if (!loginScreenEl) return;
+  document.body.classList.toggle(
+    "login-active",
+    !loginScreenEl.classList.contains("hidden")
+  );
+}
+
+function showLoginScreen() {
+  mainScreenEl?.classList.add("hidden");
+  loginScreenEl?.classList.remove("hidden");
+  syncLoginBodyState();
+}
+
+function showMainScreen() {
+  loginScreenEl?.classList.add("hidden");
+  mainScreenEl?.classList.remove("hidden");
+  syncLoginBodyState();
+}
 
 // поповер смены
 let shiftPopoverEl = null;
@@ -663,6 +759,16 @@ let employeeFilterPopoverTitleEl = null;
 let employeeFilterPopoverMetaEl = null;
 let employeeFilterPopoverListEl = null;
 let employeeFilterPopoverControlsEl = null;
+let legendKeydownHandler = null;
+let lineTabsPopoverBackdropEl = null;
+let lineTabsPopoverEl = null;
+let lineTabsPopoverListEl = null;
+let lineTabsPopoverKeydownHandler = null;
+let monthPickerBackdropEl = null;
+let monthPickerEl = null;
+let monthPickerYearLabelEl = null;
+let monthPickerGridEl = null;
+let monthPickerKeydownHandler = null;
 
 // -----------------------------
 // Инициализация
@@ -674,19 +780,56 @@ async function init() {
   loadCurrentLinePreference();
   loadEmployeeFilters();
   initMonthMetaToToday();
-  bindLoginForm();
+  bindEmailAuth();
+  loadEmailAuthMembers();
 
   // Автовосстановление сессии (без повторного ввода пароля)
-  const cachedAuth = loadAuthCache();
-  if (cachedAuth && applyAuthCache(cachedAuth)) {
-    loginScreenEl?.classList.add("hidden");
-    mainScreenEl?.classList.remove("hidden");
+  const rawAuth = readRawAuthCache();
+  if (rawAuth && rawAuth.authMethod !== AUTH_METHOD_EMAIL) {
+    clearAllCacheAndCookies();
+    clearAuthCache();
+    state.auth.user = null;
+    state.auth.roles = null;
+    state.auth.memberId = null;
+    state.auth.permissions = buildDefaultPermissions();
+    showLoginScreen();
+  } else {
+    const cachedAuth = loadAuthCache();
+    if (cachedAuth && applyAuthCache(cachedAuth)) {
+      showMainScreen();
+      if (shouldCheckEmailToday()) {
+        const userEmail = normalizeEmail(state.auth.user?.login);
+        if (userEmail) {
+          try {
+            const data = await membersService.getMembers();
+            const members = membersService.extractMembersFromPyrusData(data);
+            const isKnownEmail = members.some(
+              (member) => normalizeEmail(member?.email) === userEmail
+            );
+            if (!isKnownEmail) {
+              clearAuthCache();
+              state.auth.user = null;
+              state.auth.roles = null;
+              state.auth.memberId = null;
+              state.auth.permissions = buildDefaultPermissions();
+              showLoginScreen();
+            } else {
+              markEmailCheckedToday();
+            }
+          } catch (err) {
+            console.error("Email check failed:", err);
+          }
+        }
+      }
+    }
   }
 
+  syncLoginBodyState();
   bindTopBarButtons();
   bindHistoryControls();
   createShiftPopover();
   createEmployeeFilterPopover();
+  createMonthPickerPopover();
   renderChangeLog();
 
   // Если восстановили сессию — загружаем данные как после логина
@@ -694,9 +837,10 @@ async function init() {
     loadInitialData().catch((err) => {
       console.error("Auto-login loadInitialData error:", err);
       clearAuthCache();
-      mainScreenEl.classList.add("hidden");
-      loginScreenEl?.classList.remove("hidden");
-      if (loginErrorEl) loginErrorEl.textContent = "Сессия истекла — войдите снова";
+      showLoginScreen();
+      if (emailRequestErrorEl) {
+        emailRequestErrorEl.textContent = "Сессия истекла — войдите снова";
+      }
     });
   }
 }
@@ -731,6 +875,120 @@ function updateMonthLabel() {
   currentMonthLabelEl.textContent = `${monthNames[monthIndex]} ${year}`;
 }
 
+function createMonthPickerPopover() {
+  if (monthPickerBackdropEl) return;
+  monthPickerBackdropEl = document.createElement("div");
+  monthPickerBackdropEl.className = "month-picker-backdrop hidden";
+
+  monthPickerEl = document.createElement("div");
+  monthPickerEl.className = "month-picker hidden";
+
+  const header = document.createElement("div");
+  header.className = "month-picker-header";
+
+  const prevYearBtn = document.createElement("button");
+  prevYearBtn.type = "button";
+  prevYearBtn.className = "btn toggle";
+  prevYearBtn.textContent = "‹";
+  prevYearBtn.setAttribute("aria-label", "Предыдущий год");
+
+  monthPickerYearLabelEl = document.createElement("div");
+  monthPickerYearLabelEl.className = "month-picker-year";
+
+  const nextYearBtn = document.createElement("button");
+  nextYearBtn.type = "button";
+  nextYearBtn.className = "btn toggle";
+  nextYearBtn.textContent = "›";
+  nextYearBtn.setAttribute("aria-label", "Следующий год");
+
+  header.appendChild(prevYearBtn);
+  header.appendChild(monthPickerYearLabelEl);
+  header.appendChild(nextYearBtn);
+
+  monthPickerGridEl = document.createElement("div");
+  monthPickerGridEl.className = "month-picker-grid";
+
+  monthPickerEl.appendChild(header);
+  monthPickerEl.appendChild(monthPickerGridEl);
+  monthPickerBackdropEl.appendChild(monthPickerEl);
+  document.body.appendChild(monthPickerBackdropEl);
+
+  const closeHandler = () => closeMonthPickerPopover();
+  monthPickerBackdropEl.addEventListener("click", (event) => {
+    if (event.target === monthPickerBackdropEl) closeHandler();
+  });
+
+  prevYearBtn.addEventListener("click", () => {
+    state.monthMeta.year -= 1;
+    renderMonthPicker();
+  });
+  nextYearBtn.addEventListener("click", () => {
+    state.monthMeta.year += 1;
+    renderMonthPicker();
+  });
+}
+
+function renderMonthPicker() {
+  if (!monthPickerGridEl || !monthPickerYearLabelEl) return;
+  const { year, monthIndex } = state.monthMeta;
+  monthPickerYearLabelEl.textContent = String(year);
+  monthPickerGridEl.innerHTML = "";
+
+  const monthLabels = [
+    "Янв",
+    "Фев",
+    "Мар",
+    "Апр",
+    "Май",
+    "Июн",
+    "Июл",
+    "Авг",
+    "Сен",
+    "Окт",
+    "Ноя",
+    "Дек",
+  ];
+
+  monthLabels.forEach((label, index) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "month-picker-month";
+    btn.textContent = label;
+    btn.setAttribute("aria-label", `${label} ${year}`);
+    if (index === monthIndex) btn.classList.add("active");
+    btn.addEventListener("click", () => {
+      state.monthMeta.monthIndex = index;
+      updateMonthLabel();
+      closeMonthPickerPopover();
+      reloadScheduleForCurrentMonth();
+    });
+    monthPickerGridEl.appendChild(btn);
+  });
+}
+
+function openMonthPickerPopover() {
+  if (!monthPickerBackdropEl || !monthPickerEl) return;
+  renderMonthPicker();
+  monthPickerBackdropEl.classList.remove("hidden");
+  monthPickerEl.classList.remove("hidden");
+  if (!monthPickerKeydownHandler) {
+    monthPickerKeydownHandler = (event) => {
+      if (event.key === "Escape") closeMonthPickerPopover();
+    };
+  }
+  document.addEventListener("keydown", monthPickerKeydownHandler);
+}
+
+function closeMonthPickerPopover() {
+  if (!monthPickerBackdropEl || !monthPickerEl) return;
+  monthPickerBackdropEl.classList.add("hidden");
+  monthPickerEl.classList.add("hidden");
+  if (monthPickerKeydownHandler) {
+    document.removeEventListener("keydown", monthPickerKeydownHandler);
+    monthPickerKeydownHandler = null;
+  }
+}
+
 function resetLocalEditingState() {
   state.localChanges = {};
   state.changeHistory = [];
@@ -760,6 +1018,358 @@ function persistChangeHistory() {
   } catch (err) {
     console.warn("Не удалось сохранить историю", err);
   }
+}
+
+// -----------------------------
+// Авторизация: вкладки и OTP
+// -----------------------------
+
+const emailAuthState = {
+  step: "request",
+  targetEmail: "",
+  resendRemaining: 0,
+  timerId: null,
+  currentCode: "",
+  member: null,
+
+};
+
+function normalizeEmail(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function setMembersByEmail(members) {
+  membersByEmail.clear();
+  if (!Array.isArray(members)) return;
+  members.forEach((member) => {
+    const email = normalizeEmail(member?.email);
+    if (!email) return;
+    const firstName = member.first_name ?? member.firstName ?? "";
+    const lastName = member.last_name ?? member.lastName ?? "";
+    membersByEmail.set(email, {
+      ...member,
+      first_name: firstName,
+      last_name: lastName,
+      email: member.email || "",
+    });
+  });
+}
+
+function generateEmailAuthCode(length) {
+  const size = Math.max(1, Number(length) || 6);
+  const values = new Uint32Array(size);
+  crypto.getRandomValues(values);
+  return Array.from(values, (value) => String(value % 10)).join("");
+}
+
+async function sendEmailAuthCode(payload) {
+  return graphClient.callGraphApi("email", payload);
+}
+
+function clearAuthErrors() {
+  if (emailRequestErrorEl) emailRequestErrorEl.textContent = "";
+  if (emailCodeErrorEl) emailCodeErrorEl.textContent = "";
+  otpGroupEl?.classList.remove("error");
+}
+
+function resetEmailAuthState(keepEmail = true) {
+  clearResendTimer();
+  emailAuthState.step = "request";
+  emailAuthState.resendRemaining = 0;
+  emailAuthState.currentCode = "";
+  emailAuthState.member = null;
+  if (!keepEmail && emailInputEl) emailInputEl.value = "";
+  if (emailTargetLabelEl) emailTargetLabelEl.textContent = "—";
+  otpInputs.forEach((input) => {
+    input.value = "";
+  });
+  updateResendButton();
+  setEmailAuthStep("request");
+}
+
+function setEmailAuthStep(step) {
+  emailAuthState.step = step;
+  emailStepRequestEl?.classList.toggle("hidden", step !== "request");
+  emailStepCodeEl?.classList.toggle("hidden", step !== "code");
+  clearAuthErrors();
+  if (step === "request") {
+    emailInputEl?.focus();
+  } else {
+    otpInputs[0]?.focus();
+  }
+}
+
+function normalizeOtpValue(value) {
+  return value.replace(/\D/g, "");
+}
+
+function setOtpError(message) {
+  if (emailCodeErrorEl) emailCodeErrorEl.textContent = message || "";
+  otpGroupEl?.classList.toggle("error", Boolean(message));
+}
+
+function getOtpValue() {
+  return otpInputs.map((input) => input.value).join("");
+}
+
+function fillOtpFromString(value) {
+  const digits = normalizeOtpValue(value).slice(0, otpInputs.length).split("");
+  otpInputs.forEach((input, index) => {
+    input.value = digits[index] || "";
+  });
+  const nextIndex = Math.min(digits.length, otpInputs.length - 1);
+  otpInputs[nextIndex]?.focus();
+}
+
+function handleOtpInput(event) {
+  const input = event.target;
+  const index = otpInputs.indexOf(input);
+  const clean = normalizeOtpValue(input.value);
+  input.value = clean.slice(-1);
+  setOtpError("");
+  if (input.value && index < otpInputs.length - 1) {
+    otpInputs[index + 1].focus();
+  }
+}
+
+function handleOtpKeydown(event) {
+  const input = event.target;
+  const index = otpInputs.indexOf(input);
+  if (event.key === "Backspace" && !input.value && index > 0) {
+    otpInputs[index - 1].value = "";
+    otpInputs[index - 1].focus();
+    event.preventDefault();
+  }
+  if (event.key === "ArrowLeft" && index > 0) {
+    otpInputs[index - 1].focus();
+    event.preventDefault();
+  }
+  if (event.key === "ArrowRight" && index < otpInputs.length - 1) {
+    otpInputs[index + 1].focus();
+    event.preventDefault();
+  }
+}
+
+function handleOtpPaste(event) {
+  const data = event.clipboardData?.getData("text");
+  if (!data) return;
+  event.preventDefault();
+  fillOtpFromString(data);
+}
+
+function updateResendButton() {
+  if (!emailResendButtonEl) return;
+  if (emailAuthState.resendRemaining > 0) {
+    emailResendButtonEl.disabled = true;
+    emailResendButtonEl.textContent = `Повторная отправка (${emailAuthState.resendRemaining}с)`;
+  } else {
+    emailResendButtonEl.disabled = false;
+    emailResendButtonEl.textContent = "Повторная отправка";
+  }
+}
+
+function clearResendTimer() {
+  if (emailAuthState.timerId) {
+    clearInterval(emailAuthState.timerId);
+    emailAuthState.timerId = null;
+  }
+}
+
+function startResendTimer() {
+  clearResendTimer();
+  emailAuthState.resendRemaining = 60;
+  updateResendButton();
+  emailAuthState.timerId = setInterval(() => {
+    emailAuthState.resendRemaining -= 1;
+    if (emailAuthState.resendRemaining <= 0) {
+      emailAuthState.resendRemaining = 0;
+      clearResendTimer();
+    }
+    updateResendButton();
+  }, 1000);
+}
+
+async function loadEmailAuthMembers() {
+  if (emailAuthState.membersLoaded || emailAuthState.membersLoading) return;
+  emailAuthState.membersLoading = true;
+  emailAuthState.membersLoadError = "";
+  try {
+    const { membersByEmail } = await membersService.getMembersIndex();
+    const normalizedMap = new Map();
+    for (const [email, member] of membersByEmail.entries()) {
+      normalizedMap.set(email, {
+        id: member.id,
+        first_name: member.first_name || "",
+        last_name: member.last_name || "",
+        email: member.email || "",
+      });
+    }
+    emailAuthState.membersByEmail = normalizedMap;
+    emailAuthState.membersLoaded = true;
+  } catch (err) {
+    console.error("Не удалось загрузить сотрудников для email-авторизации:", err);
+    emailAuthState.membersByEmail = new Map();
+    emailAuthState.membersLoaded = false;
+    emailAuthState.membersLoadError = "Не удалось проверить email, попробуйте позже";
+    if (emailRequestErrorEl) {
+      emailRequestErrorEl.textContent = emailAuthState.membersLoadError;
+    }
+  } finally {
+    emailAuthState.membersLoading = false;
+  }
+}
+
+function bindEmailAuth() {
+  if (!emailInputEl) return;
+  otpInputs.forEach((input) => {
+    input.addEventListener("input", handleOtpInput);
+    input.addEventListener("keydown", handleOtpKeydown);
+  });
+  otpGroupEl?.addEventListener("paste", handleOtpPaste);
+
+  emailSendButtonEl?.addEventListener("click", async () => {
+    clearAuthErrors();
+    const email = emailInputEl.value.trim();
+    const isValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    if (!isValid) {
+      if (emailRequestErrorEl) emailRequestErrorEl.textContent = "Введите корректный email";
+      emailInputEl.focus();
+      return;
+    }
+    if (!emailAuthState.membersLoaded) {
+      if (emailRequestErrorEl) {
+        emailRequestErrorEl.textContent =
+          emailAuthState.membersLoadError || "Не удалось проверить email, попробуйте позже";
+      }
+      return;
+    }
+
+    const normalizedEmail = normalizeEmail ? normalizeEmail(email) : String(email).trim().toLowerCase();
+
+    if (!emailAuthState.membersByEmail.has(normalizedEmail)) {
+      if (emailRequestErrorEl) {
+        emailRequestErrorEl.textContent =
+          "Email не найден — укажите почту которую используете для работы в Pyrus";
+      }
+      return;
+    }
+
+    const member = emailAuthState.membersByEmail.get(normalizedEmail);
+    const code = generateEmailAuthCode(config.auth.codeLength);
+    emailAuthState.currentCode = code;
+    emailAuthState.member = member;
+
+    emailAuthState.targetEmail = email;
+    if (emailTargetLabelEl) emailTargetLabelEl.textContent = email;
+    otpInputs.forEach((input) => {
+      input.value = "";
+    });
+    try {
+      await sendEmailAuthCode({
+        type: "email",
+        email,
+        code,
+        first_name: member.first_name || "",
+        last_name: member.last_name || "",
+      });
+    } catch (err) {
+      if (emailRequestErrorEl) {
+        emailRequestErrorEl.textContent = err?.message || "Не удалось отправить код";
+      }
+      return;
+    }
+    setEmailAuthStep("code");
+    startResendTimer();
+  });
+
+  emailChangeButtonEl?.addEventListener("click", () => {
+    setEmailAuthStep("request");
+  });
+
+  emailVerifyButtonEl?.addEventListener("click", async () => {
+    clearAuthErrors();
+    const code = getOtpValue();
+    if (code.length < otpInputs.length) {
+      setOtpError("Введите 6-значный код");
+      return;
+    }
+    if (code !== emailAuthState.currentCode) {
+      setOtpError("Неверный код. Попробуйте ещё раз");
+      return;
+    }
+    const member = emailAuthState.member;
+    const email = emailAuthState.targetEmail || "";
+if (!member?.id) {
+  setOtpError("Не удалось определить пользователя. Повторите вход.");
+  return;
+}
+
+let roles = null;
+try {
+  const data = await membersService.getMemberDetails({ id: member.id });
+  roles = data?.roles || null;
+} catch (err) {
+  setOtpError(err?.message || "Не удалось загрузить роли пользователя");
+  return;
+}
+
+state.auth.user = {
+  name: `${member?.last_name || ""} ${member?.first_name || ""}`.trim(),
+  login: email,
+};
+
+state.auth.roles = roles || null;
+state.auth.memberId = member.id;
+
+if (state.auth.roles) {
+  state.auth.permissions = resolvePermissionsFromRoles(
+    state.auth.roles,
+    ROLE_MATRIX_BY_LINE
+  );
+} else {
+  state.auth.permissions = buildDefaultPermissions();
+}
+
+    updateCurrentUserLabel(email);
+    saveAuthCache(email);
+    showMainScreen();
+    renderLineTabs();
+    updateLineToggleUI();
+    persistCurrentLinePreference();
+    loadInitialData();
+  });
+
+  emailResendButtonEl?.addEventListener("click", async () => {
+    if (emailAuthState.resendRemaining > 0) return;
+    clearAuthErrors();
+    const email = emailAuthState.targetEmail;
+    const normalizedEmail = normalizeEmail(email);
+    const member = emailAuthState.member || membersByEmail.get(normalizedEmail);
+    if (!member || !email) {
+      if (emailCodeErrorEl) {
+        emailCodeErrorEl.textContent = "Сначала запросите код по email";
+      }
+      return;
+    }
+    const code = generateEmailAuthCode(config.auth.codeLength);
+    emailAuthState.currentCode = code;
+    emailAuthState.member = member;
+    try {
+      await sendEmailAuthCode({
+        type: "email",
+        email,
+        code,
+        first_name: member.first_name || "",
+        last_name: member.last_name || "",
+      });
+    } catch (err) {
+      if (emailCodeErrorEl) {
+        emailCodeErrorEl.textContent = err?.message || "Не удалось отправить код";
+      }
+      return;
+    }
+    startResendTimer();
+  });
 }
 
 function initTheme() {
@@ -1072,6 +1682,73 @@ function closeEmployeeFilterPopover() {
   }
 }
 
+function createLineTabsPopover() {
+  if (lineTabsPopoverEl) return;
+
+  lineTabsPopoverBackdropEl = document.createElement("div");
+  lineTabsPopoverBackdropEl.className = "line-tabs-popover-backdrop hidden";
+
+  lineTabsPopoverEl = document.createElement("div");
+  lineTabsPopoverEl.className = "line-tabs-popover hidden";
+
+  const header = document.createElement("div");
+  header.className = "line-tabs-popover-header";
+
+  const title = document.createElement("div");
+  title.className = "line-tabs-popover-title";
+  title.textContent = "Отделы";
+
+  const closeBtn = document.createElement("button");
+  closeBtn.type = "button";
+  closeBtn.className = "line-tabs-popover-close";
+  closeBtn.textContent = "✕";
+  closeBtn.setAttribute("aria-label", "Закрыть список отделов");
+
+  lineTabsPopoverListEl = document.createElement("div");
+  lineTabsPopoverListEl.className = "line-tabs-popover-list";
+
+  header.appendChild(title);
+  header.appendChild(closeBtn);
+  lineTabsPopoverEl.appendChild(header);
+  lineTabsPopoverEl.appendChild(lineTabsPopoverListEl);
+  lineTabsPopoverBackdropEl.appendChild(lineTabsPopoverEl);
+  document.body.appendChild(lineTabsPopoverBackdropEl);
+
+  const closeHandler = () => closeLineTabsPopover();
+  closeBtn.addEventListener("click", closeHandler);
+  lineTabsPopoverBackdropEl.addEventListener("click", (event) => {
+    if (event.target === lineTabsPopoverBackdropEl) {
+      closeHandler();
+    }
+  });
+}
+
+function openLineTabsPopover() {
+  if (!lineTabsPopoverBackdropEl || !lineTabsPopoverEl) return;
+  lineTabsPopoverBackdropEl.classList.remove("hidden");
+  lineTabsPopoverEl.classList.remove("hidden");
+  document.body.classList.add("line-tabs-open");
+  if (!lineTabsPopoverKeydownHandler) {
+    lineTabsPopoverKeydownHandler = (event) => {
+      if (event.key === "Escape") {
+        closeLineTabsPopover();
+      }
+    };
+  }
+  document.addEventListener("keydown", lineTabsPopoverKeydownHandler);
+}
+
+function closeLineTabsPopover() {
+  if (!lineTabsPopoverBackdropEl || !lineTabsPopoverEl) return;
+  lineTabsPopoverBackdropEl.classList.add("hidden");
+  lineTabsPopoverEl.classList.add("hidden");
+  document.body.classList.remove("line-tabs-open");
+  if (lineTabsPopoverKeydownHandler) {
+    document.removeEventListener("keydown", lineTabsPopoverKeydownHandler);
+    lineTabsPopoverKeydownHandler = null;
+  }
+}
+
 function openEmployeeFilterPopover({
   line,
   rows,
@@ -1179,52 +1856,6 @@ function openEmployeeFilterPopover({
 // События
 // -----------------------------
 
-function bindLoginForm() {
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    loginErrorEl.textContent = "";
-
-    if (!loginFormEl) return;
-    const btn = loginFormEl.querySelector("button[type=submit]") || loginButtonEl;
-    if (btn) btn.disabled = true;
-
-    const login = loginInputEl.value.trim();
-    const password = passwordInputEl.value;
-
-    try {
-      const authResult = await auth(login, password);
-      currentUserLabelEl.textContent = `${
-        authResult.user?.name || ""
-      } (${login})`;
-
-      // кэшируем авторизацию, чтобы не логиниться после обновления страницы
-      saveAuthCache(login);
-
-
-      renderLineTabs();
-      updateLineToggleUI();
-      // если текущая вкладка недоступна — переключимся на первую доступную
-      if (!canViewLine(state.ui.currentLine)) {
-        const first = LINE_KEYS_IN_UI_ORDER.find((k) => canViewLine(k));
-        if (first) state.ui.currentLine = first;
-      }
-      persistCurrentLinePreference();
-      loginScreenEl.classList.add("hidden");
-      mainScreenEl.classList.remove("hidden");
-
-      await loadInitialData();
-    } catch (err) {
-      console.error("Auth error:", err);
-      loginErrorEl.textContent = err.message || "Ошибка авторизации";
-    } finally {
-      if (btn) btn.disabled = false;
-    }
-  };
-
-  loginFormEl?.addEventListener("submit", handleLogin);
-  loginButtonEl?.addEventListener("click", handleLogin);
-}
-
 function setCurrentLine(lineKey) {
   if (!canViewLine(lineKey)) return;
   state.ui.currentLine = lineKey;
@@ -1242,6 +1873,8 @@ function setCurrentLine(lineKey) {
 function renderLineTabs() {
   if (!lineTabsEl) return;
   lineTabsEl.innerHTML = "";
+  createLineTabsPopover();
+  if (lineTabsPopoverListEl) lineTabsPopoverListEl.innerHTML = "";
   for (const key of LINE_KEYS_IN_UI_ORDER) {
     if (!canViewLine(key)) continue;
     const btn = document.createElement("button");
@@ -1249,14 +1882,64 @@ function renderLineTabs() {
     btn.className = "btn toggle";
     btn.dataset.line = key;
     btn.textContent = LINE_LABELS[key] || key;
-    btn.addEventListener("click", () => { document.body.classList.remove("mobile-toolbar-open"); setCurrentLine(key); });
+    btn.addEventListener("click", () => {
+      document.body.classList.remove("mobile-toolbar-open");
+      setCurrentLine(key);
+    });
     lineTabsEl.appendChild(btn);
+
+    if (lineTabsPopoverListEl) {
+      const popoverBtn = document.createElement("button");
+      popoverBtn.type = "button";
+      popoverBtn.className = "btn toggle";
+      popoverBtn.dataset.line = key;
+      popoverBtn.textContent = LINE_LABELS[key] || key;
+      popoverBtn.addEventListener("click", () => {
+        setCurrentLine(key);
+        closeLineTabsPopover();
+      });
+      lineTabsPopoverListEl.appendChild(popoverBtn);
+    }
   }
   updateLineToggleUI();
 }
 
+function setLegendOpen(isOpen) {
+  if (!shiftLegendEl) return;
+  if (window.innerWidth > 768) {
+    shiftLegendEl.classList.remove("shift-legend-hidden", "shift-legend-modal");
+    document.body.classList.remove("legend-open");
+    btnLegendToggleEl?.setAttribute("aria-expanded", "true");
+    shiftLegendBackdropEl?.setAttribute("aria-hidden", "true");
+    if (legendKeydownHandler) {
+      document.removeEventListener("keydown", legendKeydownHandler);
+      legendKeydownHandler = null;
+    }
+    return;
+  }
+  shiftLegendEl.classList.toggle("shift-legend-hidden", !isOpen);
+  shiftLegendEl.classList.toggle("shift-legend-modal", isOpen);
+  document.body.classList.toggle("legend-open", isOpen);
+  btnLegendToggleEl?.setAttribute("aria-expanded", String(isOpen));
+  shiftLegendBackdropEl?.setAttribute("aria-hidden", String(!isOpen));
+
+  if (isOpen) {
+    if (!legendKeydownHandler) {
+      legendKeydownHandler = (event) => {
+        if (event.key === "Escape") {
+          setLegendOpen(false);
+        }
+      };
+    }
+    document.addEventListener("keydown", legendKeydownHandler);
+  } else if (legendKeydownHandler) {
+    document.removeEventListener("keydown", legendKeydownHandler);
+  }
+}
+
 function bindTopBarButtons() {
   renderLineTabs();
+  setLegendOpen(window.innerWidth <= 768 ? false : true);
 
   // Mobile bottom-sheet controls
   btnMobileToolbarEl?.addEventListener("click", () => {
@@ -1265,14 +1948,39 @@ function bindTopBarButtons() {
   btnMobileToolbarCloseEl?.addEventListener("click", () => {
     document.body.classList.remove("mobile-toolbar-open");
   });
+  btnLineTabsEl?.addEventListener("click", () => {
+    const isOpen = !document.body.classList.contains("line-tabs-open");
+    if (isOpen) openLineTabsPopover();
+    else closeLineTabsPopover();
+  });
+  btnLegendToggleEl?.addEventListener("click", () => {
+    const isOpen = !document.body.classList.contains("legend-open");
+    setLegendOpen(isOpen);
+  });
+  shiftLegendBackdropEl?.addEventListener("click", () => {
+    setLegendOpen(false);
+  });
+  currentMonthLabelEl?.addEventListener("click", () => {
+    openMonthPickerPopover();
+  });
+  window.addEventListener("resize", () => {
+    if (window.innerWidth > 768) {
+      closeLineTabsPopover();
+      setLegendOpen(true);
+    } else {
+      setLegendOpen(false);
+    }
+  });
 
   btnLogoutEl?.addEventListener("click", () => {
     clearAuthCache();
     state.auth.user = null;
-    state.auth.permissions = { ALL: "view", OP: "view", OV: "view", OU: "view", AI: "view", L1: "view", L2: "view" };
-    mainScreenEl?.classList.add("hidden");
-    loginScreenEl?.classList.remove("hidden");
-    if (loginErrorEl) loginErrorEl.textContent = "";
+    state.auth.roles = null;
+    state.auth.memberId = null;
+    state.auth.permissions = buildDefaultPermissions();
+
+    showLoginScreen();
+    clearAuthErrors();
     updateLineToggleUI();
   });
 btnPrevMonthEl.addEventListener("click", () => {
@@ -1312,6 +2020,11 @@ function updateLineToggleUI() {
     if (b.dataset.line === line) b.classList.add("active");
     else b.classList.remove("active");
   });
+  const popoverButtons = lineTabsPopoverListEl?.querySelectorAll('button[data-line]') || [];
+  popoverButtons.forEach((b) => {
+    if (b.dataset.line === line) b.classList.add("active");
+    else b.classList.remove("active");
+  });
 }
 
 
@@ -1333,6 +2046,8 @@ function initQuickAssignPanel() {
   renderQuickTemplateOptions();
   syncQuickPanelInputs();
   updateQuickModeToggleUI();
+
+  if (state.ui.quickPanelBound) return;
 
   quickTemplateSelectEl?.addEventListener("change", () => {
     const val = quickTemplateSelectEl.value;
@@ -1380,6 +2095,8 @@ function initQuickAssignPanel() {
     state.quickMode.enabled = !state.quickMode.enabled;
     updateQuickModeToggleUI();
   });
+
+  state.ui.quickPanelBound = true;
 }
 
 function renderQuickTemplateOptions() {
@@ -1749,7 +2466,7 @@ async function handleSaveToPyrus() {
       year: state.monthMeta.year,
     };
     
-    await callGraphApi("pyrus_save", { changes: payload, meta });
+    await graphClient.callGraphApi("pyrus_save", { changes: payload, meta });
     
     alert(`Изменения для линии ${currentLine} успешно отправлены в Pyrus.\n` +
           `Создано: ${payload.create.task.length}\n` +
@@ -1768,6 +2485,10 @@ async function handleSaveToPyrus() {
     persistLocalChanges();
     
     updateSaveButtonState();
+
+    const monthKey = getMonthKey(state.monthMeta.year, state.monthMeta.monthIndex);
+    scheduleService.invalidateMonthSchedule(monthKey);
+    await reloadScheduleForCurrentMonth();
     
   } catch (err) {
     console.error("handleSaveToPyrus error", err);
@@ -1964,22 +2685,23 @@ async function loadInitialData() {
     }
   } catch (err) {
     console.error("loadInitialData error:", err);
-    alert(`Ошибка загрузки данных: ${err.message || err}`);
   }
 }
 
 async function loadEmployees() {
-  const raw = await pyrusApi("/v4/members", "GET");
-  const data = unwrapPyrusData(raw);
+  const data = await membersService.getMembers();
 
   if (data.employeesByLine) {
     state.employeesByLine.L1 = data.employeesByLine.L1 || [];
     state.employeesByLine.L2 = data.employeesByLine.L2 || [];
+    const membersSource = Object.values(data.employeesByLine || {}).flat();
+    setMembersByEmail(membersSource);
     return;
   }
 
   const members = data.members || [];
   const employeesByLine = { ALL: [], OP: [], OV: [], L1: [], L2: [], AI: [], OU: [] };
+  setMembersByEmail(members);
 
 // Жёсткая маршрутизация по department_id (и отдельный TOP для вкладки "ВСЕ")
 for (const m of members) {
@@ -2084,8 +2806,7 @@ persistCachedEmployees();
 }
 
 async function loadShiftsCatalog() {
-  const raw = await pyrusApi(`/v4/catalogs/${PYRUS_CATALOG_IDS.shifts}`, "GET");
-  const data = unwrapPyrusData(raw);
+  const data = await catalogsService.getShiftsCatalog({ catalogId: PYRUS_CATALOG_IDS.shifts });
 
   const catalog = Array.isArray(data) ? data[0] : data;
   if (!catalog) return;
@@ -2187,110 +2908,15 @@ async function loadShiftsCatalog() {
 
 
 
-async function loadVacationsForMonth(year, monthIndex) {
-  const raw = await pyrusApi(`/v4/forms/${PYRUS_FORM_IDS.otpusk}/register`, "GET");
-  const data = unwrapPyrusData(raw);
-  const wrapper = Array.isArray(data) ? data[0] : data;
-  const tasks = (wrapper && wrapper.tasks) || [];
-
-  const vacationsByEmployee = Object.create(null);
-  const offsetMs = TIMEZONE_OFFSET_MIN * 60 * 1000;
-
-
-  const monthStartShiftedMs = Date.UTC(year, monthIndex, 1, 0, 0, 0, 0);
-  const monthEndShiftedMs = Date.UTC(year, monthIndex + 1, 1, 0, 0, 0, 0);
-  const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
-
-  const fmt = (shiftedMs) => {
-    const d = new Date(shiftedMs);
-    const dd = String(d.getUTCDate()).padStart(2, "0");
-    const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
-    const yy = d.getUTCFullYear();
-    return dd + "." + mm + "." + yy;
-  };
-
-  const isMidnight = (shiftedMs) => {
-    const d = new Date(shiftedMs);
-    return (
-      d.getUTCHours() === 0 &&
-      d.getUTCMinutes() === 0 &&
-      d.getUTCSeconds() === 0 &&
-      d.getUTCMilliseconds() === 0
-    );
-  };
-
-  for (const task of tasks) {
-    const fields = task.fields || [];
-    const personField = fields.find(
-      (f) => f && f.id === PYRUS_FIELD_IDS.otpusk?.person && f.type === "person"
-    );
-    const periodField = fields.find(
-      (f) => f && f.id === PYRUS_FIELD_IDS.otpusk?.period && f.type === "due_date_time"
-    );
-    if (!personField || !periodField) continue;
-
-    const empId = personField.value && personField.value.id;
-    if (!empId) continue;
-
-    const startIso = periodField.value;
-    const durationMin = Number(periodField.duration || 0);
-    if (!startIso || !durationMin) continue;
-
-    const startUtcMs = new Date(startIso).getTime();
-    if (Number.isNaN(startUtcMs)) continue;
-    const endUtcMs = startUtcMs + durationMin * 60 * 1000;
-
-    // Работаем в "смещённом" пространстве (utcMs + offset)
-    const startShiftedMs = startUtcMs + offsetMs;
-    const endShiftedMs = endUtcMs + offsetMs;
-
-    // Клип по текущему месяцу
-    const segStart = Math.max(startShiftedMs, monthStartShiftedMs);
-    const segEnd = Math.min(endShiftedMs, monthEndShiftedMs);
-    if (segStart >= segEnd) continue;
-
-    const startDay = new Date(segStart).getUTCDate();
-
-    // Диапазон [start, end)
-    const endDate = new Date(segEnd);
-    let endDayExclusive;
-    if (endDate.getUTCMonth() !== monthIndex) {
-      endDayExclusive = daysInMonth + 1;
-    } else {
-      endDayExclusive = endDate.getUTCDate();
-      if (!isMidnight(segEnd)) endDayExclusive += 1;
-    }
-
-    endDayExclusive = Math.max(1, Math.min(daysInMonth + 1, endDayExclusive));
-
-    // Для отображения: конец включительно
-    let endLabelShiftedMs = endShiftedMs;
-    if (isMidnight(endShiftedMs)) endLabelShiftedMs = endShiftedMs - 1;
-
-    (vacationsByEmployee[empId] = vacationsByEmployee[empId] || []).push({
-      startDay,
-      endDayExclusive,
-      startLabel: fmt(startShiftedMs),
-      endLabel: fmt(endLabelShiftedMs),
-    });
-  }
-
-  // Сортируем отпуска каждого сотрудника по началу
-  for (const empId of Object.keys(vacationsByEmployee)) {
-    vacationsByEmployee[empId].sort((a, b) => (a.startDay || 0) - (b.startDay || 0));
-  }
-
-  return vacationsByEmployee;
-}
 async function reloadScheduleForCurrentMonth() {
   const { year, monthIndex } = state.monthMeta;
-
-  const raw = await pyrusApi(`/v4/forms/${PYRUS_FORM_IDS.smeni}/register`, "GET");
-  const data = unwrapPyrusData(raw);
+  const monthKey = getMonthKey(year, monthIndex);
+  const scheduleResult = await scheduleService.loadMonthSchedule(monthKey);
+  if (!scheduleResult.isLatest) return;
 
   // Отпуска: внешняя система, только отображение
   try {
-    state.vacationsByEmployee = await loadVacationsForMonth(year, monthIndex);
+    state.vacationsByEmployee = await vacationsService.getVacationsForMonth(monthKey);
   } catch (e) {
     console.warn('Не удалось загрузить отпуска', e);
     state.vacationsByEmployee = {};
@@ -2298,12 +2924,17 @@ async function reloadScheduleForCurrentMonth() {
 
   // Производственный календарь РФ: помесячно (isdayoff.ru), с кэшем и фолбеком на СБ/ВС
   try {
-    state.prodCalendar = await loadProdCalendarForMonth(year, monthIndex);
+    state.prodCalendar = await prodCalendarService.getProdCalendarForMonth(year, monthIndex);
   } catch (e) {
     console.warn('Не удалось загрузить производственный календарь РФ, используем фолбек СБ/ВС', e);
     state.prodCalendar = null;
   }
 
+  if (monthKey !== getMonthKey(state.monthMeta.year, state.monthMeta.monthIndex)) {
+    return;
+  }
+
+  const data = scheduleResult.data;
   const wrapper = Array.isArray(data) ? data[0] : data;
   const tasks = (wrapper && wrapper.tasks) || [];
 
@@ -2316,8 +2947,6 @@ async function reloadScheduleForCurrentMonth() {
     AI: { days: [], rows: [], monthKey: null },
     OU: { days: [], rows: [], monthKey: null },
   };
-  const monthKey = getMonthKey(year, monthIndex);
-
   const shiftMapByLine = { ALL: Object.create(null), OP: Object.create(null), OV: Object.create(null), L1: Object.create(null), L2: Object.create(null), AI: Object.create(null), OU: Object.create(null) };
 
   // "Отдел" в значении смены из справочника может быть списком токенов
@@ -2631,6 +3260,19 @@ th1.appendChild(th1Label);
     headRow2.appendChild(th2);
   }
 
+  const thCount1 = document.createElement("th");
+  const thCount1Label = document.createElement("span");
+  thCount1Label.className = "header-text";
+  thCount1Label.textContent = "кол-во";
+  thCount1.appendChild(thCount1Label);
+  thCount1.className = "summary-cell";
+  headRow1.appendChild(thCount1);
+
+  const thCount2 = document.createElement("th");
+  thCount2.textContent = "";
+  thCount2.className = "summary-cell";
+  headRow2.appendChild(thCount2);
+
   const thSum1 = document.createElement("th");
   const thSum1Label = document.createElement("span");
   thSum1Label.className = "header-text";
@@ -2660,6 +3302,7 @@ th1.appendChild(th1Label);
     tr.appendChild(tdName);
 
     let totalAmount = 0;
+    let totalShifts = 0;
 
     const vacations = state.vacationsByEmployee[row.employeeId] || [];
     const vacationStarts = Object.create(null);
@@ -2808,6 +3451,7 @@ th1.appendChild(th1Label);
         td.appendChild(pill);
 
         totalAmount += shift.amount || 0;
+        totalShifts += 1;
       } else {
         td.classList.add("empty-shift");
       }
@@ -2837,6 +3481,11 @@ th1.appendChild(th1Label);
     }
 
 
+    const tdCount = document.createElement("td");
+    tdCount.className = "summary-cell";
+    tdCount.textContent = totalShifts > 0 ? String(totalShifts) : "";
+    tr.appendChild(tdCount);
+
     const tdSum = document.createElement("td");
     tdSum.className = "summary-cell";
     tdSum.textContent =
@@ -2849,7 +3498,7 @@ th1.appendChild(th1Label);
   emptyRow = document.createElement("tr");
   emptyRow.className = "employee-filter-empty hidden";
   const emptyCell = document.createElement("td");
-  emptyCell.colSpan = days.length + 2;
+  emptyCell.colSpan = days.length + 3;
   emptyCell.textContent = "Нет сотрудников для отображения по фильтру.";
   emptyRow.appendChild(emptyCell);
   tbody.appendChild(emptyRow);

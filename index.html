@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <title>График смен</title>
-  <meta name="viewport" content="width=1200, initial-scale=1.0, user-scalable=yes" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <link rel="stylesheet" href="css/styles.css" />
 </head>
 <body>
@@ -11,28 +11,52 @@
     <!-- Экран логина -->
     <div id="login-screen" class="card">
       <h1>График смен</h1>
-      <p class="muted">Вход по логину и паролю (через n8n <code>/graph</code>).</p>
+      <p class="muted">Вход по email с подтверждением кода.</p>
 
-      <form id="login-form">
-        <div class="field">
-          <span>Логин</span>
-          <input id="login-input" autocomplete="username" />
-        </div>
+      <div class="auth-panels">
+        <section class="auth-panel" data-auth-panel="email" role="tabpanel">
+          <p class="muted auth-panel-hint">Отправим код на ваш email для подтверждения.</p>
 
-        <div class="field">
-          <span>Пароль</span>
-          <input
-            id="password-input"
-            type="password"
-            autocomplete="current-password"
-          />
-        </div>
+          <div class="email-auth-step" id="email-step-request">
+            <div class="field">
+              <span>Email</span>
+              <input id="email-input" type="email" autocomplete="email" placeholder="name@company.ru" />
+            </div>
+            <button type="button" class="btn primary full-width" id="email-send-button">
+              Получить код
+            </button>
+            <div id="email-request-error" class="error"></div>
+          </div>
 
-        <button type="submit" class="btn primary full-width" id="login-button">
-          Войти
-        </button>
-        <div id="login-error" class="error"></div>
-      </form>
+          <div class="email-auth-step hidden" id="email-step-code">
+            <div class="email-auth-meta">
+              <span class="email-auth-label">Код отправлен на</span>
+              <span id="email-target-label" class="email-auth-target">—</span>
+              <button type="button" class="btn ghost email-change-button" id="email-change-button">
+                Изменить email
+              </button>
+            </div>
+            <div class="otp-group" id="otp-group" aria-label="Введите код подтверждения">
+              <input class="otp-input" inputmode="numeric" maxlength="1" aria-label="Цифра 1" />
+              <input class="otp-input" inputmode="numeric" maxlength="1" aria-label="Цифра 2" />
+              <input class="otp-input" inputmode="numeric" maxlength="1" aria-label="Цифра 3" />
+              <input class="otp-input" inputmode="numeric" maxlength="1" aria-label="Цифра 4" />
+              <input class="otp-input" inputmode="numeric" maxlength="1" aria-label="Цифра 5" />
+              <input class="otp-input" inputmode="numeric" maxlength="1" aria-label="Цифра 6" />
+            </div>
+            <div class="email-auth-actions">
+              <button type="button" class="btn primary full-width" id="email-verify-button">
+                Подтвердить
+              </button>
+              <button type="button" class="btn ghost full-width" id="email-resend-button">
+                Повторная отправка
+              </button>
+            </div>
+            <div id="email-code-error" class="error"></div>
+          </div>
+        </section>
+
+      </div>
     </div>
 
     <!-- Основной экран -->
@@ -50,13 +74,28 @@
           <button type="button" class="btn toggle" id="btn-logout" title="Сбросить авторизацию">
             🚪 Выйти
           </button>
+          <div class="schedule-actions">
+            <button type="button" class="btn toggle mobile-only" id="btn-mobile-toolbar">⚙️ Панель смены</button>
+            <button type="button" class="btn toggle mobile-only" id="btn-line-tabs">🏢 Отделы</button>
+            <button
+              type="button"
+              class="btn toggle"
+              id="btn-legend-toggle"
+              aria-controls="shift-legend"
+              aria-expanded="false"
+            >
+              🎨 Легенда
+            </button>
+          </div>
           <div id="line-tabs" class="line-tabs"></div>
 
           <div class="month-switcher">
             <button type="button" class="btn toggle" id="btn-prev-month">
               &#8249;
             </button>
-            <span id="current-month-label">Месяц</span>
+            <button type="button" id="current-month-label" class="month-label-button" aria-label="Выбрать месяц">
+              Месяц
+            </button>
             <button type="button" class="btn toggle" id="btn-next-month">
               &#8250;
             </button>
@@ -65,7 +104,6 @@
       </div>
 
       <div class="schedule-container">
-        <button type="button" class="btn toggle mobile-only" id="btn-mobile-toolbar">⚙️ Панель смены</button>
         <div class="schedule-toolbar">
           <div class="toolbar-group">
             <label for="quick-template-select">Шаблон смены</label>
@@ -102,7 +140,8 @@
         </div>
 
         <!-- Легенда цветов смен (динамически генерируется) -->
-        <div class="shift-legend" id="shift-legend">
+        <div class="shift-legend-backdrop" id="shift-legend-backdrop" aria-hidden="true"></div>
+        <div class="shift-legend shift-legend-hidden" id="shift-legend">
           <div class="shift-legend-title">Легенда цветов смен</div>
           <div class="shift-legend-groups" id="shift-legend-content">
             <!-- Будет заполнено динамически из JavaScript -->

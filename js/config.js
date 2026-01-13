@@ -7,6 +7,44 @@
 
 const DEFAULT_CONFIG = {
   graphHookUrl: "https://jolikcisout.beget.app/webhook/pyrus/graph",
+  auth: {
+    methods: {
+      loginPassword: {
+        enabled: true,
+      },
+      emailOtp: {
+        enabled: false,
+      },
+    },
+    ttlMs: 10 * 60 * 1000,
+    codeLength: 6,
+    resendTimerSec: 60,
+    uiTexts: {
+      title: "Вход",
+      subtitle: "Подтвердите доступ",
+      loginLabel: "Логин",
+      passwordLabel: "Пароль",
+      emailLabel: "Email",
+      otpLabel: "Код из письма",
+      submitLabel: "Продолжить",
+      resendLabel: "Отправить код ещё раз",
+      loadingLabel: "Проверяем данные...",
+      errorGeneric: "Не удалось войти. Попробуйте ещё раз.",
+    },
+    webhooks: {
+      emailInit: "",
+      emailVerify: "",
+    },
+    rolePermissions: {
+      ALL: [],
+      L1: [],
+      L2: [],
+      OP: [],
+      OV: [],
+      OU: [],
+      AI: [],
+    },
+  },
   timezone: {
     localOffsetMin: 4 * 60, // GMT+4
   },
@@ -24,6 +62,7 @@ const DEFAULT_CONFIG = {
     },
     auth: {
       key: "sm_graph_auth_v1",
+      sessionTtlMs: 7 * 24 * 60 * 60 * 1000,
       ttlMs: 7 * 24 * 60 * 60 * 1000,
       cookieDays: 7,
     },
@@ -154,6 +193,13 @@ indicators: {
 
 const REQUIRED_PATHS = [
   "graphHookUrl",
+  "auth",
+  "auth.methods",
+  "auth.ttlMs",
+  "auth.codeLength",
+  "auth.resendTimerSec",
+  "auth.uiTexts",
+  "auth.webhooks",
   "pyrus",
   "pyrus.catalogs",
   "pyrus.forms",
@@ -170,6 +216,14 @@ const REQUIRED_PATHS = [
 
 function normalizeConfig(config) {
   const root = config && typeof config === "object" ? config : {};
+
+  const auth = root.auth ?? {};
+  const authMethods = auth.methods ?? {};
+  const authMethodLoginPassword = authMethods.loginPassword ?? {};
+  const authMethodEmailOtp = authMethods.emailOtp ?? {};
+  const authUiTexts = auth.uiTexts ?? {};
+  const authWebhooks = auth.webhooks ?? {};
+  const authRolePermissions = auth.rolePermissions ?? {};
 
   const storage = root.storage ?? {};
   const storageKeys = storage.keys ?? {};
@@ -214,6 +268,35 @@ const calendarUiDarkMicro = calendarUiDark.microIndicators ?? {};
     ...root,
 
     graphHookUrl: root.graphHookUrl ?? DEFAULT_CONFIG.graphHookUrl,
+
+    auth: {
+      ...DEFAULT_CONFIG.auth,
+      ...auth,
+      methods: {
+        ...DEFAULT_CONFIG.auth.methods,
+        ...authMethods,
+        loginPassword: {
+          ...DEFAULT_CONFIG.auth.methods.loginPassword,
+          ...authMethodLoginPassword,
+        },
+        emailOtp: {
+          ...DEFAULT_CONFIG.auth.methods.emailOtp,
+          ...authMethodEmailOtp,
+        },
+      },
+      uiTexts: {
+        ...DEFAULT_CONFIG.auth.uiTexts,
+        ...authUiTexts,
+      },
+      webhooks: {
+        ...DEFAULT_CONFIG.auth.webhooks,
+        ...authWebhooks,
+      },
+      rolePermissions: {
+        ...DEFAULT_CONFIG.auth.rolePermissions,
+        ...authRolePermissions,
+      },
+    },
 
     timezone: {
       ...DEFAULT_CONFIG.timezone,

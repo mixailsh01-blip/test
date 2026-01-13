@@ -1,53 +1,112 @@
 {
-  "graphHookUrl": "https://quumahienot.beget.app/webhook/pyrus/graph",
+  "graphHookUrl": "https://jolikcisout.beget.app/webhook/pyrus/graph",
+  "auth": {
+    "methods": {
+      "loginPassword": {
+        "enabled": true
+      },
+      "emailOtp": {
+        "enabled": true
+      }
+    },
+    "ttlMs": 600000,
+    "codeLength": 6,
+    "resendTimerSec": 60,
+    "uiTexts": {
+      "title": "Вход",
+      "subtitle": "Подтвердите доступ",
+      "loginLabel": "Логин",
+      "passwordLabel": "Пароль",
+      "emailLabel": "Email",
+      "otpLabel": "Код из письма",
+      "submitLabel": "Продолжить",
+      "resendLabel": "Отправить код ещё раз",
+      "loadingLabel": "Проверяем данные...",
+      "errorGeneric": "Не удалось войти. Попробуйте ещё раз."
+    },
+    "webhooks": {
+      "emailInit": "https://example.com/webhook/auth/email/init",
+      "emailVerify": "https://example.com/webhook/auth/email/verify"
+    },
+    "rolePermissions": {
+      "ALL": [
+        1139300
+      ],
+      "L1": [
+        1139298
+      ],
+      "L2": [
+        1139300,
+        1139301
+      ],
+      "OP": [1139296],
+      "OV": [
+        1139297,
+        1195028
+      ],
+      "OU": [1139302],
+      "AI": [
+        1139300,
+        1225080
+      ]
+    }
+  },
   "pyrus": {
     "catalogs": {
-      "shifts": 283386
+      "shifts": 281369
     },
     "forms": {
-      "otpusk": 2383799,
-      "smeni": 2383802
+      "otpusk": 2348174,
+      "smeni": 2375272
     },
     "fields": {
       "otpusk": {
-        "person": 2,
-        "period": 1
+        "person": 1,
+        "period": 2
       },
       "smeni": {
         "person": 8,
-        "due": 5,
-        "amount": 6,
-        "template": 7
+        "due": 4,
+        "amount": 5,
+        "template": 10
       }
     }
   },
   "departments": {
     "byLine": {
       "L1": [
-        
+        108368027
       ],
       "L2": [
-        167976424
+        108368026,
+        171248779,
+        171248780
       ],
       "OV": [
-        174349984
+        80208117
       ],
       "OP": [
-        170374055
+        108368021,
+        157753518,
+        157753516
       ],
       "OU": [
-        168659098
+        108368030
       ],
       "AI": [
-        
+        166353950
       ]
     },
     "orderByLine": {
       "L2": [
-        167976424
+        108368026,
+        171248779,
+        171248780
       ],
       "OP": [
-        170374055
+        108368021,
+        157753518,
+        157753516
       ]
     },
     "byName": {
@@ -69,7 +128,7 @@
     }
   },
   "timezone": {
-    "localOffsetMin": 180
+    "localOffsetMin": 240
   },
   "ui": {
     "lines": {
@@ -77,29 +136,35 @@
         "ALL",
         "OP",
         "OV",
-        "L2"
+        "L1",
+        "L2",
+        "AI",
+        "OU"
       ],
       "labels": {
         "ALL": "ВСЕ",
-        "OP": "ОП",
-        "OV": "ПНР",
-        "L2": "ТП"
+        "OP": "OP",
+        "OV": "OV",
+        "L1": "L1",
+        "L2": "L2",
+        "AI": "AI",
+        "OU": "OU"
       }
     }
   },
   "management": {
     "topManagementIds": [
-      1194300,
-      1194304
+      1167305,
+      314287
     ]
   },
   "pyrusLineItemIdByLine": {
-    "L2": 174347209,
-    "L1": 174347208,
-    "OV": 174347211,
-    "OU": 174347216,
-    "AI": 174347217,
-    "OP": 174347212
+    "L2": 157816613,
+    "L1": 165474029,
+    "OV": 157816614,
+    "OU": 157816622,
+    "AI": 168065907,
+    "OP": 157816621
   },
   "storage": {
     "keys": {
@@ -115,6 +180,7 @@
     },
     "auth": {
       "key": "sm_graph_auth_v1",
+      "sessionTtlMs": 604800000,
       "ttlMs": 604800000,
       "cookieDays": 7
     }
@@ -133,13 +199,13 @@
           "dash": "transparent"
         },
         "weekend": {
-          "background": "#f2e8e8",
+          "background": "#fadddd",
           "border": "var(--table-border-strong)",
           "dash": "transparent"
         },
         "holiday": {
-          "background": "#fadddd",
-          "border": "#e06b6b",
+          "background": "#e3f0ff",
+          "border": "var(--table-border-strong)",
           "dash": "transparent"
         },
         "preholiday": {
@@ -148,7 +214,7 @@
           "dash": "#3a3522"
         },
         "microIndicators": {
-          "weekend": "#f2e8e8",
+          "weekend": "#3b82f6",
           "holiday": "#e06b6b",
           "preholiday": "#3a3522"
         }
@@ -160,13 +226,13 @@
           "dash": "transparent"
         },
         "weekend": {
-          "background": "#332626",
+          "background": "#4a2323",
           "border": "var(--table-border-strong)",
           "dash": "transparent"
         },
         "holiday": {
-          "background": "#4a2323",
-          "border": "#c45a5a",
+          "background": "#1e3a5f",
+          "border": "var(--table-border-strong)",
           "dash": "transparent"
         },
         "preholiday": {
@@ -175,8 +241,8 @@
           "dash": "#d1b84d"
         },
         "microIndicators": {
-          "weekend": "#332626",
-          "holiday": "#c45a5a",
+          "weekend": "#c45a5a",
+          "holiday": "#4fa3ff",
           "preholiday": "#d1b84d"
         }
       }

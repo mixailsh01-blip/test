@@ -10,16 +10,16 @@
   --border: #e0e0e0;
   --border-strong: #d0d0d0;
   --table-border: #e0e0e0;
-  --table-border-strong: #c0c0c0;
+  --table-border-strong: #d0d7e0;
   --table-header-bg: #f1f1f2;
   --calendar-workday-bg: transparent;
   --calendar-workday-border: var(--table-border-strong);
   --calendar-workday-dash: transparent;
-  --calendar-weekend-bg: #f2e8e8;
+  --calendar-weekend-bg: #e3f0ff;
   --calendar-weekend-border: var(--table-border-strong);
   --calendar-weekend-dash: transparent;
   --calendar-holiday-bg: #fadddd;
-  --calendar-holiday-border: #e06b6b;
+  --calendar-holiday-border: var(--table-border-strong);
   --calendar-holiday-dash: transparent;
   --calendar-preholiday-bg: #fff4cc;
   --calendar-preholiday-border: var(--table-border-strong);
@@ -72,9 +72,12 @@
 
   --shadow-strong: 0 6px 20px rgba(0, 0, 0, 0.06);
   --shadow-soft: 0 4px 12px rgba(0, 0, 0, 0.04);
-  --header-height: 64px;
+  --header-height: 0px;
+  --mobile-toolbar-height: 0px;
   --cell-size: 48px;
   --table-header-row-height: 24px;
+  --schedule-sticky-top: 0px;
+  --schedule-sticky-secondary-top: var(--table-header-row-height);
   --font: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
@@ -91,7 +94,7 @@ body.dark-theme {
   --border: #333333;
   --border-strong: #444444;
   --table-border: #333333;
-  --table-border-strong: #444444;
+  --table-border-strong: #2b2f36;
   --table-header-bg: #1a1a1a;
   --calendar-workday-bg: transparent;
   --calendar-workday-border: var(--table-border-strong);
@@ -100,7 +103,7 @@ body.dark-theme {
   --calendar-weekend-border: var(--table-border-strong);
   --calendar-weekend-dash: transparent;
   --calendar-holiday-bg: #4a2323;
-  --calendar-holiday-border: #c45a5a;
+  --calendar-holiday-border: var(--table-border-strong);
   --calendar-holiday-dash: transparent;
   --calendar-preholiday-bg: #e6c65c;
   --calendar-preholiday-border: var(--table-border-strong);
@@ -177,12 +180,34 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+body.legend-open {
+  overflow: hidden;
+}
+
 #app {
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 24px;
+}
+
+@media (max-width: 768px) {
+  html,
+  body {
+    height: 100%;
+  }
+
+  body.login-active {
+    overflow: hidden;
+  }
+
+  #app {
+    min-height: 100svh;
+    min-height: 100dvh;
+    padding: max(16px, env(safe-area-inset-top)) 16px
+      max(16px, env(safe-area-inset-bottom));
+  }
 }
 
 .hidden {
@@ -211,6 +236,45 @@ body {
 .muted {
   color: var(--text-muted);
   font-size: 14px;
+}
+
+.auth-tabs {
+  display: flex;
+  width: 100%;
+  justify-content: center;
+  gap: 8px;
+  padding: 6px;
+  margin-top: 16px;
+  border-radius: 999px;
+  background: var(--bg-alt);
+  border: 1px solid var(--border);
+}
+
+.auth-tab {
+  border: none;
+  border-radius: 999px;
+  padding: 8px 14px;
+  min-width: 140px;
+  font-size: 13px;
+  background: transparent;
+  color: var(--text-muted);
+  text-align: center;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.auth-tab.active {
+  background: var(--accent-soft);
+  color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+.auth-panels {
+  margin-top: 16px;
+}
+
+.auth-panel-hint {
+  margin: 0;
 }
 
 .field {
@@ -314,6 +378,69 @@ body {
   font-size: 13px;
 }
 
+.email-auth-step {
+  margin-top: 12px;
+}
+
+.email-auth-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.email-auth-target {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.email-change-button {
+  padding: 4px 10px;
+}
+
+.otp-group {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+  justify-content: space-between;
+}
+
+.otp-input {
+  flex: 1;
+  min-width: 44px;
+  max-width: 56px;
+  height: 54px;
+  border-radius: 12px;
+  border: 1px solid var(--border-strong);
+  background: var(--bg);
+  color: var(--text);
+  text-align: center;
+  font-size: 24px;
+  font-weight: 600;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.otp-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+  background: var(--bg-card);
+}
+
+.otp-group.error .otp-input {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 2px rgba(200, 0, 0, 0.15);
+}
+
+.email-auth-actions {
+  display: grid;
+  gap: 8px;
+  margin-top: 16px;
+}
+
 /* ===== Основной экран ===== */
 
 #main-screen {
@@ -352,6 +479,12 @@ body {
   gap: 8px;
 }
 
+.schedule-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .month-switcher {
   display: flex;
   align-items: center;
@@ -366,6 +499,87 @@ body {
 #current-month-label {
   font-size: 14px;
   color: var(--text-muted);
+}
+
+.month-label-button {
+  background: transparent;
+  border: none;
+  color: inherit;
+  font: inherit;
+  padding: 4px 6px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.month-label-button:hover,
+.month-label-button:focus-visible {
+  background: var(--bg);
+  color: var(--text);
+  outline: none;
+}
+
+.month-picker-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 80;
+}
+
+.month-picker {
+  width: min(320px, 90vw);
+  background: var(--bg-alt);
+  border: 1px solid var(--border-strong);
+  border-radius: 16px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25);
+  padding: 16px;
+  display: grid;
+  gap: 12px;
+}
+
+.month-picker-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.month-picker-year {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.month-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.month-picker-month {
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  padding: 8px 6px;
+  border-radius: 10px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.month-picker-month:hover,
+.month-picker-month:focus-visible {
+  border-color: var(--accent);
+  background: var(--bg-alt);
+  outline: none;
+}
+
+.month-picker-month.active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--text);
 }
 
 /* ===== Контейнер с таблицей ===== */
@@ -471,15 +685,16 @@ body {
 .schedule-table td.sticky-col {
   position: sticky;
   left: 0;
-  z-index: 2;
+  z-index: 4;
   background: var(--sticky-bg);
   min-width: 180px;
   max-width: 220px;
+  width: max-content;
   text-align: left;
 }
 
 .schedule-table thead th.sticky-col {
-  z-index: 3;
+  z-index: 9;
 }
 
 .schedule-table thead {
@@ -488,8 +703,8 @@ body {
 
 .schedule-table thead th {
   position: sticky;
-  top: 0;
-  z-index: 2;
+  top: var(--schedule-sticky-top);
+  z-index: 8;
   border-color: var(--table-border-strong);
   color: var(--text);
   height: var(--table-header-row-height);
@@ -538,7 +753,7 @@ body {
 }
 
 .schedule-table thead tr:nth-child(2) th {
-  top: var(--table-header-row-height);
+  top: var(--schedule-sticky-secondary-top);
 }
 
 .schedule-table .weekday-header {
@@ -564,7 +779,10 @@ body {
 
 .schedule-table th.day-weekend,
 .schedule-table td.day-weekend {
-  background: var(--calendar-weekend-bg);
+  background:
+    linear-gradient(135deg, rgba(255,255,255,0.04) 25%, transparent 25%, transparent 50%, rgba(255,255,255,0.04) 50%, rgba(255,255,255,0.04) 75%, transparent 75%, transparent),
+    var(--calendar-weekend-bg);
+  background-size: 10px 10px;
   border-color: var(--calendar-weekend-border);
 }
 
@@ -620,8 +838,7 @@ body {
 
 /* предпраздничный (сокращённый рабочий день) — лёгкая метка */
 .day-preholiday {
-  outline: 2px solid var(--calendar-preholiday-dash);
-  outline-offset: -2px;
+  outline: none
 }
 
 .schedule-table .shift-cell {
@@ -637,6 +854,9 @@ body {
 
 .schedule-table .employee-name {
   font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .schedule-table .employee-header-cell {
@@ -650,7 +870,16 @@ body {
   gap: 8px;
 }
 
+.employee-header .header-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .employee-filter-btn {
+  flex: 0 0 auto;
   width: 26px;
   height: 26px;
   border-radius: 8px;
@@ -981,6 +1210,38 @@ body {
   border: 1px solid var(--border);
   background: var(--bg-alt);
   transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.shift-legend-hidden {
+  display: none;
+}
+
+.shift-legend-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  z-index: 120;
+}
+
+body.legend-open .shift-legend-backdrop {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.shift-legend-modal {
+  position: fixed;
+  left: 50%;
+  bottom: calc(16px + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  width: min(520px, calc(100vw - 32px));
+  max-height: min(70vh, 520px);
+  overflow: auto;
+  z-index: 121;
+  box-shadow: var(--shadow-strong);
+  padding-bottom: calc(12px + env(safe-area-inset-bottom));
 }
 
 .shift-legend-title {
@@ -1466,14 +1727,87 @@ body {
 .line-tabs{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
 .line-tabs .btn{min-width:44px;}
 
+.line-tabs-popover-backdrop{
+  position:fixed;
+  inset:0;
+  background: rgba(0,0,0,0.35);
+  display:flex;
+  align-items:flex-end;
+  justify-content:center;
+  padding:16px;
+  z-index: 80;
+}
+
+.line-tabs-popover{
+  width: min(420px, 100%);
+  background: var(--card-bg);
+  border-radius: 16px;
+  border: 1px solid var(--border-strong);
+  box-shadow: var(--shadow-strong);
+  padding: 12px;
+  display:flex;
+  flex-direction:column;
+  gap: 12px;
+}
+
+.line-tabs-popover-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap: 12px;
+}
+
+.line-tabs-popover-title{
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--text);
+}
+
+.line-tabs-popover-close{
+  border:none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.line-tabs-popover-list{
+  display:grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px;
+}
+
+body.line-tabs-open{
+  overflow: hidden;
+}
+
 
 /* Mobile layout improvements */
 .mobile-only{display:none;}
 @media (max-width: 768px){
+  :root{
+    --header-height:48px;
+    --cell-size:28px;
+    --table-header-row-height:18px;
+
+  }
   .mobile-only{display:inline-flex;}
-  .top-bar{flex-direction:column;align-items:stretch;gap:10px;}
-  .top-bar-right{flex-wrap:wrap;justify-content:flex-start;}
+  .top-bar{
+    position:sticky;
+    top:0;
+    z-index:30;
+    background: var(--card-bg);
+    padding-top: env(safe-area-inset-top);
+    flex-direction:column;
+    align-items:stretch;
+    gap:6px;
+    padding-bottom: 6px;
+  }
+  .top-bar h2{font-size:16px;}
+  .top-bar-right{flex-wrap:wrap;justify-content:flex-start;gap:6px;}
+  .btn.toggle{padding-inline:10px;font-size:11px;}
   #line-tabs.line-tabs{
+    display:none;
     width:100%;
     order: 10;
     flex-wrap:nowrap;
@@ -1482,7 +1816,8 @@ body {
     padding:4px 0;
   }
   #line-tabs.line-tabs .btn{flex:0 0 auto;}
-  .month-switcher{width:100%;justify-content:space-between;}
+  .month-switcher{width:100%;justify-content:space-between;padding:2px 6px;gap:2px;}
+  #current-month-label{font-size:12px;}
   .schedule-container{position:relative;}
   /* Bottom sheet toolbar on mobile */
   .schedule-toolbar{
@@ -1510,8 +1845,47 @@ body {
     margin: 10px 0;
     width: fit-content;
   }
+  .schedule-actions{gap:6px;}
+  .shift-legend-modal{
+    width: calc(100vw - 24px);
+  }
   /* Ensure schedule grid not covered by toolbar */
   .schedule-scroll{
     padding-bottom: 90px;
+  }
+  .schedule-table{
+    min-width: 0;
+    font-size: 9px;
+  }
+  .schedule-table th,
+  .schedule-table td{
+    padding: 1px 2px;
+    font-size: 9px;
+  }
+  .schedule-table th.sticky-col,
+  .schedule-table td.sticky-col{
+    min-width: 120px;
+    max-width: 140px;
+  }
+  .schedule-table .employee-header-cell{
+    min-width: 140px;
+  }
+  .shift-pill{
+    padding: 3px 4px;
+    border-radius: 8px;
+    font-size: 8px;
+    line-height: 1.1;
+  }
+  .shift-pill.special{
+    padding: 4px 4px;
+    font-size: 8px;
+  }
+  .vacation-pill{
+    height: calc(var(--cell-size) - 4px);
+    border-radius: 8px;
+    font-size: 8px;
+  }
+  .shift-special-label{
+    font-size: 8px;
   }
 }
