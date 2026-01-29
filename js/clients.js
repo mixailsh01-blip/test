@@ -62,7 +62,9 @@ const topNavButtons = document.querySelectorAll(".top-nav [data-section]");
 const ACTIVE_SECTION_STORAGE_KEY = "posservice_active_section";
 const scheduleOnlyEls = document.querySelectorAll(".schedule-only");
 const clientsOnlyEls = document.querySelectorAll(".clients-only");
-const AUTH_STORAGE_KEY = "sm_graph_auth_v1";
+const AUTH_STORAGE_KEY = getConfigValue("storage.auth.key", {
+  defaultValue: "sm_graph_auth_v1",
+});
 const CLIENTS_PERMISSION_KEY = "OP";
 
 let clientsLoading = false;
@@ -91,17 +93,34 @@ let clientsDirtyKeys = new Set();
 let clientsSaveDefaultLabel = "";
 let clientsToastTimer = null;
 
-function hasClientsAccess() {
+function getCookie(name) {
+  if (!name) return null;
+  const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
+function readAuthPayload() {
+  let raw = null;
   try {
-    const raw = localStorage.getItem(AUTH_STORAGE_KEY);
-    if (!raw) return false;
-    const data = JSON.parse(raw);
-    const permissions = data?.permissions || {};
-    const value = permissions[CLIENTS_PERMISSION_KEY];
-    return value === "edit" || value === "view";
+    raw = localStorage.getItem(AUTH_STORAGE_KEY);
   } catch (_) {
-    return false;
+    raw = null;
   }
+  if (!raw) raw = getCookie(AUTH_STORAGE_KEY);
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw);
+  } catch (_) {
+    return null;
+  }
+}
+
+function hasClientsAccess() {
+  const data = readAuthPayload();
+  if (!data) return false;
+  const permissions = data?.permissions || {};
+  const value = permissions[CLIENTS_PERMISSION_KEY];
+  return value === "edit" || value === "view";
 }
 
 async function parseWebhookResponseMessage(response) {
