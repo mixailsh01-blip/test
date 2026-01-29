@@ -2719,7 +2719,7 @@ body.line-tabs-open{
   .top-bar{
     position:sticky;
     top:0;
-    z-index:30;
+    z-index:50;
     background: var(--card-bg);
     padding-top: env(safe-area-inset-top);
     flex-direction:column;
@@ -2776,6 +2776,8 @@ body.line-tabs-open{
   /* Ensure schedule grid not covered by toolbar */
   .schedule-scroll{
     padding-bottom: max(16px, env(safe-area-inset-bottom));
+    position: relative;
+    z-index: 1;
   }
   body.mobile-toolbar-open .schedule-scroll{
     padding-bottom: calc(90px + env(safe-area-inset-bottom));
@@ -2793,6 +2795,12 @@ body.line-tabs-open{
   .schedule-table td.sticky-col{
     min-width: 120px;
     max-width: 140px;
+  }
+  .schedule-table th.sticky-col{
+    z-index: 12;
+  }
+  .schedule-table td.sticky-col{
+    z-index: 2;
   }
   .schedule-table .employee-header-cell{
     min-width: 140px;
