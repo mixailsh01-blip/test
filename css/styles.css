@@ -2719,7 +2719,8 @@ body.line-tabs-open{
   .top-bar{
     position:sticky;
     top:0;
-    z-index:50;
+    z-index:200;
+    isolation: isolate;
     background: var(--card-bg);
     padding-top: env(safe-area-inset-top);
     flex-direction:column;
