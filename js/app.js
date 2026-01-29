@@ -690,6 +690,7 @@ const $ = (sel) => document.querySelector(sel);
 
 const loginScreenEl = $("#login-screen");
 const mainScreenEl = $("#main-screen");
+const topBarEl = document.querySelector(".top-bar");
 
 const emailInputEl = $("#email-input");
 const emailSendButtonEl = $("#email-send-button");
@@ -787,6 +788,27 @@ let monthPickerEl = null;
 let monthPickerYearLabelEl = null;
 let monthPickerGridEl = null;
 let monthPickerKeydownHandler = null;
+
+function updateScheduleStickyOffsets() {
+  if (!topBarEl) return;
+  if (window.innerWidth <= 768) {
+    const topBarHeight = topBarEl.offsetHeight || 0;
+    const rootStyles = getComputedStyle(document.documentElement);
+    const headerRowHeight =
+      Number.parseFloat(rootStyles.getPropertyValue("--table-header-row-height")) || 0;
+    document.documentElement.style.setProperty(
+      "--schedule-sticky-top",
+      `${topBarHeight}px`
+    );
+    document.documentElement.style.setProperty(
+      "--schedule-sticky-secondary-top",
+      `${topBarHeight + headerRowHeight}px`
+    );
+  } else {
+    document.documentElement.style.removeProperty("--schedule-sticky-top");
+    document.documentElement.style.removeProperty("--schedule-sticky-secondary-top");
+  }
+}
 
 // -----------------------------
 // Инициализация
@@ -1959,6 +1981,7 @@ function setLegendOpen(isOpen) {
 function bindTopBarButtons() {
   renderLineTabs();
   setLegendOpen(window.innerWidth <= 768 ? false : true);
+  updateScheduleStickyOffsets();
 
   // Mobile bottom-sheet controls
   btnMobileToolbarEl?.addEventListener("click", () => {
@@ -1989,6 +2012,7 @@ function bindTopBarButtons() {
     } else {
       setLegendOpen(false);
     }
+    updateScheduleStickyOffsets();
   });
 
   btnLogoutEl?.addEventListener("click", () => {
