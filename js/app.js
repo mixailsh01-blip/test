@@ -459,8 +459,15 @@ const hideContactShareModal = () => {
 };
 
 const notifyRegistrClient = (contact) => {
-  if (!contact?.phone_number) return;
-  if (!window.API?.sendRegistrClient) return;
+  if (!contact?.phone_number) {
+    console.warn('⚠️ [registr_client] Не вызываем: нет phone_number', contact);
+    return;
+  }
+  if (!window.API?.sendRegistrClient) {
+    console.warn('⚠️ [registr_client] Не вызываем: API.sendRegistrClient не найден');
+    return;
+  }
+  console.log('📨 [registr_client] Вызываем вебхук...');
   window.API.sendRegistrClient(contact, user, tg);
 };
 
@@ -468,6 +475,49 @@ const clientSupportResponseHasId = (result) => {
   if (!result) return false;
   const items = Array.isArray(result) ? result : [result];
   return items.some((item) => item && (item.ID || item.id));
+};
+
+const normalizeContactData = (raw) => {
+  if (!raw) return null;
+  const source = raw?.response?.contact ?? raw?.contact ?? raw?.user ?? raw?.response ?? raw;
+
+  const phone =
+    source?.phone_number ??
+    source?.phoneNumber ??
+    raw?.phone_number ??
+    raw?.phoneNumber ??
+    null;
+
+  const firstName =
+    source?.first_name ??
+    source?.firstName ??
+    raw?.first_name ??
+    raw?.firstName ??
+    user?.first_name ??
+    null;
+
+  const lastName =
+    source?.last_name ??
+    source?.lastName ??
+    raw?.last_name ??
+    raw?.lastName ??
+    user?.last_name ??
+    null;
+
+  const userId =
+    source?.user_id ??
+    source?.userId ??
+    raw?.user_id ??
+    raw?.userId ??
+    user?.id ??
+    null;
+
+  return {
+    phone_number: phone,
+    first_name: firstName,
+    last_name: lastName,
+    user_id: userId
+  };
 };
 
 const setupContactSharing = () => {
@@ -498,53 +548,45 @@ const setupContactSharing = () => {
       // Если результат true - контакт запрошен, данные нужно получить из initDataUnsafe
       if (result === true) {
         console.log('✅ Контакт запрошен, пытаемся получить данные...');
-        
-        // Попробуем получить данные через initDataUnsafe с небольшой задержкой
-        setTimeout(() => {
+
+        // Иногда phone_number появляется с задержкой. Пулим несколько раз.
+        let attemptsLeft = 6;
+        const tryReadInitData = () => {
           const initData = Telegram.WebApp.initDataUnsafe;
-          console.log('🔍 initDataUnsafe:', initData);
-          
-          if (initData?.user?.phone_number) {
+          console.log(`🔍 initDataUnsafe (попытка ${7 - attemptsLeft}/6):`, initData);
+
+          const normalized = normalizeContactData(initData?.user);
+          if (normalized?.phone_number) {
             console.log('✅ Получен контакт через initDataUnsafe');
-            const contact = {
-              phone_number: initData.user.phone_number,
-              first_name: initData.user.first_name,
-              last_name: initData.user.last_name,
-              user_id: initData.user.id
-            };
-            updateContactInfo(contact);
-            notifyRegistrClient(contact);
+            updateContactInfo(normalized);
+            notifyRegistrClient(normalized);
             hideContactShareModal();
-          } else {
-            // Если данных нет сразу, попробуем еще раз через 1 секунду
-            setTimeout(() => {
-              const initData2 = Telegram.WebApp.initDataUnsafe;
-              console.log('🔍 initDataUnsafe (повторная попытка):', initData2);
-              
-              if (initData2?.user?.phone_number) {
-                console.log('✅ Получен контакт через initDataUnsafe (повторная попытка)');
-                const contact = {
-                  phone_number: initData2.user.phone_number,
-                  first_name: initData2.user.first_name,
-                  last_name: initData2.user.last_name,
-                  user_id: initData2.user.id
-                };
-                updateContactInfo(contact);
-                notifyRegistrClient(contact);
-                hideContactShareModal();
-              } else {
-                console.warn('⚠️ Контакт запрошен, но данные не получены');
-                showContactInfo('Контакт запрошен. Если номер не отобразился, пожалуйста, перезапустите приложение.');
-              }
-            }, 1000);
+            return;
           }
-        }, 500);
+
+          attemptsLeft -= 1;
+          if (attemptsLeft <= 0) {
+            console.warn('⚠️ Контакт запрошен, но phone_number не появился в initDataUnsafe');
+            showContactInfo('Контакт запрошен. Если номер не отобразился, пожалуйста, перезапустите приложение.');
+            return;
+          }
+
+          setTimeout(tryReadInitData, 400);
+        };
+
+        setTimeout(tryReadInitData, 300);
         
       } else if (typeof result === 'object') {
         // Если сразу получили объект с данными
         console.log('✅ Получен контакт напрямую');
-        updateContactInfo(result);
-        notifyRegistrClient(result);
+        const normalized = normalizeContactData(result);
+        if (!normalized?.phone_number) {
+          console.warn('⚠️ Не удалось извлечь phone_number из объекта контакта:', result);
+          showContactError('Не удалось получить номер телефона. Попробуйте еще раз.');
+          return;
+        }
+        updateContactInfo(normalized);
+        notifyRegistrClient(normalized);
         hideContactShareModal();
       } else if (typeof result === 'string') {
         // Если получили строку (возможно URL-параметры)
@@ -552,8 +594,14 @@ const setupContactSharing = () => {
           const contact = parseContactString(result);
           if (contact) {
             console.log('✅ Получен контакт из строки');
-            updateContactInfo(contact);
-            notifyRegistrClient(contact);
+            const normalized = normalizeContactData(contact);
+            if (!normalized?.phone_number) {
+              console.warn('⚠️ Не удалось извлечь phone_number из строки контакта:', contact);
+              showContactError('Не удалось получить номер телефона. Попробуйте еще раз.');
+              return;
+            }
+            updateContactInfo(normalized);
+            notifyRegistrClient(normalized);
             hideContactShareModal();
           } else {
             console.warn('⚠️ Не удалось распарсить строку контакта:', result);
