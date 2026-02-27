@@ -485,6 +485,22 @@ const clientSupportResponseHasId = (result) => {
   return items.some((item) => item && (item.ID || item.id));
 };
 
+const pollClientSupportId = async ({ maxTries = 12, intervalMs = 800 } = {}) => {
+  if (!user?.id || !window.API?.sendClientTGSupport) return false;
+
+  for (let attempt = 1; attempt <= maxTries; attempt += 1) {
+    try {
+      const result = await window.API.sendClientTGSupport(user, tg);
+      if (clientSupportResponseHasId(result)) return true;
+    } catch (e) {
+      // ignore and retry
+    }
+    await new Promise((r) => setTimeout(r, intervalMs));
+  }
+
+  return false;
+};
+
 const normalizeContactData = (raw) => {
   if (!raw) return null;
   const source = raw?.response?.contact ?? raw?.contact ?? raw?.user ?? raw?.response ?? raw;
@@ -557,8 +573,14 @@ const setupContactSharing = () => {
       if (result === true) {
         console.log('✅ Контакт запрошен, пытаемся получить данные...');
 
-        // Вебхук должен вызываться после шаринга: фиксируем сам факт callback.
-        notifyRegistrClient({ phone_number: null }, { stage: 'requestContact_callback_true' });
+        // В большинстве случаев номер телефона НЕ доступен внутри WebApp.
+        // Он приходит боту отдельным сообщением. Поэтому вместо registr_client без номера
+        // ждём, пока backend начнёт возвращать ID через clientTG_support.
+        Telegram.WebApp?.showPopup?.({
+          title: 'Контакт',
+          message: 'Если вы поделились номером, подождите пару секунд. Обновляем доступ...',
+          buttons: [{ type: 'close' }]
+        });
 
         // Иногда phone_number появляется с задержкой. Пулим несколько раз.
         let attemptsLeft = 6;
@@ -578,7 +600,14 @@ const setupContactSharing = () => {
           attemptsLeft -= 1;
           if (attemptsLeft <= 0) {
             console.warn('⚠️ Контакт запрошен, но phone_number не появился в initDataUnsafe');
-            showContactInfo('Контакт запрошен. Если номер не отобразился, пожалуйста, перезапустите приложение.');
+            pollClientSupportId().then((ok) => {
+              if (ok) {
+                hideContactShareModal();
+                showContactInfo('Номер получен. Доступ обновлён.');
+              } else {
+                showContactInfo('Контакт отправлен в Telegram. Если доступ не обновился, перезапустите приложение.');
+              }
+            });
             return;
           }
 
