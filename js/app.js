@@ -1143,6 +1143,7 @@ const setupRequestDetailsView = () => {
   const sampleCard = document.getElementById('request-card-sample');
   const dialogModal = document.getElementById('request-dialog-modal');
   const closeBtn = document.getElementById('request-dialog-close');
+  const backBtn = document.getElementById('request-dialog-back');
 
   if (!sampleCard || !dialogModal || !closeBtn) return;
 
@@ -1174,6 +1175,7 @@ const setupRequestDetailsView = () => {
 
   sampleCard.addEventListener('click', openDialog);
   closeBtn.addEventListener('click', closeDialog);
+  backBtn?.addEventListener('click', closeDialog);
   dialogModal.addEventListener('click', (event) => {
     if (event.target === dialogModal) {
       closeDialog();
