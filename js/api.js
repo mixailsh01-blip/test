@@ -105,10 +105,27 @@ const API = {
     const basePayload = Array.isArray(establishmentsPayload)
       ? establishmentsPayload
       : (establishmentsPayload ? [establishmentsPayload] : []);
-    const payload = basePayload.map((item) => ({
-      ...item,
-      Iduser: userData?.id || null
-    }));
+    const payload = basePayload
+      .map((item) => {
+        const client = item?.Client ?? item?.client ?? item?.name ?? null;
+        const id = item?.ID ?? item?.Id ?? item?.id ?? null;
+        const number = item?.Nubmer ?? item?.Number ?? item?.number ?? null;
+
+        if (!client || !id) return null;
+
+        return {
+          Client: String(client),
+          ID: String(id),
+          ...(number ? { Nubmer: String(number) } : {}),
+          Iduser: userData?.id || null
+        };
+      })
+      .filter(Boolean);
+
+    if (payload.length === 0) {
+      console.warn('⚠️ [API] task_support не отправлен: нет валидных Client/ID');
+      return null;
+    }
 
     try {
       console.log('📤 [API] Отправляем task_support:', payload);

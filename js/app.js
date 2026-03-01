@@ -270,12 +270,21 @@ const handleQrResult = (data, stream) => {
             alert('QR отправлен, но заведение не получено');
           }
 
-          // Второй вебхук: отправляем исходный ответ первого хука как [{Client, ID}]
-          if (window.API?.sendTaskSupport && result) {
-            window.API.sendTaskSupport(result, user).then((taskSupportResponse) => {
-              // Пока просто сохраняем и логируем, формат ответов по заявкам уточним
-              window.lastTaskSupportResponse = taskSupportResponse;
-            });
+          // Второй вебхук: отправляем только валидные данные [{Client, ID}]
+          if (window.API?.sendTaskSupport) {
+            const taskSupportPayload = restaurants.map((restaurant) => ({
+              Client: restaurant.name,
+              ID: restaurant.id
+            }));
+
+            if (taskSupportPayload.length > 0) {
+              window.API.sendTaskSupport(taskSupportPayload, user).then((taskSupportResponse) => {
+                // Пока просто сохраняем и логируем, формат ответов по заявкам уточним
+                window.lastTaskSupportResponse = taskSupportResponse;
+              });
+            } else {
+              console.warn('⚠️ task_support не вызван: нет валидных Client/ID после QR');
+            }
           }
         })
         .catch((error) => {
