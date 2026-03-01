@@ -540,6 +540,10 @@ body.hide-main-logo #requests.page {
   line-height: 1.35;
 }
 
+.contact-share-progress.hidden {
+  display: none;
+}
+
 .contact-share-spinner {
   width: 18px;
   height: 18px;
