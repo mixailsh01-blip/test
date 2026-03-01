@@ -897,6 +897,9 @@ const setupNavigation = () => {
 const setupTableFiltersAndSorting = () => {
   const table = document.getElementById('requests-table');
   const tbody = document.getElementById('requests-table-body');
+  if (!table || !tbody) {
+    return;
+  }
   const originalRows = Array.from(tbody.querySelectorAll('tr'));
   
   let currentSort = {
@@ -911,6 +914,9 @@ const setupTableFiltersAndSorting = () => {
   };
 
   const clearFiltersBtn = document.getElementById('clear-filters');
+  if (!filterInputs.dateCreated || !filterInputs.dateCompleted || !filterInputs.establishment || !clearFiltersBtn) {
+    return;
+  }
 
   const applyFilters = () => {
     const filters = {

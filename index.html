@@ -21,7 +21,7 @@
   <link href="https://fonts.googleapis.com/css2?family=PT+Root+UI:wght@500;700&display=swap" rel="stylesheet">
   
   <!-- ==================== СТИЛИ ==================== -->
-  <link rel="stylesheet" href="css/style.css?v=20260227-2" />
+  <link rel="stylesheet" href="css/style.css?v=20260301-1" />
 </head>
 
 <body>
@@ -59,43 +59,37 @@
 
     <!-- Страница заявок -->
     <div id="requests" class="page">
-        <div class="table-filters">
-            <div class="filter-row">
-            <div class="filter-group">
-                <label for="filter-date-created">Дата создания:</label>
-                <input type="date" id="filter-date-created" class="filter-input">
-            </div>
-            <div class="filter-group">
-                <label for="filter-date-completed">Дата завершения:</label>
-                <input type="date" id="filter-date-completed" class="filter-input">
-            </div>
-            <div class="filter-group">
-                <label for="filter-establishment">Заведение:</label>
-                <select id="filter-establishment" class="filter-input">
-                <option value="">Все заведения</option>
-                </select>
-            </div>
-            <button id="clear-filters" class="btn-ClearFilters">Сбросить фильтры</button>
-            </div>
+      <div class="requests-modern requests-table">
+        <h2 class="requests-title">Заявки</h2>
+
+        <div class="requests-search-wrap">
+          <i class="fas fa-search requests-search-icon"></i>
+          <input class="requests-search-input" type="text" placeholder="Поиск" />
+          <button class="requests-filter-btn" aria-label="Фильтры">
+            <i class="fas fa-sliders-h"></i>
+          </button>
         </div>
-        
-        <div class="table-container requests-table">
-            <table class="main-table" id="requests-table">
-            <thead>
-                <tr>
-                <th class="sortable" data-column="number">Номер <span class="sort-arrow"></span></th>
-                <th class="sortable" data-column="date-created">Дата создания <span class="sort-arrow"></span></th>
-                <th class="sortable" data-column="date-completed">Дата завершения <span class="sort-arrow"></span></th>
-                <th class="sortable" data-column="establishment">Заведение <span class="sort-arrow"></span></th>
-                <th>Тема</th>
-                <th>Описание</th>
-                <th>Решение</th>
-                </tr>
-            </thead>
-            <tbody id="requests-table-body">
-            </tbody>
-            </table>
+
+        <div class="request-card">
+          <div class="request-card-top">
+            <span class="request-number">№101259 от 05.06</span>
+            <span class="request-status">Закрыта</span>
+          </div>
+          <div class="request-topic">Тестовая заявка</div>
+          <div class="request-meta">ООО "Ресторан Сервис" • Иван Кувшинов</div>
+          <div class="request-text">Мы в вас верим и обязательно дождемся))</div>
         </div>
+
+        <div class="requests-pagination">
+          <button class="requests-page-btn" disabled><i class="fas fa-angle-double-left"></i></button>
+          <button class="requests-page-btn" disabled><i class="fas fa-angle-left"></i></button>
+          <span class="requests-page-info">(1 of 1)</span>
+          <button class="requests-page-btn" disabled><i class="fas fa-angle-right"></i></button>
+          <button class="requests-page-btn" disabled><i class="fas fa-angle-double-right"></i></button>
+        </div>
+
+        <button class="btn-NewRequest"><i class="fas fa-plus"></i> Новая заявка</button>
+      </div>
     </div>
 
     <!-- Страница счетов -->
@@ -199,8 +193,8 @@
   </div>
 
 <!-- ==================== СКРИПТЫ ==================== -->
-<script src="js/api.js?v=20260227-11"></script>
-<script src="js/auth.js?v=20260227-11"></script>
-<script src="js/app.js?v=20260227-11"></script>
+<script src="js/api.js?v=20260301-1"></script>
+<script src="js/auth.js?v=20260301-1"></script>
+<script src="js/app.js?v=20260301-1"></script>
 </body>
 </html>
