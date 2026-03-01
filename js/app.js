@@ -475,7 +475,28 @@ const notifyRegistrClient = async (contact, meta = null) => {
 const clientSupportResponseHasId = (result) => {
   if (!result) return false;
   const items = Array.isArray(result) ? result : [result];
-  return items.some((item) => item && (item.ID || item.id));
+  return items.some((item) => item && (item.ID || item.id || item.IDClient || item.id_client || item.user_id));
+};
+
+const normalizeRestaurantsFromClientSupportResponse = (result) => {
+  if (!result) return [];
+  const items = Array.isArray(result) ? result : [result];
+
+  return items
+    .map((item) => {
+      const name = item?.Restoran ?? item?.restoran ?? item?.Client ?? item?.client ?? item?.name ?? null;
+      const id = item?.IDRestoran ?? item?.id_restoran ?? item?.ID ?? item?.id ?? item?.Id ?? null;
+      if (!name || !id) return null;
+      return { id: String(id), name: String(name) };
+    })
+    .filter(Boolean);
+};
+
+const applyClientSupportResponse = (result) => {
+  const restaurants = normalizeRestaurantsFromClientSupportResponse(result);
+  if (restaurants.length > 0) {
+    applyRestaurants(restaurants);
+  }
 };
 
 const pollClientSupportId = async ({ maxTries = 12, intervalMs = 800 } = {}) => {
@@ -484,6 +505,7 @@ const pollClientSupportId = async ({ maxTries = 12, intervalMs = 800 } = {}) => 
   for (let attempt = 1; attempt <= maxTries; attempt += 1) {
     try {
       const result = await window.API.sendClientTGSupport(user, tg);
+      applyClientSupportResponse(result);
       if (clientSupportResponseHasId(result)) return true;
     } catch (e) {
       // ignore and retry
@@ -1217,6 +1239,7 @@ const initializeApp = () => {
     // При входе в WebApp отправляем данные пользователя в вебхук clientTG_support
     if (user?.id && window.API?.sendClientTGSupport) {
       window.API.sendClientTGSupport(user, tg).then((result) => {
+        applyClientSupportResponse(result);
         // Если ID пришёл, то всё ок. Если ответ пустой — просим номер телефона.
         if (clientSupportResponseHasId(result)) return;
         if (user?.phone_number) return;
