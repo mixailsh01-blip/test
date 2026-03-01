@@ -853,10 +853,10 @@ body.hide-main-logo #requests.page {
 
 /* ==================== НОВЫЙ ЭКРАН ЗАЯВОК ==================== */
 .requests-modern {
-  min-height: calc(100vh - 145px);
+  min-height: calc(100vh - 130px);
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 .requests-modern.requests-table {
@@ -875,16 +875,16 @@ body.hide-main-logo #requests.page {
 .requests-search-wrap {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   background: #2c2d35;
-  border-radius: 22px;
-  padding: 10px 14px;
-  margin-top: 2px;
+  border-radius: 18px;
+  padding: 8px 12px;
+  margin-top: 0;
 }
 
 .requests-search-icon {
   color: #7e8291;
-  font-size: 18px;
+  font-size: 16px;
 }
 
 .requests-search-input {
@@ -892,7 +892,7 @@ body.hide-main-logo #requests.page {
   background: transparent;
   border: none;
   color: #fff;
-  font-size: clamp(15px, 3.6vw, 18px);
+  font-size: clamp(13px, 3.2vw, 16px);
   outline: none;
 }
 
@@ -904,13 +904,13 @@ body.hide-main-logo #requests.page {
   background: transparent;
   border: none;
   color: #8a8fa0;
-  font-size: 18px;
+  font-size: 16px;
 }
 
 .request-card {
   background: #2f3037;
-  border-radius: 18px;
-  padding: 14px 14px;
+  border-radius: 14px;
+  padding: 12px 12px;
   color: #f2f3f7;
 }
 
@@ -923,42 +923,42 @@ body.hide-main-logo #requests.page {
 .request-number {
   background: #3a3b43;
   color: #a4a8b6;
-  padding: 4px 8px;
-  border-radius: 8px;
-  font-size: clamp(15px, 3.4vw, 18px);
+  padding: 3px 7px;
+  border-radius: 7px;
+  font-size: clamp(13px, 3vw, 16px);
 }
 
 .request-status {
   color: #8e92a0;
-  font-size: clamp(15px, 3.2vw, 18px);
+  font-size: clamp(13px, 2.9vw, 16px);
 }
 
 .request-topic {
-  margin-top: 10px;
-  font-size: clamp(19px, 4.2vw, 24px);
+  margin-top: 8px;
+  font-size: clamp(16px, 3.8vw, 20px);
   font-weight: 700;
 }
 
 .request-meta {
-  margin-top: 6px;
+  margin-top: 5px;
   color: #8c90a0;
-  font-size: clamp(14px, 3vw, 17px);
+  font-size: clamp(12px, 2.7vw, 15px);
 }
 
 .request-text {
-  margin-top: 8px;
+  margin-top: 6px;
   color: #7e8291;
-  font-size: clamp(14px, 2.8vw, 16px);
+  font-size: clamp(12px, 2.4vw, 14px);
 }
 
 .requests-pagination {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 16px;
+  gap: 14px;
   background: #2f3037;
-  border-radius: 16px;
-  padding: 10px 8px;
+  border-radius: 14px;
+  padding: 8px 6px;
   color: #9ca0af;
 }
 
@@ -966,11 +966,11 @@ body.hide-main-logo #requests.page {
   background: transparent;
   border: none;
   color: #818594;
-  font-size: 22px;
+  font-size: 18px;
 }
 
 .requests-page-info {
-  font-size: clamp(14px, 2.8vw, 18px);
+  font-size: clamp(12px, 2.5vw, 15px);
 }
 
 .btn-NewRequest {
@@ -978,14 +978,14 @@ body.hide-main-logo #requests.page {
   align-self: flex-end;
   border: none;
   border-radius: 999px;
-  padding: 12px 18px;
+  padding: 10px 14px;
   font-family: 'PT Root UI', sans-serif;
   font-weight: 700;
-  font-size: clamp(16px, 3.4vw, 22px);
+  font-size: clamp(14px, 3vw, 18px);
   color: white;
   background: linear-gradient(90deg, #00c8ff 0%, #0070ff 100%);
   box-shadow: 0 12px 26px rgba(0, 112, 255, 0.3);
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
