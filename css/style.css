@@ -989,3 +989,73 @@ body.hide-main-logo #requests.page {
   align-items: center;
   gap: 6px;
 }
+
+.request-details {
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.request-details.hidden {
+  display: none;
+}
+
+.request-details-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.request-details-back {
+  border: none;
+  background: #2c2d35;
+  color: #d7d9e1;
+  border-radius: 12px;
+  padding: 8px 12px;
+  font-family: 'PT Root UI', sans-serif;
+  font-size: 13px;
+}
+
+.request-details-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #d7d9e1;
+}
+
+.request-details-card {
+  background: #2f3037;
+  border-radius: 14px;
+  padding: 12px;
+  color: #f2f3f7;
+}
+
+.request-details-number {
+  color: #a4a8b6;
+  font-size: 13px;
+}
+
+.request-details-status {
+  margin-top: 4px;
+  color: #8e92a0;
+  font-size: 13px;
+}
+
+.request-details-topic {
+  margin-top: 8px;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.request-details-meta {
+  margin-top: 6px;
+  color: #8c90a0;
+  font-size: 13px;
+}
+
+.request-details-text {
+  margin-top: 8px;
+  color: #9aa0b3;
+  font-size: 13px;
+  line-height: 1.35;
+}

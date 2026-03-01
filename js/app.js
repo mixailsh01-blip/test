@@ -1137,6 +1137,53 @@ const setupEstablishmentSelection = () => {
   });
 };
 
+/* ==================== ДЕТАЛИ ЗАЯВКИ ==================== */
+
+const setupRequestDetailsView = () => {
+  const sampleCard = document.getElementById('request-card-sample');
+  const detailsView = document.getElementById('request-details-view');
+  const backBtn = document.getElementById('request-details-back');
+  const newRequestBtn = document.querySelector('.btn-NewRequest');
+  const pagination = document.querySelector('.requests-pagination');
+
+  if (!sampleCard || !detailsView || !backBtn) return;
+
+  const openDetails = () => {
+    const number = sampleCard.querySelector('.request-number')?.textContent?.trim() || '';
+    const status = sampleCard.querySelector('.request-status')?.textContent?.trim() || '';
+    const topic = sampleCard.querySelector('.request-topic')?.textContent?.trim() || '';
+    const meta = sampleCard.querySelector('.request-meta')?.textContent?.trim() || '';
+    const text = sampleCard.querySelector('.request-text')?.textContent?.trim() || '';
+
+    const detailsNumber = document.getElementById('request-details-number');
+    const detailsStatus = document.getElementById('request-details-status');
+    const detailsTopic = document.getElementById('request-details-topic');
+    const detailsMeta = document.getElementById('request-details-meta');
+    const detailsText = document.getElementById('request-details-text');
+
+    if (detailsNumber) detailsNumber.textContent = number;
+    if (detailsStatus) detailsStatus.textContent = status;
+    if (detailsTopic) detailsTopic.textContent = topic;
+    if (detailsMeta) detailsMeta.textContent = meta;
+    if (detailsText) detailsText.textContent = text;
+
+    sampleCard.classList.add('hidden');
+    if (pagination) pagination.classList.add('hidden');
+    if (newRequestBtn) newRequestBtn.classList.add('hidden');
+    detailsView.classList.remove('hidden');
+  };
+
+  const closeDetails = () => {
+    detailsView.classList.add('hidden');
+    sampleCard.classList.remove('hidden');
+    if (pagination) pagination.classList.remove('hidden');
+    if (newRequestBtn) newRequestBtn.classList.remove('hidden');
+  };
+
+  sampleCard.addEventListener('click', openDetails);
+  backBtn.addEventListener('click', closeDetails);
+};
+
 /* ==================== ИНИЦИАЛИЗАЦИЯ ПРИЛОЖЕНИЯ ==================== */
 
 const initializeApp = () => {
@@ -1160,6 +1207,7 @@ const initializeApp = () => {
     enhanceMobileUX();
     setupTableFiltersAndSorting();
     setupEstablishmentSelection();
+    setupRequestDetailsView();
 
     // Показываем приветственный экран
     //const welcomeScreen = document.getElementById('welcome-screen');
