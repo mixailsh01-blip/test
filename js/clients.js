@@ -4,46 +4,49 @@ const CLIENTS_WEBHOOK_URL = getConfigValue("clients.webhookUrl", { defaultValue:
 const CLIENTS_SAVE_URL = "";
 const CLIENTS_PAYTO_URL =
   getConfigValue("clients.payToUrl", { defaultValue: "" }) ||
-  "https://funouriskasok.beget.app/webhook/PayTO";
+  "https://quumahienot.beget.app/webhook/PayTO";
 const CLIENTS_SUMTO_URL =
   getConfigValue("clients.sumToUrl", { defaultValue: "" }) ||
-  "https://funouriskasok.beget.app/webhook/SumPayPyrus";
+  "https://quumahienot.beget.app/webhook/SumPayPyrus";
 const CLIENTS_PAYTO2_URL =
   getConfigValue("clients.payTo2Url", { defaultValue: "" }) ||
-  "https://funouriskasok.beget.app/webhook/PayTO2";
+  "https://quumahienot.beget.app/webhook/PayTO2";
 const CLIENTS_ORG_URL =
   getConfigValue("clients.orgUrl", { defaultValue: "" }) ||
-  "https://funouriskasok.beget.app/webhook/ORG";
+  "https://quumahienot.beget.app/webhook/ORG";
 const CLIENTS_INN_URL =
   getConfigValue("clients.innUrl", { defaultValue: "" }) ||
-  "https://funouriskasok.beget.app/webhook/INN";
+  "https://quumahienot.beget.app/webhook/INN";
 const CLIENTS_KPP_URL =
   getConfigValue("clients.kppUrl", { defaultValue: "" }) ||
-  "https://funouriskasok.beget.app/webhook/KPP";
+  "https://quumahienot.beget.app/webhook/KPP";
 const CLIENTS_OGRN_URL =
   getConfigValue("clients.ogrnUrl", { defaultValue: "" }) ||
-  "https://funouriskasok.beget.app/webhook/OGRN";
+  "https://quumahienot.beget.app/webhook/OGRN";
 const CLIENTS_BIK_URL =
   getConfigValue("clients.bikUrl", { defaultValue: "" }) ||
-  "https://funouriskasok.beget.app/webhook/BIK";
+  "https://quumahienot.beget.app/webhook/BIK";
 const CLIENTS_KOR_URL =
   getConfigValue("clients.korUrl", { defaultValue: "" }) ||
-  "https://funouriskasok.beget.app/webhook/KOR";
+  "https://quumahienot.beget.app/webhook/KOR";
 const CLIENTS_RC_URL =
   getConfigValue("clients.rcUrl", { defaultValue: "" }) ||
-  "https://funouriskasok.beget.app/webhook/RC";
+  "https://quumahienot.beget.app/webhook/RC";
 const CLIENTS_FIRSTNAME_URL =
   getConfigValue("clients.firstNameUrl", { defaultValue: "" }) ||
-  "https://funouriskasok.beget.app/webhook/FirstName";
+  "https://quumahienot.beget.app/webhook/FirstName";
 const CLIENTS_NUMBER_URL =
   getConfigValue("clients.numberUrl", { defaultValue: "" }) ||
-  "https://funouriskasok.beget.app/webhook/NumberClient";
+  "https://quumahienot.beget.app/webhook/NumberClient";
 const CLIENTS_EMAIL_URL =
   getConfigValue("clients.emailUrl", { defaultValue: "" }) ||
-  "https://funouriskasok.beget.app/webhook/EmailClient";
+  "https://quumahienot.beget.app/webhook/EmailClient";
+const CLIENTS_COMMENT_URL =
+  getConfigValue("clients.commentUrl", { defaultValue: "" }) ||
+  "https://quumahienot.beget.app/webhook/Comment";
 const CLIENTS_NEW_URL =
   getConfigValue("clients.newUrl", { defaultValue: "" }) ||
-  "https://funouriskasok.beget.app/webhook/new";
+  "https://quumahienot.beget.app/webhook/new";
 const CLIENTS_CACHE_KEY = "clients_cache_v1";
 const CLIENTS_CACHE_TTL_MS = 5 * 60 * 1000;
 const CLIENTS_ORDER_KEY = "clients_order_v1";
@@ -91,7 +94,7 @@ let clientsPopoverKeydownHandler = null;
 let clientsDirtyKeys = new Set();
 let clientsSaveDefaultLabel = "";
 let clientsToastTimer = null;
-let activeSection = "clients";
+let activeSection = "schedule";
 
 function getCookie(name) {
   if (!name) return null;
@@ -143,6 +146,19 @@ async function parseWebhookResponseMessage(response) {
   }
 }
 
+async function fetchWithTimeout(url, options = {}, timeoutMs = 12000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function sendContactWebhook(
   url,
   externalId,
@@ -186,12 +202,12 @@ function escapeHtml(value) {
 }
 
 function getClientKey(row) {
+  const uid = pickValue(row, "UID", "uid");
+  if (uid) return `uid:${uid}`;
   const externalId = pickValue(row, "ID");
   if (externalId) return `id:${externalId}`;
   const recordId = pickValue(row, "id");
-  if (recordId != null && recordId !== "") return `rec:${recordId}`;
-  const uid = pickValue(row, "UID", "uid");
-  if (uid) return `uid:${uid}`;
+  if (recordId != null && recordId != "") return `rec:${recordId}`;
   const clientName = pickValue(row, "Client", "client", "??????");
   const orgName = pickValue(row, "Org", "org", "???");
   return `name:${clientName}::${orgName}`;
@@ -445,6 +461,79 @@ function getSumToValue(row) {
   return pickValue(row, "SumTO", "Сумма ТО", "СуммаТО");
 }
 
+function getCommentValue(row) {
+  return pickValue(
+    row,
+    "Комментарий",
+    "Комментарий клиента",
+    "Comment",
+    "comment",
+    "ClientComment",
+    "clientComment"
+  );
+}
+
+function normalizeCommentValue(value) {
+  return String(value ?? "").trim();
+}
+
+function normalizeColumnKey(value) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/\u00a0/g, " ")
+    .replace(/\s+/g, "")
+    .trim();
+}
+
+function isSumToColumn(value) {
+  const key = normalizeColumnKey(value);
+  const keyClean = key.replace(/[^a-z0-9]/g, "");
+  const keyRu = key.replace(/[^Ѐ-ӿ0-9]/g, "");
+  return (
+    key === "sumto" ||
+    keyClean === "sumto" ||
+    keyClean.includes("sumto") ||
+    keyRu === "суммато" ||
+    keyRu.includes("суммато")
+  );
+}
+
+function isCommentColumn(value) {
+  const key = normalizeColumnKey(value);
+  const keyClean = key.replace(/[^a-z0-9]/g, "");
+  const keyRu = key.replace(/[^Ѐ-ӿ0-9]/g, "");
+  return (
+    keyClean === "comment" ||
+    key === "комментарий" ||
+    key === "комментарийклиента" ||
+    keyRu === "комментарий" ||
+    keyRu === "комментарийклиента"
+  );
+}
+
+function ensureCommentColumnPlacement(columns) {
+  const result = Array.isArray(columns) ? [...columns] : [];
+  if (!result.length) return result;
+
+  const sumIndex = result.findIndex((col) => isSumToColumn(col));
+  let commentIndex = result.findIndex((col) => isCommentColumn(col));
+
+  if (commentIndex === -1) {
+    const insertIndex = sumIndex >= 0 ? sumIndex + 1 : result.length;
+    result.splice(insertIndex, 0, "Комментарий");
+    return result;
+  }
+
+  if (sumIndex >= 0 && commentIndex !== sumIndex + 1) {
+    const [commentCol] = result.splice(commentIndex, 1);
+    const nextSumIndex = result.findIndex((col) => isSumToColumn(col));
+    const insertIndex = nextSumIndex >= 0 ? nextSumIndex + 1 : result.length;
+    result.splice(insertIndex, 0, commentCol);
+  }
+
+  return result;
+}
+
 function ensureSumToSnapshot(rows) {
   if (!Array.isArray(rows)) return;
   rows.forEach((row) => {
@@ -452,6 +541,16 @@ function ensureSumToSnapshot(rows) {
     if (row.__sumToSnapshotInitialized) return;
     row.__sumToSnapshot = getSumToValue(row);
     row.__sumToSnapshotInitialized = true;
+  });
+}
+
+function ensureCommentSnapshot(rows) {
+  if (!Array.isArray(rows)) return;
+  rows.forEach((row) => {
+    if (!row || typeof row !== "object") return;
+    if (row.__commentSnapshotInitialized) return;
+    row.__commentSnapshot = normalizeCommentValue(getCommentValue(row));
+    row.__commentSnapshotInitialized = true;
   });
 }
 
@@ -469,6 +568,82 @@ function getSumAmountMap(row) {
     row.__sumToByMonth = {};
   }
   return row.__sumToByMonth;
+}
+
+function resolveClientCreateMonth(row) {
+  const raw = pickValue(row, "Create_date", "create_date", "CreateDate", "createdAt");
+  const value = String(raw || "").trim();
+  if (!value) return null;
+
+  const isoMatch = value.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (isoMatch) {
+    const year = Number(isoMatch[1]);
+    const month = Number(isoMatch[2]);
+    if (Number.isInteger(year) && Number.isInteger(month) && month >= 1 && month <= 12) {
+      return { year, month };
+    }
+  }
+
+  const ruMatch = value.match(/^(\d{2})\.(\d{2})\.(\d{4})/);
+  if (ruMatch) {
+    const month = Number(ruMatch[2]);
+    const year = Number(ruMatch[3]);
+    if (Number.isInteger(year) && Number.isInteger(month) && month >= 1 && month <= 12) {
+      return { year, month };
+    }
+  }
+
+  const parsed = new Date(value);
+  if (!Number.isNaN(parsed.getTime())) {
+    return { year: parsed.getFullYear(), month: parsed.getMonth() + 1 };
+  }
+
+  return null;
+}
+
+function resolveYearSumIndicator(row, year) {
+  const rateToRaw = pickValue(row, "RateTO", "Тип обслуживания", "Rate To", "rateTo");
+  const rateTo = String(rateToRaw || "").trim().toLowerCase();
+  if (rateTo === "not active") return "status-inactive";
+  const iikoTariffRaw = pickValue(row, "RateIIKO", "Тариф iiko", "Tariff iiko", "rateIiko");
+  const iikoTariff = String(iikoTariffRaw || "").trim().toLowerCase();
+  if (rateTo === "разовые обращения" || rateTo.includes("iikocloud pro+") || iikoTariff.includes("iikocloud pro+")) {
+    return "status-oneoff";
+  }
+
+  const statusMap = getSumStatusMap(row);
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1;
+  const includeNextMonth = now.getDate() >= 20 ? 1 : 0;
+  const maxMonth = year === currentYear
+    ? Math.min(12, currentMonth + includeNextMonth)
+    : 12;
+  const createMeta = resolveClientCreateMonth(row);
+  let minMonth = 1;
+  if (createMeta && createMeta.year > year) return "";
+  if (createMeta && createMeta.year === year) {
+    minMonth = Math.max(1, Math.min(12, createMeta.month));
+  }
+  if (maxMonth < minMonth) return "";
+  const statuses = [];
+  for (let month = minMonth; month <= maxMonth; month += 1) {
+    const monthKey = `${year}-${String(month).padStart(2, "0")}`;
+    const statusRaw = statusMap?.[monthKey];
+    // Месяц без явного статуса тоже считаем как "Не оплачено".
+    const normalized = statusRaw
+      ? String(statusRaw).trim().toLowerCase()
+      : "не оплачено";
+    statuses.push(normalized);
+  }
+
+  if (!statuses.length) return "";
+  const effectiveStatuses = statuses.filter((status) => status !== "не включен");
+  if (!effectiveStatuses.length) return "status-inactive";
+  if (effectiveStatuses.some((status) => status === "не оплачено")) return "status-unpaid";
+  if (effectiveStatuses.some((status) => status === "счет отправлен")) return "status-sent";
+  if (effectiveStatuses.every((status) => status === "оплачено")) return "status-paid";
+  return "";
 }
 
 function ensureSumStatusSnapshot(rows) {
@@ -545,6 +720,7 @@ function buildClientPayload(row) {
   const number = pickValue(row, "Number", "Контактный номер");
   const rateTo = pickValue(row, "RateTO", "Тип обслуживания");
   const sumTo = pickValue(row, "SumTO", "Сумма ТО", "СуммаТО");
+  const comment = getCommentValue(row);
   const dolg = pickValue(row, "DOLG", "Должник", "Должник?");
   const lkPartner = pickValue(row, "LKPartner");
   const lkPyrus = pickValue(row, "LKPyrus");
@@ -592,6 +768,12 @@ function buildClientPayload(row) {
     "SumTO",
     "Сумма ТО",
     "СуммаТО",
+    "Комментарий",
+    "Комментарий клиента",
+    "Comment",
+    "comment",
+    "ClientComment",
+    "clientComment",
     "DOLG",
     "Должник",
     "Должник?",
@@ -642,6 +824,7 @@ function buildClientPayload(row) {
     service: {
       rateTo,
       sumTo,
+      comment,
       dolg,
     },
     links: {
@@ -696,6 +879,20 @@ function buildSumToPayload(row) {
     return null;
   }
   return { externalId, sumTo };
+}
+
+function buildCommentPayload(row) {
+  if (!row || typeof row !== "object") return null;
+  const externalId = pickValue(row, "ID");
+  if (!externalId) return null;
+  const comment = normalizeCommentValue(getCommentValue(row));
+  if (
+    row.__commentSnapshotInitialized &&
+    comment === normalizeCommentValue(row.__commentSnapshot)
+  ) {
+    return null;
+  }
+  return { externalId, comment };
 }
 
 function getManagerValue(row) {
@@ -1151,12 +1348,20 @@ function openClientsPopover(contentHtml, anchorEl, options = {}) {
   const saveButton = clientsPopoverEl.querySelector(".clients-popover-save");
   if (saveButton) {
     if (typeof options.onSave === "function") {
-      saveButton.addEventListener("click", () => {
-        const shouldClose = options.onSave() !== false;
+      saveButton.addEventListener("click", async () => {
+        const shouldClose = (await Promise.resolve(options.onSave())) !== false;
+        if (options.autoSync !== false) {
+          void saveClientsToWebhook();
+        }
         if (shouldClose) closeClientsPopover();
       });
     } else {
-      saveButton.addEventListener("click", closeClientsPopover);
+      saveButton.addEventListener("click", () => {
+        if (options.autoSync !== false) {
+          void saveClientsToWebhook();
+        }
+        closeClientsPopover();
+      });
     }
   }
   if (typeof options.onReady === "function") {
@@ -1661,7 +1866,19 @@ function openClientsSumPopover(sourceRow, anchorEl) {
   const year = now.getFullYear();
   const initialMonthKey = formatYearMonth(year, now.getMonth());
   const statusMap = getSumStatusMap(sourceRow);
-  const statusOptions = ["Не оплачено", "Счет отправлен", "Оплачено"];
+  const statusOptions = ["Не оплачено", "Счет отправлен", "Оплачено", "Не включен"];
+  const createMeta = resolveClientCreateMonth(sourceRow);
+  const rateToRaw = pickValue(sourceRow, "RateTO", "Тип обслуживания", "Rate To", "rateTo");
+  const iikoTariffRaw = pickValue(sourceRow, "RateIIKO", "Тариф iiko", "Tariff iiko", "rateIiko");
+  const normalizedRateTo = String(rateToRaw || "").trim().toLowerCase();
+  const normalizedIikoTariff = String(iikoTariffRaw || "").trim().toLowerCase();
+  const isOneoffService = normalizedRateTo === "разовые обращения";
+  const isNotActiveService = normalizedRateTo === "not active";
+  const isIikoProPlusService =
+    normalizedRateTo.includes("iikocloud pro+") ||
+    normalizedIikoTariff.includes("iikocloud pro+");
+  const isServiceLocked = isOneoffService || isNotActiveService || isIikoProPlusService;
+  const sumInputAttrs = isServiceLocked ? ' readonly disabled class="clients-readonly-input"' : "";
 
   let activeMonthKey = initialMonthKey;
 
@@ -1681,7 +1898,7 @@ function openClientsSumPopover(sourceRow, anchorEl) {
 
           <div class="field-row">
             <label>Сумма</label>
-            <input type="text" data-field="sumto" value="${escapeHtml(sumValue)}">
+            <input type="text" data-field="sumto" value="${escapeHtml(sumValue)}"${sumInputAttrs}>
           </div>
 
           <div class="field-row">
@@ -1714,14 +1931,16 @@ function openClientsSumPopover(sourceRow, anchorEl) {
     anchorEl,
     {
       onSave: () => {
-        const input = clientsPopoverEl?.querySelector('input[data-field="sumto"]');
-        const nextValue = input ? input.value.trim() : "";
-        setRowFieldValue(sourceRow, ["SumTO", "Сумма ТО", "СуммаТО"], nextValue);
-        sourceRow.__sumToDirty = true;
-        const amountMap = getSumAmountMap(sourceRow);
-        if (activeMonthKey) {
-          if (nextValue) amountMap[activeMonthKey] = nextValue;
-          else delete amountMap[activeMonthKey];
+        if (!isServiceLocked) {
+          const input = clientsPopoverEl?.querySelector('input[data-field="sumto"]');
+          const nextValue = input ? input.value.trim() : "";
+          setRowFieldValue(sourceRow, ["SumTO", "Сумма ТО", "СуммаТО"], nextValue);
+          sourceRow.__sumToDirty = true;
+          const amountMap = getSumAmountMap(sourceRow);
+          if (activeMonthKey) {
+            if (nextValue) amountMap[activeMonthKey] = nextValue;
+            else delete amountMap[activeMonthKey];
+          }
         }
         if (typeof renderCalendar === "function") {
           renderCalendar(activeYear);
@@ -1743,8 +1962,10 @@ function openClientsSumPopover(sourceRow, anchorEl) {
   let activeYear = year;
 
   const getStatusClass = (status) => {
-    if (status === "Оплачено") return "status-paid";
-    if (status === "Счет отправлен") return "status-sent";
+    const normalized = String(status || "").trim().toLowerCase();
+    if (normalized === "оплачено") return "status-paid";
+    if (normalized === "счет отправлен") return "status-sent";
+    if (normalized === "не включен") return "status-excluded";
     return "status-unpaid";
   };
 
@@ -1758,35 +1979,60 @@ function openClientsSumPopover(sourceRow, anchorEl) {
     if (!calendarEl) return;
     calendarEl.innerHTML = "";
     monthNames.forEach((name, idx) => {
+      const monthNumber = idx + 1;
+      const isLockedByCreateDate =
+        !!createMeta &&
+        (targetYear < createMeta.year ||
+          (targetYear === createMeta.year && monthNumber < createMeta.month));
+      const isLockedByService = isServiceLocked;
+      const isMonthLocked = isLockedByCreateDate || isLockedByService;
       const monthKey = formatYearMonth(targetYear, idx);
       const status = statusMap[monthKey] || "Не оплачено";
       const amountMap = getSumAmountMap(sourceRow);
       const monthAmount = amountMap ? amountMap[monthKey] : "";
+      const isExcluded = String(status || "").trim().toLowerCase() === "не включен";
+      const shouldShowAmount = !isMonthLocked && !isExcluded;
       const btn = document.createElement("button");
       btn.type = "button";
-      btn.className = `clients-month-cell ${getStatusClass(status)}`;
+      btn.className = `clients-month-cell ${isMonthLocked ? "status-locked" : getStatusClass(status)}`;
       btn.dataset.month = String(idx);
       btn.dataset.year = String(targetYear);
       btn.dataset.status = status;
       btn.dataset.index = String(idx);
       if (idx % 4 === 3) btn.classList.add("month-cell-last-col");
       if (idx >= 8) btn.classList.add("month-cell-last-row");
-      btn.title = `${name.toUpperCase()} • ${status}`;
+      btn.title = isLockedByService
+        ? `${name.toUpperCase()} • Тип обслуживания: ${
+            isNotActiveService
+              ? "Not active"
+              : isIikoProPlusService
+                ? "iikoCloud Pro+"
+                : "Разовые обращения"
+          }`
+        : isLockedByCreateDate
+          ? `${name.toUpperCase()} • До даты создания`
+          : `${name.toUpperCase()} • ${status}`;
+      if (isMonthLocked) {
+        btn.disabled = true;
+        btn.setAttribute("aria-disabled", "true");
+      }
       btn.innerHTML = `
         <span class="clients-month-name">${escapeHtml(name)}</span>
-        ${monthAmount ? `<span class="clients-month-amount">${escapeHtml(monthAmount)}</span>` : ""}
+        ${shouldShowAmount && monthAmount ? `<span class="clients-month-amount">${escapeHtml(monthAmount)}</span>` : ""}
       `;
-      btn.addEventListener("click", () => {
-        const nextStatus = cycleStatus(btn.dataset.status || "Не оплачено");
-        btn.dataset.status = nextStatus;
-        const nextKey = formatYearMonth(targetYear, idx);
-        activeMonthKey = nextKey;
-        statusMap[nextKey] = nextStatus;
-        btn.classList.remove("status-unpaid", "status-sent", "status-paid");
-        btn.classList.add(getStatusClass(nextStatus));
-        sourceRow.__sumStatusDirty = true;
-        markClientDirty(sourceRow);
-      });
+      if (!isMonthLocked) {
+        btn.addEventListener("click", () => {
+          const nextStatus = cycleStatus(btn.dataset.status || "Не оплачено");
+          btn.dataset.status = nextStatus;
+          const nextKey = formatYearMonth(targetYear, idx);
+          activeMonthKey = nextKey;
+          statusMap[nextKey] = nextStatus;
+          btn.classList.remove("status-unpaid", "status-sent", "status-paid", "status-excluded");
+          btn.classList.add(getStatusClass(nextStatus));
+          sourceRow.__sumStatusDirty = true;
+          markClientDirty(sourceRow);
+        });
+      }
       calendarEl.appendChild(btn);
     });
   };
@@ -1804,6 +2050,66 @@ function openClientsSumPopover(sourceRow, anchorEl) {
   yearNextBtn?.addEventListener("click", () => setYear(activeYear + 1));
 }
 
+function openClientsCommentPopover(sourceRow, anchorEl) {
+  const clientName = pickValue(sourceRow, "Client", "client", "Клиент");
+  const orgName = pickValue(sourceRow, "Org", "org", "Орг");
+  const commentValue = getCommentValue(sourceRow);
+  const title = clientName || orgName || "Комментарий";
+  const subtitle = clientName ? `${clientName} • комментарий` : "Комментарий";
+
+  openClientsPopover(
+    `
+      <div class="shift-popover-header">
+        <div>
+          <div class="shift-popover-title">${escapeHtml(title)}</div>
+          <div class="shift-popover-subtitle">${escapeHtml(subtitle)}</div>
+        </div>
+        <button class="shift-popover-close" type="button">✕</button>
+      </div>
+
+      <div class="shift-popover-body">
+        <div class="shift-popover-section">
+          <div class="shift-popover-section-title">Комментарий</div>
+          <div class="field-row">
+            <label>Текст</label>
+            <textarea data-field="comment" rows="5">${escapeHtml(commentValue)}</textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="shift-popover-footer">
+        <button class="btn clients-popover-cancel" type="button">Отмена</button>
+        <button class="btn primary clients-popover-save" type="button">Сохранить локально</button>
+      </div>
+    `,
+    anchorEl,
+    {
+      onSave: () => {
+        const input = clientsPopoverEl?.querySelector('textarea[data-field="comment"]');
+        const nextValue = input ? input.value.trim() : "";
+        const previousValue = normalizeCommentValue(getCommentValue(sourceRow));
+        const nextNormalized = normalizeCommentValue(nextValue);
+        const commentChanged = previousValue !== nextNormalized;
+
+        setRowFieldValue(
+          sourceRow,
+          ["Комментарий", "Комментарий клиента", "Comment", "comment", "ClientComment", "clientComment"],
+          nextValue
+        );
+        if (commentChanged) {
+          sourceRow.__commentDirty = true;
+          sourceRow.__nonSumDirty = true;
+          markClientDirty(sourceRow);
+        }
+        if (clientsLastData) {
+          writeClientsCache(clientsLastData);
+          renderClientsTable(clientsLastData);
+        }
+      },
+    }
+  );
+}
+
 function renderClientsTable(raw) {
   if (!clientsTableWrapEl || !clientsStateEl) return;
   const { rows, columns } = normalizeClientsPayload(raw);
@@ -1812,16 +2118,13 @@ function renderClientsTable(raw) {
   removeClientsFilters();
   const managers = ensureManagerSelection(rows);
   updateManagerFilterButtonState(managers);
-  const hasActiveManagerFilter = isManagerFilterActive(managers);
-  const filteredRows = hasActiveManagerFilter
-    ? rows.filter((row) => {
-        if (clientsManagerSelected === null) return true;
-        if (!clientsManagerSelected.size) return false;
-        const managerValue = normalizeName(getManagerValue(row));
-        if (!managerValue) return false;
-        return clientsManagerSelected.has(managerValue);
-      })
-    : rows.slice();
+  const filteredRows = rows.filter((row) => {
+    if (clientsManagerSelected === null) return true;
+    if (!clientsManagerSelected.size) return false;
+    const managerValue = normalizeName(getManagerValue(row));
+    if (!managerValue) return false;
+    return clientsManagerSelected.has(managerValue);
+  });
   const searchedRows = filteredRows.filter((row) => rowMatchesUnifiedSearch(row, clientsSearchQuery));
   const fullSortedRows = [...rows].sort((a, b) => {
     const nameA = normalizeName(getClientNameValue(a));
@@ -1850,7 +2153,6 @@ function renderClientsTable(raw) {
   const childrenByParent = new Map();
   const childKeys = new Set();
   const parentOrder = orderedRows.map((row) => getExternalIdValue(row.__source || row));
-  const parentIdSet = new Set(parentOrder.filter((id) => id != null && id !== ""));
   orderedRows.forEach((row) => {
     const source = row.__source || row;
     const coValue = pickValue(source, "CO", "co");
@@ -1866,12 +2168,7 @@ function renderClientsTable(raw) {
   orderedRows.forEach((row) => {
     const source = row.__source || row;
     const extId = getExternalIdValue(source);
-    const coValue = pickValue(source, "CO", "co");
-    const numberCoRaw = pickValue(source, "NumberCO", "numberco", "numberCo");
-    const numberCo = normalizeExternalId(numberCoRaw);
-    const isChildRow = isCoChecked(coValue) && Boolean(numberCo) && childKeys.has(extId);
-    const hasRealParent = Boolean(numberCo) && parentIdSet.has(numberCo);
-    if (isChildRow && hasRealParent) return;
+    if (childKeys.has(extId)) return;
     groupedRows.push(row);
     const kids = childrenByParent.get(extId);
     if (kids && kids.length && !collapsedGroups.has(extId)) {
@@ -1880,7 +2177,16 @@ function renderClientsTable(raw) {
   });
   const finalRows = normalizeClientRows(groupedRows.length ? groupedRows : orderedRows);
   const allNormalizedRows = normalizeClientRows(rows);
-  const preferredCols = ["Клиент", "Client", "UID", "Должник", "Должник?", "DOLG"];
+  const preferredCols = [
+    "Клиент",
+    "Client",
+    "UID",
+    "Должник",
+    "Должник?",
+    "DOLG",
+    "SumTO",
+    "Комментарий",
+  ];
   const colLabelMap = new Map([
     ["Client", "Клиент"],
     ["DOLG", "Должник"],
@@ -1889,11 +2195,17 @@ function renderClientsTable(raw) {
     ["FirstClient", "Контактное лицо"],
     ["RateTO", "Тип обслуживания"],
     ["SumTO", "Сумма ТО"],
+    ["Комментарий", "Комментарий"],
+    ["Комментарий клиента", "Комментарий"],
+    ["Comment", "Комментарий"],
     ["Manager", "Менеджер"],
   ]);
   const hiddenCols = new Set([
     "createdAt",
     "updatedAt",
+    "Create_date",
+    "create_date",
+    "CreateDate",
     "id",
     "ID",
     "INN",
@@ -1936,7 +2248,7 @@ function renderClientsTable(raw) {
     "новый",
   ]);
 
-  const cols =
+  const colsBase =
     Array.isArray(columns) && columns.length
       ? columns.map((c) => String(c)).filter((c) => !hiddenCols.has(c))
       : allNormalizedRows.length
@@ -1974,6 +2286,7 @@ function renderClientsTable(raw) {
             return baseCols;
           })()
         : preferredCols;
+  const cols = ensureCommentColumnPlacement(colsBase);
 
   clientsTableWrapEl.innerHTML = "";
 
@@ -2206,11 +2519,7 @@ function renderClientsTable(raw) {
     }
     cols.forEach((col) => {
       const td = document.createElement("td");
-      const colKey = String(col || "")
-        .toLowerCase()
-        .replace(/\u00a0/g, " ")
-        .replace(/\s+/g, "")
-        .trim();
+      const colKey = normalizeColumnKey(col);
       if (col === "Клиент" || col === "Client" || colKey === "клиент" || colKey === "client") {
         td.classList.add("clients-edit-cell");
         td.addEventListener("click", (event) => {
@@ -2265,7 +2574,61 @@ function renderClientsTable(raw) {
           event.stopPropagation();
           openClientsSumPopover(sourceRow, td);
         });
-        td.textContent = formatClientCell(getClientValue(row, col));
+        const sumWrap = document.createElement("div");
+        sumWrap.className = "clients-sum-cell";
+        const sumValueEl = document.createElement("span");
+        sumValueEl.className = "clients-sum-value";
+        const indicatorClass = resolveYearSumIndicator(
+          sourceRow,
+          new Date().getFullYear()
+        );
+        const rateToForCell = String(
+          pickValue(sourceRow, "RateTO", "Тип обслуживания", "Rate To", "rateTo") || ""
+        )
+          .trim()
+          .toLowerCase();
+        const iikoTariffForCell = String(
+          pickValue(sourceRow, "RateIIKO", "Тариф iiko", "Tariff iiko", "rateIiko") || ""
+        )
+          .trim()
+          .toLowerCase();
+        const isOneoffForCell = rateToForCell === "разовые обращения";
+        const isNotActiveForCell = rateToForCell === "not active";
+        const isIikoProPlusForCell =
+          rateToForCell.includes("iikocloud pro+") ||
+          iikoTariffForCell.includes("iikocloud pro+");
+        const isAllMonthsGrayForCell = indicatorClass === "status-inactive";
+        sumValueEl.textContent =
+          isOneoffForCell || isNotActiveForCell || isIikoProPlusForCell || isAllMonthsGrayForCell
+            ? ""
+            : formatClientCell(getClientValue(row, col));
+        sumWrap.appendChild(sumValueEl);
+        if (indicatorClass) {
+          const indicatorEl = document.createElement("span");
+          indicatorEl.className = `clients-sum-indicator ${indicatorClass}`;
+          indicatorEl.title =
+            indicatorClass === "status-inactive"
+              ? "Тип обслуживания: Not active"
+              : indicatorClass === "status-oneoff"
+              ? "Тип обслуживания: Разовые обращения"
+              : indicatorClass === "status-unpaid"
+              ? "Есть неоплаченные месяцы в текущем году"
+              : indicatorClass === "status-sent"
+                ? "Есть месяцы со статусом 'Счет отправлен' в текущем году"
+                : "Все отмеченные месяцы в текущем году оплачены";
+          sumWrap.appendChild(indicatorEl);
+        }
+        td.appendChild(sumWrap);
+        tr.appendChild(td);
+        return;
+      }
+      if (isCommentColumn(col)) {
+        td.classList.add("clients-edit-cell");
+        td.addEventListener("click", (event) => {
+          event.stopPropagation();
+          openClientsCommentPopover(sourceRow, td);
+        });
+        td.textContent = formatClientCell(getCommentValue(sourceRow));
         tr.appendChild(td);
         return;
       }
@@ -2282,12 +2645,7 @@ function renderClientsTable(raw) {
       if (colKey === "dolg" || colKey.includes("должник")) {
         const currentRaw = formatClientCell(getClientValue(row, col)) || "Нет";
         const normalized = currentRaw.trim().toLowerCase();
-        const isYes =
-          normalized === "да" ||
-          normalized === "yes" ||
-          normalized === "y" ||
-          normalized === "есть" ||
-          normalized === "ест";
+        const isYes = normalized === "да" || normalized === "yes" || normalized === "y";
         td.classList.add("clients-debtor-cell");
         td.classList.toggle("debtor-yes", isYes);
         td.classList.toggle("debtor-no", !isYes);
@@ -2353,11 +2711,11 @@ async function loadClients({ force = false } = {}) {
   clientsTableWrapEl.innerHTML = "";
   clientsTableWrapEl.appendChild(clientsStateEl);
   try {
-    const response = await fetch(CLIENTS_WEBHOOK_URL, {
+    const response = await fetchWithTimeout(CLIENTS_WEBHOOK_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({}),
-    });
+    }, 12000);
     if (!response.ok) {
       const errorText = await response.text();
       throw new Error(`Webhook ${response.status}: ${errorText.slice(0, 300)}`);
@@ -2373,9 +2731,20 @@ async function loadClients({ force = false } = {}) {
     writeClientsCache(parsed);
     renderClientsTable(parsed);
   } catch (error) {
-    clientsStateEl.textContent = `Не удалось загрузить клиентов: ${error?.message || "ошибка"}`;
-    clientsTableWrapEl.innerHTML = "";
-    clientsTableWrapEl.appendChild(clientsStateEl);
+    const fallbackCache = readClientsCache();
+    if (fallbackCache) {
+      clientsLastData = fallbackCache;
+      renderClientsTable(fallbackCache);
+      showClientsToast("Показаны кэшированные данные клиентов.");
+    } else {
+      const message =
+        error?.name === "AbortError"
+          ? "таймаут запроса (проверьте сеть или webhook)"
+          : (error?.message || "ошибка");
+      clientsStateEl.textContent = `Не удалось загрузить клиентов: ${message}`;
+      clientsTableWrapEl.innerHTML = "";
+      clientsTableWrapEl.appendChild(clientsStateEl);
+    }
     console.error("Clients load failed:", error);
   } finally {
     clientsLoading = false;
@@ -2387,11 +2756,11 @@ async function loadPayTo2AndMerge(raw) {
   const { rows } = normalizeClientsPayload(raw || []);
   if (!rows.length) return;
   try {
-    const response = await fetch(CLIENTS_PAYTO2_URL, {
+    const response = await fetchWithTimeout(CLIENTS_PAYTO2_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({}),
-    });
+    }, 8000);
     if (!response.ok) {
       throw new Error(`PayTO2 ${response.status}`);
     }
@@ -2460,11 +2829,12 @@ async function loadPayTo2AndMerge(raw) {
 }
 
 async function saveClientsToWebhook() {
-  if (!clientsSaveEl) return;
+  const hasSaveButton = !!clientsSaveEl;
   const hasClientsSaveUrl = false;
   const hasPayToUrl = !!CLIENTS_PAYTO_URL;
   const hasSumToUrl = !!CLIENTS_SUMTO_URL;
-  if (!hasClientsSaveUrl && !hasPayToUrl && !hasSumToUrl) {
+  const hasCommentUrl = !!CLIENTS_COMMENT_URL;
+  if (!hasClientsSaveUrl && !hasPayToUrl && !hasSumToUrl && !hasCommentUrl) {
     console.warn("Clients save URLs are empty.");
     return;
   }
@@ -2474,6 +2844,7 @@ async function saveClientsToWebhook() {
   const { rows } = normalizeClientsPayload(clientsLastData || []);
   ensureSumToSnapshot(rows);
   ensureSumStatusSnapshot(rows);
+  ensureCommentSnapshot(rows);
   const dirtyRows = rows.filter((row) => clientsDirtyKeys.has(getClientKey(row)));
   const mainRows = dirtyRows.filter((row) => row.__nonSumDirty);
   const payload = mainRows.map((row) => {
@@ -2499,15 +2870,26 @@ async function saveClientsToWebhook() {
       sumRows.push(row);
     }
   });
+  const commentPayload = [];
+  const commentRows = [];
+  dirtyRows.forEach((row) => {
+    const item = buildCommentPayload(row);
+    if (item) {
+      commentPayload.push(item);
+      commentRows.push(row);
+    }
+  });
 
-  if (!payload.length && !payPayload.length && !sumPayload.length) {
+  if (!payload.length && !payPayload.length && !sumPayload.length && !commentPayload.length) {
     updateClientsSaveButton();
     return;
   }
 
-  const originalLabel = clientsSaveEl.textContent;
-  clientsSaveEl.disabled = true;
-  clientsSaveEl.textContent = "💾 Сохранение...";
+  const originalLabel = hasSaveButton ? clientsSaveEl.textContent : "";
+  if (hasSaveButton) {
+    clientsSaveEl.disabled = true;
+    clientsSaveEl.textContent = "💾 Сохранение...";
+  }
   let hasError = false;
   let clientsSentOk = false;
   try {
@@ -2632,69 +3014,128 @@ async function saveClientsToWebhook() {
         row.__sumToDirty = false;
       });
     }
+
+    let commentSentOk = false;
+    try {
+      if (commentPayload.length && hasCommentUrl) {
+        const response = await fetch(CLIENTS_COMMENT_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(commentPayload),
+        });
+        if (!response.ok) {
+          throw new Error(`Comment save failed: ${response.status}`);
+        }
+        const responseText = await parseWebhookResponseMessage(response);
+        const hasCyrillic = /[А-Яа-яЁё]/.test(responseText || "");
+        const hasQuestionMarks = (responseText || "").includes("?");
+        showClientsToast(
+          hasCyrillic && !hasQuestionMarks
+            ? responseText
+            : "Комментарий сохранен."
+        );
+        commentSentOk = true;
+      }
+    } catch (error) {
+      console.error("Comment save failed:", error);
+      hasError = true;
+      try {
+        if (commentPayload.length && hasCommentUrl) {
+          await fetch(CLIENTS_COMMENT_URL, {
+            method: "POST",
+            mode: "no-cors",
+            headers: { "Content-Type": "text/plain;charset=UTF-8" },
+            body: JSON.stringify(commentPayload),
+          });
+        }
+      } catch (fallbackError) {
+        console.error("Comment save fallback failed:", fallbackError);
+      }
+    }
+    if (commentSentOk) {
+      commentRows.forEach((row) => {
+        row.__commentSnapshot = normalizeCommentValue(getCommentValue(row));
+        row.__commentSnapshotInitialized = true;
+        row.__commentDirty = false;
+      });
+    }
+
     if (clientsSentOk) {
       mainRows.forEach((row) => {
         row.__nonSumDirty = false;
       });
     }
-    if ((sumSentOk || paySentOk || clientsSentOk) && clientsLastData) {
+    if ((sumSentOk || paySentOk || clientsSentOk || commentSentOk) && clientsLastData) {
       writeClientsCache(clientsLastData);
     }
     if (!hasError) {
       clientsDirtyKeys.clear();
       updateClientsSaveButton();
     } else {
-      clientsSaveEl.textContent = "Ошибка отправки";
-      setTimeout(() => {
-        updateClientsSaveButton();
-      }, 1500);
+      if (hasSaveButton) {
+        clientsSaveEl.textContent = "Ошибка отправки";
+        setTimeout(() => {
+          updateClientsSaveButton();
+        }, 1500);
+      }
     }
   } catch (error) {
     console.error("Clients save failed:", error);
   } finally {
-    clientsSaveEl.disabled = false;
-    if (clientsSaveEl.textContent === "💾 Сохранение...") {
-      clientsSaveEl.textContent = originalLabel;
+    if (hasSaveButton) {
+      clientsSaveEl.disabled = false;
+      if (clientsSaveEl.textContent === "💾 Сохранение...") {
+        clientsSaveEl.textContent = originalLabel;
+      }
     }
   }
 }
 
 function setActiveSection(section) {
   if (!section) return;
-  const nextSection = "clients";
-  activeSection = nextSection;
+  activeSection = section;
   try {
-    localStorage.setItem(ACTIVE_SECTION_STORAGE_KEY, nextSection);
+    localStorage.setItem(ACTIVE_SECTION_STORAGE_KEY, section);
   } catch (e) {
     // ignore storage errors
   }
   topNavButtons.forEach((btn) => {
-    const isActive = btn.dataset.section === nextSection;
+    const isActive = btn.dataset.section === section;
     btn.classList.toggle("active", isActive);
   });
-  scheduleViewEl?.classList.toggle("hidden", true);
-  clientsViewEl?.classList.toggle("hidden", false);
+  scheduleViewEl?.classList.remove("hidden");
+  clientsViewEl?.classList.remove("hidden");
   if (clientsViewEl) {
-    clientsViewEl.style.display = "flex";
-    clientsViewEl.style.pointerEvents = "auto";
+    clientsViewEl.style.display = section === "clients" ? "flex" : "none";
+    clientsViewEl.style.pointerEvents = section === "clients" ? "auto" : "none";
   }
   if (scheduleViewEl) {
-    scheduleViewEl.style.display = "none";
-    scheduleViewEl.style.pointerEvents = "none";
+    scheduleViewEl.style.display = section === "schedule" ? "flex" : "none";
+    scheduleViewEl.style.pointerEvents = section === "schedule" ? "auto" : "none";
   }
   scheduleOnlyEls.forEach((el) => {
-    el.classList.add("hidden");
+    el.classList.toggle("hidden", section !== "schedule");
   });
   clientsOnlyEls.forEach((el) => {
-    el.classList.remove("hidden");
+    el.classList.toggle("hidden", section !== "clients");
   });
-  mainScreenEl?.classList.add("clients-active");
+  mainScreenEl?.classList.toggle("clients-active", section === "clients");
   if (mainTitleEl) {
-    mainTitleEl.textContent = "Клиенты";
+    mainTitleEl.textContent = section === "clients" ? "Клиенты" : "График смен";
   }
-  if (hasClientsAccess()) {
+  if (section === "clients") {
     loadClients({ force: false });
   }
+}
+
+function exposeClientsApi() {
+  try {
+    window.__clientsApi = {
+      setActiveSection,
+      loadClients,
+      saveClientsToWebhook,
+    };
+  } catch (_) {}
 }
 
 function bindTopNav() {
@@ -2702,29 +3143,45 @@ function bindTopNav() {
     btn.addEventListener("click", () => {
       setActiveSection(btn.dataset.section);
     });
-    btn.addEventListener("pointerup", (event) => {
-      if (event.pointerType !== "touch") return;
-      event.preventDefault();
-      setActiveSection(btn.dataset.section);
-    });
-    btn.addEventListener("touchend", (event) => {
-      event.preventDefault();
-      setActiveSection(btn.dataset.section);
-    });
   });
+
+  // Fallback for mobile/touch where direct button listeners may be swallowed by overlays.
+  document.addEventListener(
+    "click",
+    (event) => {
+      const target = event.target instanceof Element ? event.target : null;
+      const btn = target ? target.closest(".top-nav [data-section]") : null;
+      if (!btn) return;
+      const section = btn.getAttribute("data-section");
+      if (!section) return;
+      event.preventDefault();
+      setActiveSection(section);
+    },
+    true
+  );
 }
 
 
 createClientsPopover();
 bindTopNav();
-const canAccessClients = hasClientsAccess();
-if (!canAccessClients && clientsStateEl && clientsTableWrapEl) {
-  clientsStateEl.textContent = "Нет доступа к разделу клиентов.";
-  clientsTableWrapEl.innerHTML = "";
-  clientsTableWrapEl.appendChild(clientsStateEl);
-  clientsRefreshEl?.classList.add("hidden");
-  clientsSaveEl?.classList.add("hidden");
+exposeClientsApi();
+const clientsTabBtn = document.querySelector('.top-nav [data-section="clients"]');
+if (!hasClientsAccess()) {
+  clientsTabBtn?.classList.add("hidden");
+  clientsViewEl?.classList.add("hidden");
 }
-setActiveSection("clients");
+const savedSection =
+  (() => {
+    try {
+      return localStorage.getItem(ACTIVE_SECTION_STORAGE_KEY);
+    } catch (e) {
+      return null;
+    }
+  })() || "";
+if (savedSection) {
+  setActiveSection(savedSection);
+} else {
+  setActiveSection("schedule");
+}
 clientsRefreshEl?.addEventListener("click", () => loadClients({ force: true }));
 clientsSaveEl?.addEventListener("click", saveClientsToWebhook);

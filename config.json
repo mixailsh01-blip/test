@@ -1,12 +1,12 @@
 {
-  "graphHookUrl": "https://funouriskasok.beget.app/webhook/pyrus/graph",
+  "graphHookUrl": "https://quumahienot.beget.app/webhook/pyrus/graph",
   "clients": {
-    "webhookUrl": "https://funouriskasok.beget.app/webhook/client",
-    "editWebhookUrl": "https://funouriskasok.beget.app/webhook/Client/Edit",
-    "saveUrl": "https://funouriskasok.beget.app/webhook/Client/Edit",
-    "payToUrl": "https://funouriskasok.beget.app/webhook/PayTO",
-    "sumToUrl": "https://funouriskasok.beget.app/webhook/SumPayPyrus",
-    "payTo2Url": "https://funouriskasok.beget.app/webhook/PayTO2"
+    "webhookUrl": "https://quumahienot.beget.app/webhook/client",
+    "editWebhookUrl": "https://quumahienot.beget.app/webhook/Client/Edit",
+    "saveUrl": "https://quumahienot.beget.app/webhook/Client/Edit",
+    "payToUrl": "https://quumahienot.beget.app/webhook/PayTO",
+    "sumToUrl": "https://quumahienot.beget.app/webhook/SumPayPyrus",
+    "payTo2Url": "https://quumahienot.beget.app/webhook/PayTO2"
   },
   "auth": {
     "methods": {
@@ -38,11 +38,11 @@
       "emailVerify": "https://example.com/webhook/auth/email/verify"
     },
     "rolePermissions": {
-      "ALL": [1284686],
+      "ALL": [1271289],
       "L1": [],
-      "L2": [1284686],
-      "OV": [1284686],
-      "OP": [1284686],
+      "L2": [1271289],
+      "OV": [1271290],
+      "OP": [1271291],
       "OU": [],
       "AI": []
     }
