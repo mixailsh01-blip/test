@@ -1,542 +1,223 @@
-<!DOCTYPE html>
+﻿<!doctype html>
 <html lang="ru">
-
 <head>
-  <meta charset="UTF-8" />
-  <title>POS Service Portal</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <script>
-    (function () {
-      try {
-        var theme = localStorage.getItem("sm1_theme_preference");
-        var resolved = theme === "light" ? "light" : "dark";
-        document.documentElement.setAttribute("data-theme", resolved);
-      } catch (e) {
-        document.documentElement.setAttribute("data-theme", "dark");
-      }
-    })();
-  </script>
-  <style>
-    html { background: #0f1626; color-scheme: dark; }
-    html[data-theme="light"] { background: #f0f0f0; color-scheme: light; }
-  </style>
-  <link rel="stylesheet" href="css/styles.css?v=81" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Светлая память — установка памятников в Самарской области</title>
+  <link rel="stylesheet" href="css/styles.css" />
 </head>
-
-<body class="booting">
-  <div id="app">
-    <!-- Экран логина -->
-    <div id="login-screen" class="card">
-      <div class="login-brand">
-        <img class="login-logo" src="assets/logo/logo.png" alt="Логотип компании" />
-        <div class="login-x">X</div>
-        <div class="login-portal">PORTAL</div>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <div class="brand">
+        <div class="brand-mark">RG</div>
+        <div class="brand-text">
+          <div class="brand-name">Светлая память</div>
+          <div class="brand-tag">Памятники и благоустройство</div>
+        </div>
       </div>
-      <p class="muted">Вход по email с подтверждением кода.</p>
-
-      <div class="auth-panels">
-        <section class="auth-panel" data-auth-panel="email" role="tabpanel">
-          <p class="muted auth-panel-hint">Отправим код на ваш email для подтверждения.</p>
-
-          <div class="email-auth-step" id="email-step-request">
-            <div class="field">
-              <span>Email</span>
-              <input id="email-input" type="email" autocomplete="email" placeholder="name@company.ru" spellcheck="false" />
-            </div>
-            <button type="button" class="btn primary full-width" id="email-send-button">
-              Получить код
-            </button>
-            <div id="email-request-error" class="error"></div>
-          </div>
-
-          <div class="email-auth-step hidden" id="email-step-code">
-            <div class="email-auth-meta">
-              <span class="email-auth-label">Код отправлен на</span>
-              <span id="email-target-label" class="email-auth-target">—</span>
-              <button type="button" class="btn ghost email-change-button" id="email-change-button">
-                Изменить email
-              </button>
-            </div>
-            <div class="otp-group" id="otp-group" aria-label="Введите код подтверждения">
-              <input class="otp-input" inputmode="numeric" maxlength="1" aria-label="Цифра 1" />
-              <input class="otp-input" inputmode="numeric" maxlength="1" aria-label="Цифра 2" />
-              <input class="otp-input" inputmode="numeric" maxlength="1" aria-label="Цифра 3" />
-              <input class="otp-input" inputmode="numeric" maxlength="1" aria-label="Цифра 4" />
-              <input class="otp-input" inputmode="numeric" maxlength="1" aria-label="Цифра 5" />
-              <input class="otp-input" inputmode="numeric" maxlength="1" aria-label="Цифра 6" />
-            </div>
-            <div class="email-auth-actions">
-              <button type="button" class="btn primary full-width" id="email-verify-button">
-                Подтвердить
-              </button>
-              <button type="button" class="btn ghost full-width" id="email-resend-button">
-                Повторная отправка
-              </button>
-            </div>
-            <div id="email-code-error" class="error"></div>
-          </div>
-        </section>
-
+      <nav class="site-nav">
+        <a href="#services">Услуги</a>
+        <a href="#constructor">Конструктор</a>
+        <a href="#prices">Цены</a>
+        <a href="#process">Как работаем</a>
+        <a href="#contacts">Контакты</a>
+      </nav>
+      <div class="header-cta">
+        <a class="btn primary" href="tel:+79000000000">+7 (900) 000-00-00</a>
       </div>
     </div>
+  </header>
 
-    <!-- Основной экран -->
-    <div id="main-screen" class="hidden">
-      <div class="top-bar">
-        <div class="top-bar-left">
-          <h2 id="main-title">График смен</h2>
-          <div id="current-user-label" class="muted"></div>
-          <div class="top-nav" aria-label="Навигация">
-            <button type="button" class="btn toggle active" data-section="schedule">График</button>
-            <button type="button" class="btn toggle" data-section="clients">Клиенты</button>
-          </div>
-          <!-- mobile section switch removed -->
+  <main>
+    <section class="hero hero-video">
+      <video class="hero-bg" autoplay muted loop playsinline preload="auto">
+        <source src="assets/video/hero.mp4" type="video/mp4" />
+      </video>
+      <div class="hero-overlay"></div>
+      <div class="hero-band-wrap">
+        <div class="hero-band">
+          <article class="hero-band-item">
+            <span class="hero-band-icon" aria-hidden="true">✣</span>
+            <p>Качественная подготовка перед установкой</p>
+          </article>
+          <article class="hero-band-item">
+            <span class="hero-band-icon" aria-hidden="true">✣</span>
+            <p>Быстрое составление расчета</p>
+          </article>
+          <article class="hero-band-item">
+            <span class="hero-band-icon" aria-hidden="true">✣</span>
+            <p>Гарантия 5 лет</p>
+          </article>
+          <article class="hero-band-item hero-band-item-accent">
+            <span class="hero-band-icon" aria-hidden="true">✣</span>
+            <p>Получите персональную<br />скидку до 50%</p>
+          </article>
         </div>
-
-        <div class="top-bar-right">
-          <button type="button" class="btn toggle" id="btn-theme-toggle">
-            🌙 Тема
-          </button>
-          <button type="button" class="btn toggle" id="btn-logout" title="Сбросить авторизацию">
-            🚪 Выйти
-          </button>
-          <button type="button" class="btn toggle clients-only hidden" id="clients-refresh">
-            &#8635; Обновить
-          </button>
-          <div class="schedule-actions schedule-only">
-            <button type="button" class="btn toggle mobile-only" id="btn-mobile-toolbar">⚙️ Панель смены</button>
-            <button type="button" class="btn toggle mobile-only" id="btn-line-tabs">🏢 Отделы</button>
-            <button type="button" class="btn toggle" id="btn-legend-toggle" aria-controls="shift-legend"
-              aria-expanded="false">
-              🎨 Легенда
-            </button>
+      </div>
+      <div class="wrap">
+        <div class="hero-content">
+          <h1>Памятники, ограды и благоустройство с честной<br />сметой на месте</h1>
+          <div class="hero-actions">
+            <a class="btn primary" href="#constructor">Собрать проект</a>
           </div>
-          <div id="line-tabs" class="line-tabs schedule-only"></div>
+        </div>
+        <div class="hero-card-placeholder" aria-hidden="true"></div>
+      </div>
+      <div class="hero-ornament"></div>
+    </section>
 
-          <div class="month-switcher schedule-only">
-            <button type="button" class="btn toggle" id="btn-prev-month">
-              &#8249;
-            </button>
-            <button type="button" id="current-month-label" class="month-label-button" aria-label="Выбрать месяц">
-              Месяц
-            </button>
-            <button type="button" class="btn toggle" id="btn-next-month">
-              &#8250;
-            </button>
+    <section class="section" id="services">
+      <div class="wrap">
+        <div class="services-panel">
+          <h2>Полный цикл работ</h2>
+          <div class="grid-3">
+            <article class="card service-card">
+              <h3>Памятники</h3>
+              <p>Гранит, мрамор, комбинированные варианты, гравировка, портреты.</p>
+            </article>
+            <article class="card service-card">
+              <h3>Ограды</h3>
+              <p>Металл, гранитные борта, декоративные элементы.</p>
+            </article>
+            <article class="card service-card">
+              <h3>Благоустройство</h3>
+              <p>Плитка, крошка, выравнивание, подсыпка, уход.</p>
+            </article>
+            <article class="card service-card">
+              <h3>Установка</h3>
+              <p>Фундамент, армирование, монтаж и гарантия.</p>
+            </article>
+            <article class="card service-card">
+              <h3>Доставка</h3>
+              <p>По Самарской области, согласование времени.</p>
+            </article>
+            <article class="card service-card">
+              <h3>Выезд на участок</h3>
+              <p>Замер, расчет и подбор решения на месте.</p>
+            </article>
           </div>
         </div>
       </div>
+    </section>
 
-      <div id="schedule-view">
-        <div class="schedule-container">
-          <div class="schedule-toolbar">
-            <div class="toolbar-group">
-              <label for="quick-template-select">Шаблон смены</label>
-              <select id="quick-template-select"></select>
-            </div>
-
-            <div class="toolbar-group">
-              <label>Время</label>
-              <div class="toolbar-inline">
-                <input id="quick-time-from" type="time" />
-                <span class="toolbar-separator">—</span>
-                <input id="quick-time-to" type="time" />
-              </div>
-            </div>
-
-            <div class="toolbar-group">
-              <label for="quick-amount">Сумма</label>
-              <input id="quick-amount" type="number" min="0" step="100" />
-            </div>
-
-            <div class="toolbar-actions">
-              <button type="button" class="btn toggle mobile-only" id="btn-mobile-toolbar-close">⬇️ Скрыть</button>
-              <button type="button" class="btn toggle" id="quick-mode-toggle">
-                Быстрое назначение
-              </button>
-              <button type="button" class="btn primary ghost" id="btn-save-pyrus">
-                Сохранить в Pyrus
-              </button>
-            </div>
-          </div>
-
-          <div class="schedule-scroll">
-            <div id="schedule-root"></div>
-          </div>
-
-          <!-- Легенда цветов смен (динамически генерируется) -->
-          <div class="shift-legend-backdrop" id="shift-legend-backdrop" aria-hidden="true"></div>
-          <div class="shift-legend shift-legend-hidden" id="shift-legend">
-            <div class="shift-legend-title">Легенда цветов смен</div>
-            <div class="shift-legend-groups" id="shift-legend-content">
-              <!-- Будет заполнено динамически из JavaScript -->
-            </div>
-          </div>
-
-          <div style="padding: 8px 12px; font-size: 12px; color: var(--text-muted);">
-            Режим: редактирование доступно только при правах <b>edit</b> (сейчас
-            реализован локальный кэш, без отправки в Pyrus).
-          </div>
-
-          <div class="change-log-panel">
-            <div class="change-log-header">
-              <div>
-                <div class="change-log-title">История изменений</div>
-                <div class="change-log-subtitle">
-                  Сохраняется локально в браузере, фиксируя добавление, правки и удаление.
+    <section class="section accent" id="constructor">
+      <div class="wrap">
+        <div class="constructor-panel">
+          <div class="constructor">
+            <div class="constructor-main">
+              <h2>Конструктор проекта</h2>
+              <p class="constructor-subtitle">Соберите комплект под свой участок и получите ориентировочную стоимость.</p>
+              <form id="calc-form" class="calc-form">
+                <label>
+                  Тип памятника
+                  <select name="monument">
+                    <option value="classic">Классический</option>
+                    <option value="modern">Современный</option>
+                    <option value="double">Двойной</option>
+                  </select>
+                </label>
+                <label>
+                  Материал
+                  <select name="material">
+                    <option value="granite">Гранит</option>
+                    <option value="marble">Мрамор</option>
+                    <option value="mix">Комбинированный</option>
+                  </select>
+                </label>
+                <label>
+                  Ограда
+                  <select name="fence">
+                    <option value="none">Не требуется</option>
+                    <option value="metal">Металлическая</option>
+                    <option value="stone">Каменная</option>
+                  </select>
+                </label>
+                <label>
+                  Благоустройство
+                  <select name="improve">
+                    <option value="none">Минимальное</option>
+                    <option value="tile">Плитка</option>
+                    <option value="chip">Каменная крошка</option>
+                  </select>
+                </label>
+                <label class="inline">
+                  Установка
+                  <input type="checkbox" name="install" checked />
+                </label>
+                <label class="inline">
+                  Доставка
+                  <input type="checkbox" name="delivery" checked />
+                </label>
+                <div class="sizes">
+                  <label>
+                    Длина участка (м)
+                    <input type="number" name="length" min="1" step="0.1" value="2" />
+                  </label>
+                  <label>
+                    Ширина участка (м)
+                    <input type="number" name="width" min="1" step="0.1" value="1.8" />
+                  </label>
+                </div>
+              </form>
+              <div class="constructor-summary">
+                <div class="constructor-actions">
+                  <a class="btn primary" href="https://t.me/romanovgroup" target="_blank" rel="noopener">Точный расчет в Telegram</a>
+                  <a class="btn ghost" href="tel:+79000000000">Позвонить</a>
                 </div>
               </div>
-              <button type="button" class="btn toggle" id="btn-clear-history">
-                Очистить историю
-              </button>
             </div>
-            <div id="change-log-list" class="change-log-list">
-              Пока нет локальных изменений
-            </div>
+            <div class="constructor-space" aria-hidden="true"></div>
           </div>
         </div>
       </div>
+    </section>
 
-      <div id="clients-view" class="clients-view hidden">
-        <div class="clients-sheet">
-          <div class="clients-table-wrap" id="clients-table-wrap">
-            <div class="clients-state" id="clients-state">Загрузка...</div>
+    <section class="section" id="process">
+      <div class="wrap">
+        <div class="process-panel">
+          <h2>Как мы работаем</h2>
+          <ol class="steps">
+            <li>Обсуждаем задачу и выезжаем на участок.</li>
+            <li>Снимаем размеры, уточняем бюджет и материал.</li>
+            <li>Готовим проект и прозрачную смету.</li>
+            <li>Изготавливаем и устанавливаем с гарантией.</li>
+          </ol>
+        </div>
+      </div>
+    </section>
+
+    <section class="section contact" id="contacts">
+      <div class="wrap">
+        <div>
+          <h2>Связаться с нами</h2>
+          <p>Работаем по Самарской области. Выезд и расчет на месте.</p>
+        </div>
+        <div class="contact-card">
+          <div>
+            <span class="contact-label">Телефон</span>
+            <a href="tel:+79000000000">+7 (900) 000-00-00</a>
+          </div>
+          <div>
+            <span class="contact-label">Telegram</span>
+            <a href="https://t.me/romanovgroup" target="_blank" rel="noopener">@romanovgroup</a>
+          </div>
+          <div>
+            <span class="contact-label">График</span>
+            <span>Ежедневно 9:00–20:00</span>
           </div>
         </div>
       </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <div>Светлая память © 2026</div>
+      <div>Памятники, ограды, установка и благоустройство.</div>
     </div>
-  </div>
+  </footer>
 
-  <div id="clients-edit-backdrop" class="clients-edit-backdrop hidden" aria-hidden="true">
-    <div class="clients-edit-panel" role="dialog" aria-modal="true" aria-labelledby="clients-edit-title">
-      <div class="clients-edit-header">
-        <div class="clients-edit-title" id="clients-edit-title">Данные клиента</div>
-        <button type="button" class="clients-edit-close" id="clients-edit-close">x</button>
-      </div>
-      <div class="clients-edit-body" id="clients-edit-body"></div>
-      <div class="clients-edit-footer">
-        <div class="clients-edit-status" id="clients-edit-status"></div>
-        <button type="button" class="btn toggle" id="clients-edit-cancel">Отмена</button>
-        <button type="button" class="btn primary" id="clients-edit-save">Сохранить</button>
-      </div>
-    </div>
-  </div>
-
-  <script src="js/shift-colors.js"></script>
-  <script type="module" src="js/app.js?v=10"></script>
-  <script type="module" src="js/clients.js?v=104"></script>
-  <script>
-    (function () {
-      var CLIENTS_DIRECT_WEBHOOK_URL = "https://quumahienot.beget.app/webhook/client";
-      var directClientsLoaded = false;
-
-      function normalizeDirectPayload(raw) {
-        if (Array.isArray(raw)) return { rows: raw, columns: null };
-        if (raw && typeof raw === "object") {
-          var columns = Array.isArray(raw.columns) ? raw.columns : null;
-          if (Array.isArray(raw.clients)) return { rows: raw.clients, columns: columns };
-          if (Array.isArray(raw.data)) return { rows: raw.data, columns: columns };
-          if (Array.isArray(raw.rows)) return { rows: raw.rows, columns: columns };
-          var keys = Object.keys(raw);
-          if (keys.length === 1 && Array.isArray(raw[keys[0]])) {
-            return { rows: raw[keys[0]], columns: columns };
-          }
-          return { rows: [raw], columns: columns };
-        }
-        return { rows: [], columns: null };
-      }
-
-      function flattenDirectRow(row) {
-        if (!row || typeof row !== "object") return { value: String(row || "") };
-        var flat = {};
-        Object.keys(row).forEach(function (key) {
-          var value = row[key];
-          if (value && typeof value === "object" && !Array.isArray(value)) {
-            Object.keys(value).forEach(function (nestedKey) {
-              flat[key + " " + nestedKey] = value[nestedKey];
-            });
-          } else {
-            flat[key] = value;
-          }
-        });
-        return flat;
-      }
-
-      function normalizeColKey(value) {
-        return String(value || "")
-          .toLowerCase()
-          .replace(/\u00a0/g, " ")
-          .replace(/\s+/g, "")
-          .trim();
-      }
-
-      function isSumToColumn(value) {
-        var key = normalizeColKey(value);
-        var keyClean = key.replace(/[^a-z0-9]/g, "");
-        var keyRu = key.replace(/[^Ѐ-ӿ0-9]/g, "");
-        return key === "sumto" || keyClean.includes("sumto") || keyRu.includes("суммато");
-      }
-
-      function isCommentColumn(value) {
-        var key = normalizeColKey(value);
-        var keyClean = key.replace(/[^a-z0-9]/g, "");
-        var keyRu = key.replace(/[^Ѐ-ӿ0-9]/g, "");
-        return (
-          keyClean === "comment" ||
-          key === "комментарий" ||
-          key === "комментарийклиента" ||
-          keyRu === "комментарий" ||
-          keyRu === "комментарийклиента"
-        );
-      }
-
-      function buildDirectColumns(rows, payloadColumns) {
-        var preferred = ["Клиент", "Client", "UID", "Должник", "Должник?", "DOLG"];
-        var hidden = new Set([
-          "createdAt", "updatedAt", "id", "ID", "INN", "inn", "KPP", "ИНН", "КПП",
-          "OGRN", "BIK", "COR", "RS", "uid", "LKPartner", "LKPyrus", "RateIIKO",
-          "ОГРН", "БИК", "Кор", "Кор счет", "Р/С", "РС", "ЛК клиента", "ЛК Pyrus",
-          "Тариф iiko", "Email", "email", "Number", "CO", "NumberCO", "NumberManager",
-          "NumberManger", "ManagerNumber", "Номер менеджера", "НомерМенеджера",
-          "NEW", "New", "new", "Новый", "новый", "Create_date", "create_date", "CreateDate"
-        ]);
-
-        var cols = Array.isArray(payloadColumns) && payloadColumns.length
-          ? payloadColumns.map(function (col) { return String(col); }).filter(function (col) { return !hidden.has(col); })
-          : [];
-
-        if (!cols.length) {
-          var seen = Object.create(null);
-          rows.forEach(function (row) {
-            Object.keys(row || {}).forEach(function (key) {
-              if (hidden.has(key)) return;
-              if (!seen[key]) {
-                seen[key] = true;
-                cols.push(key);
-              }
-            });
-          });
-        }
-
-        var ordered = [];
-        var has = Object.create(null);
-        cols.forEach(function (col) { has[col] = true; });
-        preferred.forEach(function (key) {
-          if (has[key]) ordered.push(key);
-        });
-        cols.forEach(function (col) {
-          if (ordered.indexOf(col) === -1) ordered.push(col);
-        });
-
-        var sumIndex = ordered.findIndex(isSumToColumn);
-        if (sumIndex >= 0) {
-          var sumCol = ordered.splice(sumIndex, 1)[0];
-          ordered.push(sumCol);
-          var commentIndex = ordered.findIndex(isCommentColumn);
-          if (commentIndex >= 0) {
-            var commentCol = ordered.splice(commentIndex, 1)[0];
-            ordered.push(commentCol);
-          }
-        }
-        return ordered;
-      }
-
-      function renderDirectClientsTable(rows) {
-        var wrapEl = document.getElementById("clients-table-wrap");
-        var stateEl = document.getElementById("clients-state");
-        if (!wrapEl || !stateEl) return;
-        var payload = normalizeDirectPayload(rows);
-        var list = payload.rows || [];
-        if (!list.length) {
-          stateEl.textContent = "Нет данных клиентов.";
-          wrapEl.innerHTML = "";
-          wrapEl.appendChild(stateEl);
-          return;
-        }
-        var normalizedRows = list.map(flattenDirectRow);
-        var cols = buildDirectColumns(normalizedRows, payload.columns);
-        var labelMap = new Map([
-          ["Client", "Клиент"],
-          ["DOLG", "Должник"],
-          ["Org", "Юр. лицо"],
-          ["ORG", "Юр. лицо"],
-          ["FirstClient", "Контактное лицо"],
-          ["RateTO", "Тип обслуживания"],
-          ["SumTO", "Сумма ТО"],
-          ["Комментарий", "Комментарий"],
-          ["Комментарий клиента", "Комментарий"],
-          ["Comment", "Комментарий"],
-          ["Manager", "Менеджер"],
-        ]);
-
-        var table = document.createElement("table");
-        table.className = "clients-table";
-        var thead = document.createElement("thead");
-        var hr = document.createElement("tr");
-        cols.forEach(function (col) {
-          var th = document.createElement("th");
-          th.className = "clients-col-header";
-          th.textContent = labelMap.get(col) || col;
-          hr.appendChild(th);
-        });
-        thead.appendChild(hr);
-        table.appendChild(thead);
-
-        var tbody = document.createElement("tbody");
-        normalizedRows.forEach(function (row) {
-          var tr = document.createElement("tr");
-          cols.forEach(function (col) {
-            var td = document.createElement("td");
-            var value = row && row[col] != null ? row[col] : "";
-            td.textContent = typeof value === "object" ? JSON.stringify(value) : String(value);
-            tr.appendChild(td);
-          });
-          tbody.appendChild(tr);
-        });
-        table.appendChild(tbody);
-
-        wrapEl.innerHTML = "";
-        wrapEl.appendChild(table);
-      }
-
-      function loadClientsDirectFallback() {
-        var stateEl = document.getElementById("clients-state");
-        var wrapEl = document.getElementById("clients-table-wrap");
-        if (!stateEl || !wrapEl) return;
-        if (directClientsLoaded) return;
-        directClientsLoaded = true;
-        stateEl.textContent = "Загрузка клиентов (fallback)...";
-        wrapEl.innerHTML = "";
-        wrapEl.appendChild(stateEl);
-
-        fetch(CLIENTS_DIRECT_WEBHOOK_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({})
-        })
-          .then(function (response) {
-            if (!response.ok) {
-              throw new Error("Webhook " + response.status);
-            }
-            return response.text();
-          })
-          .then(function (rawText) {
-            var parsed = rawText;
-            try {
-              parsed = JSON.parse(rawText);
-            } catch (_) {}
-            renderDirectClientsTable(parsed);
-          })
-          .catch(function (error) {
-            stateEl.textContent = "Не удалось загрузить клиентов: " + (error && error.message ? error.message : "ошибка");
-            wrapEl.innerHTML = "";
-            wrapEl.appendChild(stateEl);
-          });
-      }
-
-      function forceSection(section) {
-        const main = document.getElementById("main-screen");
-        const scheduleView = document.getElementById("schedule-view");
-        const clientsView = document.getElementById("clients-view");
-        const title = document.getElementById("main-title");
-        if (!main || !scheduleView || !clientsView) return;
-
-        const isClients = section === "clients";
-        main.classList.toggle("clients-active", isClients);
-        scheduleView.classList.toggle("hidden", isClients);
-        clientsView.classList.toggle("hidden", !isClients);
-        scheduleView.style.display = isClients ? "none" : "flex";
-        clientsView.style.display = isClients ? "flex" : "none";
-        scheduleView.style.pointerEvents = isClients ? "none" : "auto";
-        clientsView.style.pointerEvents = isClients ? "auto" : "none";
-
-        document.querySelectorAll(".top-nav [data-section]").forEach(function (btn) {
-          btn.classList.toggle("active", btn.getAttribute("data-section") === section);
-        });
-        document.querySelectorAll(".schedule-only").forEach(function (el) {
-          el.classList.toggle("hidden", isClients);
-        });
-        document.querySelectorAll(".clients-only").forEach(function (el) {
-          el.classList.toggle("hidden", !isClients);
-        });
-        if (title) title.textContent = isClients ? "Клиенты" : "График смен";
-
-        if (isClients) {
-          const clientsApi = window.__clientsApi;
-          if (clientsApi && typeof clientsApi.setActiveSection === "function") {
-            clientsApi.setActiveSection("clients");
-          } else {
-            const refreshBtn = document.getElementById("clients-refresh");
-            if (refreshBtn) refreshBtn.click();
-          }
-          (function ensureClientsLoad(attempt) {
-            const api = window.__clientsApi;
-            const stateEl = document.getElementById("clients-state");
-            const wrapEl = document.getElementById("clients-table-wrap");
-            const loadingNow =
-              stateEl &&
-              wrapEl &&
-              wrapEl.contains(stateEl) &&
-              String(stateEl.textContent || "").toLowerCase().includes("загрузка");
-
-            if (!api && stateEl && attempt >= 2) {
-              stateEl.textContent = "Инициализация модуля клиентов...";
-            }
-
-            if (api && typeof api.loadClients === "function") {
-              api.loadClients({ force: attempt > 1 });
-            } else {
-              // Some mobile WebViews may delay/fail module startup. Try explicit dynamic import.
-              if (attempt >= 2) {
-                try {
-                  var dynamicImport = Function("u", "return import(u)");
-                  dynamicImport("./js/clients.js?v=103")
-                    .then(function () {
-                      if (window.__clientsApi && typeof window.__clientsApi.loadClients === "function") {
-                        window.__clientsApi.loadClients({ force: true });
-                      }
-                    })
-                    .catch(function () {
-                      if (stateEl) stateEl.textContent = "Не удалось инициализировать клиентов.";
-                    });
-                } catch (_) {
-                  if (stateEl) stateEl.textContent = "Не удалось инициализировать клиентов.";
-                }
-              }
-              const refreshBtn = document.getElementById("clients-refresh");
-              if (refreshBtn) refreshBtn.click();
-              if (attempt >= 3) {
-                loadClientsDirectFallback();
-              }
-            }
-
-            if (attempt >= 8) return;
-            if (loadingNow || !api) {
-              setTimeout(function () {
-                ensureClientsLoad(attempt + 1);
-              }, 500);
-            }
-          })(1);
-        }
-      }
-
-      document.addEventListener(
-        "click",
-        function (event) {
-          const target = event.target instanceof Element ? event.target : null;
-          const btn = target ? target.closest(".top-nav [data-section]") : null;
-          if (!btn) return;
-          const section = btn.getAttribute("data-section");
-          if (!section) return;
-          event.preventDefault();
-          forceSection(section);
-        },
-        true
-      );
-
-      window.forceSectionFallback = forceSection;
-    })();
-  </script>
+  <script src="js/main.js"></script>
 </body>
-
 </html>
