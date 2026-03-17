@@ -272,15 +272,29 @@ const API = {
    */
   async sendMiniappMessage(messagePayload = {}, userData = null, webApp = null, files = []) {
     const hookUrl = 'https://quumahienot.beget.app/webhook/message_miniapp';
+    const textValue = messagePayload?.text ?? null;
+    const messageType = messagePayload?.message_type ?? messagePayload?.messageType ?? 'text';
+    const fileName = messagePayload?.file_name ?? messagePayload?.fileName ?? null;
     const payload = {
       task_id: messagePayload?.task_id ?? messagePayload?.taskId ?? null,
       chat_id: messagePayload?.chat_id ?? messagePayload?.chatId ?? null,
       org: messagePayload?.org ?? null,
       Client: messagePayload?.Client ?? messagePayload?.org ?? null,
       ID: messagePayload?.ID ?? messagePayload?.establishment_id ?? null,
-      text: messagePayload?.text ?? null,
-      message_type: messagePayload?.message_type ?? messagePayload?.messageType ?? 'text',
-      file_name: messagePayload?.file_name ?? messagePayload?.fileName ?? null,
+      text: textValue,
+      message: textValue,
+      comment: textValue,
+      body: textValue,
+      message_type: messageType,
+      file_name: fileName,
+      message_payload: {
+        text: textValue,
+        message: textValue,
+        comment: textValue,
+        body: textValue,
+        message_type: messageType,
+        file_name: fileName
+      },
       user_id: userData?.id || null,
       username: userData?.username || null,
       first_name: userData?.first_name || null,
@@ -299,6 +313,10 @@ const API = {
         const formData = new FormData();
         Object.entries(payload).forEach(([key, value]) => {
           if (value === undefined || value === null) return;
+          if (typeof value === 'object') {
+            formData.append(key, JSON.stringify(value));
+            return;
+          }
           formData.append(key, String(value));
         });
         preparedFiles.forEach((file) => {
