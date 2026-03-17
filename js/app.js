@@ -1202,7 +1202,17 @@ const upsertRequestTask = (task) => {
   if (!task?.taskId) return;
   const existingIndex = requestsState.tasks.findIndex((item) => item.taskId === task.taskId);
   if (existingIndex >= 0) {
-    requestsState.tasks[existingIndex] = task;
+    const existingTask = requestsState.tasks[existingIndex];
+    requestsState.tasks[existingIndex] = {
+      ...existingTask,
+      ...task,
+      org: task.org || existingTask.org,
+      description: task.description || existingTask.description,
+      status: task.status || existingTask.status,
+      chatId: task.chatId || existingTask.chatId,
+      chat: task.chat.length > 0 ? task.chat : existingTask.chat,
+      createdAt: task.createdAt || existingTask.createdAt
+    };
   } else {
     requestsState.tasks.unshift(task);
   }
