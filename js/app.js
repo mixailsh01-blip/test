@@ -1160,16 +1160,25 @@ const normalizeTaskFromWebhook = (item) => {
   const chatItems = Array.isArray(item.chat) ? item.chat : [];
   const normalizedChat = chatItems.map((comment) => normalizeTaskComment(comment, item.description)).filter((comment) => comment.text);
   const lastMessage = normalizedChat[normalizedChat.length - 1];
+  const description = item.description == null ? '' : String(item.description ?? item.text ?? '');
 
   return {
     taskId,
     org: String(item.org ?? item.organization ?? item.Client ?? 'Без организации'),
-    description: String(item.description ?? item.text ?? ''),
+    description,
     status: String(item.status ?? 'Новая'),
     chatId: String(item.chat_id ?? item.chatId ?? ''),
     chat: normalizedChat,
     createdAt: lastMessage?.date || new Date().toISOString()
   };
+};
+
+const extractTaskItemsFromResult = (result) => {
+  const rootItems = Array.isArray(result) ? result : [result];
+  return rootItems.flatMap((item) => {
+    if (Array.isArray(item?.data)) return item.data;
+    return item ? [item] : [];
+  });
 };
 
 const upsertRequestTask = (task) => {
@@ -1210,7 +1219,7 @@ const renderRequestsList = () => {
 };
 
 const syncCreatedTasksFromResult = (result) => {
-  const items = Array.isArray(result) ? result : [result];
+  const items = extractTaskItemsFromResult(result);
   items
     .map(normalizeTaskFromWebhook)
     .filter(Boolean)
