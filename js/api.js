@@ -156,6 +156,64 @@ const API = {
   ,
 
   /**
+   * Проверка открытых задач по заведениям
+   * @param {Array|Object} establishmentsPayload - Массив или один объект {Client, ID}
+   * @param {Object|null} userData - Данные пользователя Telegram
+   * @returns {Promise<any|null>} Ответ вебхука или null
+   */
+  async sendOpenTask(establishmentsPayload, userData = null) {
+    const hookUrl = 'https://quumahienot.beget.app/webhook/open_task';
+    const basePayload = Array.isArray(establishmentsPayload)
+      ? establishmentsPayload
+      : (establishmentsPayload ? [establishmentsPayload] : []);
+    const payload = basePayload
+      .map((item) => {
+        const client = item?.Client ?? item?.client ?? item?.name ?? null;
+        const id = item?.ID ?? item?.Id ?? item?.id ?? null;
+
+        if (!client || !id) return null;
+
+        return {
+          Client: String(client),
+          ID: String(id),
+          Iduser: userData?.id || null
+        };
+      })
+      .filter(Boolean);
+
+    if (payload.length === 0) {
+      console.warn('⚠️ [API] open_task не отправлен: нет валидных Client/ID');
+      return null;
+    }
+
+    try {
+      console.log('📤 [API] Отправляем open_task:', payload);
+
+      const response = await fetch(hookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json().catch(() => null);
+      console.log('✅ [API] Ответ open_task:', result);
+      return result;
+    } catch (error) {
+      console.error('❌ [API] Ошибка open_task:', error);
+      return null;
+    }
+  }
+
+  ,
+
+  /**
    * При открытии страницы отправляем данные пользователя Telegram в вебхук
    * @param {Object} userData - tg.initDataUnsafe.user
    * @param {Object} webApp - window.Telegram.WebApp

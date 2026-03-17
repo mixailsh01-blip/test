@@ -338,6 +338,8 @@ const applyRestaurants = (restaurants) => {
         list.appendChild(button);
       });
     }
+
+    syncOpenTasksForKnownEstablishments();
   } catch (error) {
     console.error('Ошибка обновления заведений:', error);
   }
@@ -1120,6 +1122,10 @@ const requestsState = {
   tasks: [],
   activeTaskId: null
 };
+const openTaskSyncState = {
+  lastSignature: '',
+  inFlight: false
+};
 
 const escapeHtml = (value) => String(value ?? '')
   .replace(/&/g, '&amp;')
@@ -1213,6 +1219,47 @@ const syncCreatedTasksFromResult = (result) => {
   return requestsState.tasks[0] || null;
 };
 
+const getKnownEstablishments = () => {
+  const dropdown = document.getElementById('main-dropdown');
+  if (!dropdown) return [];
+
+  return Array.from(dropdown.options)
+    .map((option) => ({
+      id: (option.value || '').trim(),
+      name: (option.textContent || '').trim()
+    }))
+    .filter((item) => item.id && item.name && item.name !== 'Выберите заведение');
+};
+
+const syncOpenTasksForKnownEstablishments = async () => {
+  if (!window.API?.sendOpenTask) return;
+
+  const establishments = getKnownEstablishments();
+  if (establishments.length === 0) return;
+
+  const signature = establishments
+    .map((item) => `${item.id}:${item.name}`)
+    .sort()
+    .join('|');
+
+  if (!signature || openTaskSyncState.inFlight || openTaskSyncState.lastSignature === signature) {
+    return;
+  }
+
+  openTaskSyncState.inFlight = true;
+  try {
+    const result = await window.API.sendOpenTask(establishments, user);
+    if (result) {
+      syncCreatedTasksFromResult(result);
+    }
+    openTaskSyncState.lastSignature = signature;
+  } catch (error) {
+    console.error('❌ Ошибка синхронизации open_task:', error);
+  } finally {
+    openTaskSyncState.inFlight = false;
+  }
+};
+
 const setupEstablishmentSelection = () => {
   const selectBtn = document.getElementById('select-establishment-btn');
   const selectedDisplay = document.getElementById('selected-establishment');
@@ -1292,13 +1339,7 @@ const setupTaskCreation = () => {
     const dropdown = document.getElementById('main-dropdown');
     if (!dropdown) return { items: [], selectedId: '' };
 
-    const items = Array.from(dropdown.options)
-      .map((option) => ({
-        id: (option.value || '').trim(),
-        name: (option.textContent || '').trim()
-      }))
-      .filter((item) => item.id && item.name && item.name !== 'Выберите заведение');
-
+    const items = getKnownEstablishments();
     const selectedId = (dropdown.value || '').trim();
     return { items, selectedId };
   };
@@ -1589,6 +1630,7 @@ const initializeApp = () => {
     if (user?.id && window.API?.sendClientTGSupport) {
       window.API.sendClientTGSupport(user, tg).then((result) => {
         applyClientSupportResponse(result);
+        syncOpenTasksForKnownEstablishments();
         // Если ID пришёл, то всё ок. Если ответ пустой — просим номер телефона.
         if (clientSupportResponseHasId(result)) return;
         if (user?.phone_number) return;
