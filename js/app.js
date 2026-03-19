@@ -1243,6 +1243,7 @@ const normalizeTaskFromWebhook = (item) => {
     description,
     status: String(item.status ?? 'Новая'),
     chatId: String(item.chat_id ?? item.chatId ?? ''),
+    isClosed: Boolean(item.is_closed ?? item.isClosed ?? false),
     chat: normalizedChat,
     createdAt: lastMessage?.date || new Date().toISOString(),
     unreadCount: 0
@@ -1301,6 +1302,7 @@ const upsertRequestTask = (task, options = {}) => {
       description: task.description || existingTask.description,
       status: task.status || existingTask.status,
       chatId: task.chatId || existingTask.chatId,
+      isClosed: typeof task.isClosed === 'boolean' ? task.isClosed : existingTask.isClosed,
       chat: nextChat,
       createdAt: task.createdAt || existingTask.createdAt,
       unreadCount: shouldMarkRead ? 0 : (existingTask.unreadCount || 0) + newIncomingCount
@@ -1308,6 +1310,7 @@ const upsertRequestTask = (task, options = {}) => {
   } else {
     requestsState.tasks.unshift(applyStoredUnreadCountToTask({
       ...task,
+      isClosed: Boolean(task.isClosed),
       unreadCount: shouldMarkRead ? 0 : (task.unreadCount || 0)
     }));
   }
@@ -1648,8 +1651,10 @@ const setupRequestDetailsView = () => {
   const sendBtn = document.getElementById('request-dialog-send');
   const attachBtn = document.getElementById('request-dialog-attach');
   const fileInput = document.getElementById('request-dialog-file');
+  const composer = dialogModal?.querySelector('.request-dialog-composer');
+  const closedBanner = document.getElementById('request-dialog-closed');
 
-  if (!requestsList || !dialogModal || !dialogChat || !input || !sendBtn || !attachBtn || !fileInput) return;
+  if (!requestsList || !dialogModal || !dialogChat || !input || !sendBtn || !attachBtn || !fileInput || !composer || !closedBanner) return;
 
   const getCurrentTimeLabel = () => {
     const now = new Date();
@@ -1690,6 +1695,7 @@ const setupRequestDetailsView = () => {
       const updatedTask = syncOpenedChatFromResult(result, task.taskId);
       if (updatedTask && updatedTask.taskId === requestsState.activeTaskId) {
         renderDialogChat(updatedTask);
+        updateDialogComposerState(updatedTask);
       }
       return updatedTask;
     } catch (error) {
@@ -1799,6 +1805,19 @@ const setupRequestDetailsView = () => {
     dialogChat.scrollTop = dialogChat.scrollHeight;
   };
 
+  const updateDialogComposerState = (task) => {
+    const isClosed = Boolean(task?.isClosed);
+    composer.classList.toggle('hidden', isClosed);
+    closedBanner.classList.toggle('hidden', !isClosed);
+    input.disabled = isClosed;
+    sendBtn.disabled = isClosed;
+    attachBtn.disabled = isClosed;
+    if (isClosed) {
+      input.value = '';
+      fileInput.value = '';
+    }
+  };
+
   const openDialog = (taskId) => {
     const task = requestsState.tasks.find((item) => item.taskId === String(taskId));
     if (!task) return;
@@ -1817,6 +1836,7 @@ const setupRequestDetailsView = () => {
     if (dialogCompany) dialogCompany.textContent = task.org;
 
     renderDialogChat(task);
+    updateDialogComposerState(task);
     dialogModal.classList.remove('hidden');
     stopRequestsOpenChatPolling();
     requestOpenChat(task);
@@ -1848,7 +1868,7 @@ const setupRequestDetailsView = () => {
     const text = input.value.trim();
     if (!text) return;
     const activeTask = requestsState.tasks.find((item) => item.taskId === requestsState.activeTaskId);
-    if (!activeTask) return;
+    if (!activeTask || activeTask.isClosed) return;
 
     activeTask.chat.push(normalizeTaskComment({
       task_id: activeTask.taskId,
@@ -1882,7 +1902,7 @@ const setupRequestDetailsView = () => {
   fileInput.addEventListener('change', async () => {
     const files = Array.from(fileInput.files || []);
     const activeTask = requestsState.tasks.find((item) => item.taskId === requestsState.activeTaskId);
-    if (!activeTask) {
+    if (!activeTask || activeTask.isClosed) {
       fileInput.value = '';
       return;
     }
