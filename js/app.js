@@ -1783,11 +1783,14 @@ const setupRequestDetailsView = () => {
       const msg = document.createElement('div');
       msg.className = `request-msg ${isOutgoing ? 'request-msg-right request-msg-outgoing' : 'request-msg-left'}`;
       msg.innerHTML = `
-        <div class="request-msg-author"></div>
+        ${isOutgoing ? '' : '<div class="request-msg-author"></div>'}
         <div class="request-msg-text"></div>
         <div class="request-msg-time"></div>
       `;
-      msg.querySelector('.request-msg-author').textContent = message.author;
+      const authorElement = msg.querySelector('.request-msg-author');
+      if (authorElement) {
+        authorElement.textContent = message.author;
+      }
       msg.querySelector('.request-msg-text').textContent = message.text;
       msg.querySelector('.request-msg-time').textContent = formatRequestDate(message.date) || getCurrentTimeLabel();
       dialogChat.appendChild(msg);
