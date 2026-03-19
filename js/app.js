@@ -1240,14 +1240,18 @@ const normalizeTaskFromWebhook = (item) => {
   const normalizedChat = chatItems.map((comment) => normalizeTaskComment(comment, item.description)).filter((comment) => comment.text);
   const lastMessage = normalizedChat[normalizedChat.length - 1];
   const description = item.description == null ? '' : String(item.description ?? item.text ?? '');
+  const hasStatus = Object.prototype.hasOwnProperty.call(item, 'status');
+  const hasClosedFlag =
+    Object.prototype.hasOwnProperty.call(item, 'is_closed') ||
+    Object.prototype.hasOwnProperty.call(item, 'isClosed');
 
   return {
     taskId,
     org: String(item.org ?? item.organization ?? item.Client ?? 'Без организации'),
     description,
-    status: String(item.status ?? 'Новая'),
+    status: hasStatus ? String(item.status ?? '') : '',
     chatId: String(item.chat_id ?? item.chatId ?? ''),
-    isClosed: Boolean(item.is_closed ?? item.isClosed ?? false),
+    isClosed: hasClosedFlag ? Boolean(item.is_closed ?? item.isClosed ?? false) : undefined,
     chat: normalizedChat,
     createdAt: lastMessage?.date || new Date().toISOString(),
     unreadCount: 0
