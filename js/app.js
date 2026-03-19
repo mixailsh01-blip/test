@@ -888,6 +888,14 @@ const setupNavigation = () => {
       btn.classList.add('active');
       document.body.classList.toggle('hide-main-logo', pageId === 'requests');
 
+      if (typeof window.startRequestsOpenChatPolling === 'function' && typeof window.stopRequestsOpenChatPolling === 'function') {
+        if (pageId === 'requests') {
+          window.startRequestsOpenChatPolling();
+        } else {
+          window.stopRequestsOpenChatPolling();
+        }
+      }
+
       const allButtons = newPage.querySelectorAll('[class^="btn-"]');
       allButtons.forEach(button => button.classList.remove('slide-in'));
 
@@ -1131,7 +1139,13 @@ const openChatPollState = {
   startedAt: 0,
   taskId: null
 };
+const requestsOpenChatPollState = {
+  timerId: null,
+  attempt: 0,
+  inFlight: false
+};
 const UNREAD_STORAGE_KEY = 'miniapp_unread_counts_v1';
+const OPEN_CHAT_POLL_DELAYS_MS = [8000, 16000, 32000];
 
 const escapeHtml = (value) => String(value ?? '')
   .replace(/&/g, '&amp;')
@@ -1206,6 +1220,11 @@ const applyStoredUnreadCountToTask = (task) => {
     ...task,
     unreadCount: Number(stored[key] || task.unreadCount || 0)
   };
+};
+
+const getNextOpenChatPollDelay = (attempt) => {
+  const index = Math.min(Math.max(attempt, 0), OPEN_CHAT_POLL_DELAYS_MS.length - 1);
+  return OPEN_CHAT_POLL_DELAYS_MS[index];
 };
 
 const normalizeTaskFromWebhook = (item) => {
@@ -1642,8 +1661,17 @@ const setupRequestDetailsView = () => {
       clearTimeout(openChatPollState.timerId);
     }
     openChatPollState.timerId = null;
-    openChatPollState.startedAt = 0;
     openChatPollState.taskId = null;
+    openChatPollState.startedAt = 0;
+  };
+
+  const stopRequestsOpenChatPolling = () => {
+    if (requestsOpenChatPollState.timerId) {
+      clearTimeout(requestsOpenChatPollState.timerId);
+    }
+    requestsOpenChatPollState.timerId = null;
+    requestsOpenChatPollState.attempt = 0;
+    requestsOpenChatPollState.inFlight = false;
   };
 
   const requestOpenChat = async (task) => {
@@ -1670,8 +1698,8 @@ const setupRequestDetailsView = () => {
 
   const scheduleOpenChatPolling = (taskId) => {
     stopOpenChatPolling();
-    openChatPollState.startedAt = Date.now();
     openChatPollState.taskId = String(taskId);
+    openChatPollState.startedAt = 0;
 
     const poll = async () => {
       if (
@@ -1682,9 +1710,7 @@ const setupRequestDetailsView = () => {
         await requestOpenChat(activeTask);
       }
 
-      const elapsed = Date.now() - openChatPollState.startedAt;
       if (
-        elapsed >= 60000 ||
         dialogModal.classList.contains('hidden') ||
         requestsState.activeTaskId !== openChatPollState.taskId
       ) {
@@ -1692,10 +1718,55 @@ const setupRequestDetailsView = () => {
         return;
       }
 
-      openChatPollState.timerId = setTimeout(poll, 8000);
+      const delay = getNextOpenChatPollDelay(openChatPollState.startedAt);
+      openChatPollState.startedAt += 1;
+      openChatPollState.timerId = setTimeout(poll, delay);
     };
 
-    openChatPollState.timerId = setTimeout(poll, 8000);
+    const initialDelay = getNextOpenChatPollDelay(openChatPollState.startedAt);
+    openChatPollState.startedAt += 1;
+    openChatPollState.timerId = setTimeout(poll, initialDelay);
+  };
+
+  const pollRequestsListChats = async () => {
+    if (
+      requestsOpenChatPollState.inFlight ||
+      !document.getElementById('requests')?.classList.contains('active') ||
+      !dialogModal.classList.contains('hidden')
+    ) {
+      return;
+    }
+
+    requestsOpenChatPollState.inFlight = true;
+    try {
+      for (const task of requestsState.tasks) {
+        if (!task?.chatId && !task?.taskId) continue;
+        await requestOpenChat(task);
+      }
+    } finally {
+      requestsOpenChatPollState.inFlight = false;
+    }
+  };
+
+  const scheduleRequestsOpenChatPolling = () => {
+    stopRequestsOpenChatPolling();
+
+    const poll = async () => {
+      if (!document.getElementById('requests')?.classList.contains('active') || !dialogModal.classList.contains('hidden')) {
+        stopRequestsOpenChatPolling();
+        return;
+      }
+
+      await pollRequestsListChats();
+
+      const delay = getNextOpenChatPollDelay(requestsOpenChatPollState.attempt);
+      requestsOpenChatPollState.attempt += 1;
+      requestsOpenChatPollState.timerId = setTimeout(poll, delay);
+    };
+
+    const initialDelay = getNextOpenChatPollDelay(requestsOpenChatPollState.attempt);
+    requestsOpenChatPollState.attempt += 1;
+    requestsOpenChatPollState.timerId = setTimeout(poll, initialDelay);
   };
 
   const renderDialogChat = (task) => {
@@ -1742,6 +1813,7 @@ const setupRequestDetailsView = () => {
 
     renderDialogChat(task);
     dialogModal.classList.remove('hidden');
+    stopRequestsOpenChatPolling();
     requestOpenChat(task);
     scheduleOpenChatPolling(task.taskId);
   };
@@ -1749,6 +1821,9 @@ const setupRequestDetailsView = () => {
   const closeDialog = () => {
     stopOpenChatPolling();
     dialogModal.classList.add('hidden');
+    if (document.getElementById('requests')?.classList.contains('active')) {
+      scheduleRequestsOpenChatPolling();
+    }
   };
 
   const sendMessageToMiniappWebhook = async (activeTask, payload, files = []) => {
@@ -1835,6 +1910,9 @@ const setupRequestDetailsView = () => {
       closeDialog();
     }
   });
+
+  window.startRequestsOpenChatPolling = scheduleRequestsOpenChatPolling;
+  window.stopRequestsOpenChatPolling = stopRequestsOpenChatPolling;
 
   renderRequestsList();
 };
