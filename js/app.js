@@ -1131,6 +1131,7 @@ const openChatPollState = {
   startedAt: 0,
   taskId: null
 };
+const UNREAD_STORAGE_KEY = 'miniapp_unread_counts_v1';
 
 const escapeHtml = (value) => String(value ?? '')
   .replace(/&/g, '&amp;')
@@ -1160,6 +1161,52 @@ const normalizeTaskComment = (comment, fallbackText = '') => ({
 });
 
 const getCommentIdentity = (comment) => `${comment.commentId}|${comment.date}|${comment.author}|${comment.text}`;
+const getTaskStorageKey = (task) => String(task?.chatId || task?.taskId || '');
+
+const loadUnreadCountsFromStorage = () => {
+  try {
+    const raw = localStorage.getItem(UNREAD_STORAGE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch (error) {
+    console.warn('Не удалось загрузить unread counts из localStorage:', error);
+    return {};
+  }
+};
+
+const saveUnreadCountsToStorage = () => {
+  try {
+    const payload = requestsState.tasks.reduce((acc, task) => {
+      const key = getTaskStorageKey(task);
+      if (!key) return acc;
+      acc[key] = Number(task.unreadCount || 0);
+      return acc;
+    }, {});
+    localStorage.setItem(UNREAD_STORAGE_KEY, JSON.stringify(payload));
+  } catch (error) {
+    console.warn('Не удалось сохранить unread counts в localStorage:', error);
+  }
+};
+
+const restoreUnreadCountsFromStorage = () => {
+  const stored = loadUnreadCountsFromStorage();
+  requestsState.tasks.forEach((task) => {
+    const key = getTaskStorageKey(task);
+    if (!key) return;
+    task.unreadCount = Number(stored[key] || task.unreadCount || 0);
+  });
+};
+
+const applyStoredUnreadCountToTask = (task) => {
+  const stored = loadUnreadCountsFromStorage();
+  const key = getTaskStorageKey(task);
+  if (!key) return task;
+  return {
+    ...task,
+    unreadCount: Number(stored[key] || task.unreadCount || 0)
+  };
+};
 
 const normalizeTaskFromWebhook = (item) => {
   if (!item || (!item.task_id && !item.taskId)) return null;
@@ -1210,6 +1257,7 @@ const markTaskAsRead = (taskId) => {
   const task = requestsState.tasks.find((item) => item.taskId === String(taskId));
   if (!task) return;
   task.unreadCount = 0;
+  saveUnreadCountsToStorage();
 };
 
 const upsertRequestTask = (task, options = {}) => {
@@ -1237,11 +1285,12 @@ const upsertRequestTask = (task, options = {}) => {
       unreadCount: shouldMarkRead ? 0 : (existingTask.unreadCount || 0) + newIncomingCount
     };
   } else {
-    requestsState.tasks.unshift({
+    requestsState.tasks.unshift(applyStoredUnreadCountToTask({
       ...task,
       unreadCount: shouldMarkRead ? 0 : (task.unreadCount || 0)
-    });
+    }));
   }
+  saveUnreadCountsToStorage();
 };
 
 const renderRequestsList = () => {
