@@ -1136,7 +1136,7 @@ const openTaskSyncState = {
 };
 const openChatPollState = {
   timerId: null,
-  startedAt: 0,
+  attempt: 0,
   taskId: null
 };
 const requestsOpenChatPollState = {
@@ -1145,7 +1145,7 @@ const requestsOpenChatPollState = {
   inFlight: false
 };
 const UNREAD_STORAGE_KEY = 'miniapp_unread_counts_v1';
-const OPEN_CHAT_POLL_DELAYS_MS = [8000, 16000, 32000];
+const OPEN_CHAT_POLL_DELAYS_MS = [8000, 16000, 32000, 60000];
 
 const escapeHtml = (value) => String(value ?? '')
   .replace(/&/g, '&amp;')
@@ -1662,7 +1662,7 @@ const setupRequestDetailsView = () => {
     }
     openChatPollState.timerId = null;
     openChatPollState.taskId = null;
-    openChatPollState.startedAt = 0;
+    openChatPollState.attempt = 0;
   };
 
   const stopRequestsOpenChatPolling = () => {
@@ -1699,7 +1699,7 @@ const setupRequestDetailsView = () => {
   const scheduleOpenChatPolling = (taskId) => {
     stopOpenChatPolling();
     openChatPollState.taskId = String(taskId);
-    openChatPollState.startedAt = 0;
+    openChatPollState.attempt = 0;
 
     const poll = async () => {
       if (
@@ -1718,13 +1718,13 @@ const setupRequestDetailsView = () => {
         return;
       }
 
-      const delay = getNextOpenChatPollDelay(openChatPollState.startedAt);
-      openChatPollState.startedAt += 1;
+      const delay = getNextOpenChatPollDelay(openChatPollState.attempt);
+      openChatPollState.attempt += 1;
       openChatPollState.timerId = setTimeout(poll, delay);
     };
 
-    const initialDelay = getNextOpenChatPollDelay(openChatPollState.startedAt);
-    openChatPollState.startedAt += 1;
+    const initialDelay = getNextOpenChatPollDelay(openChatPollState.attempt);
+    openChatPollState.attempt += 1;
     openChatPollState.timerId = setTimeout(poll, initialDelay);
   };
 
