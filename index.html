@@ -1,271 +1,220 @@
-<!DOCTYPE html>
+﻿<!doctype html>
 <html lang="ru">
 <head>
-  <!-- ==================== МЕТА-ДАННЫЕ ==================== -->
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Пос Сервис</title>
-  
-  <!-- ==================== ВНЕШНИЕ РЕСУРСЫ ==================== -->
-  <!-- Telegram Web App SDK -->
-  <script src="https://telegram.org/js/telegram-web-app.js  "></script>
-  <!-- Библиотека для сканирования QR-кодов -->
-  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
-  
-  <!-- Font Awesome Icons -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css  " />
-  
-  <!-- Google Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com  ">
-  <link rel="preconnect" href="https://fonts.gstatic.com  " crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=PT+Root+UI:wght@500;700&display=swap" rel="stylesheet">
-  
-  <!-- ==================== СТИЛИ ==================== -->
-  <link rel="stylesheet" href="css/style.css?v=20260319-10" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Светлая память — установка памятников в Самарской области</title>
+  <link rel="stylesheet" href="css/styles.css" />
 </head>
-
 <body>
-  <!-- ==================== ПРИВЕТСТВЕННЫЙ ЭКРАН ==================== -->
-  <div id="welcome-screen">
-    <img id="welcome-logo" src="assets/icons/Logo_Welcome_v2.png" alt="Логотип приложения" />
-    <p>Здравствуйте, <span id="user-name">Гость</span></p>
-  </div>
-
-  <!-- ==================== ОСНОВНОЕ ПРИЛОЖЕНИЕ ==================== -->
-  <div id="main-app">
-    
-    <!-- Логотип приложения -->
-    <div class="main-logo-container">
-      <img id="main-logo" src="assets/icons/Logo_Main_v2.png" alt="Основной логотип" />
-    </div>
-    
-    <!-- ==================== СТРАНИЦЫ ПРИЛОЖЕНИЯ ==================== -->
-    
-    <!-- Главная страница -->
-    <div id="home" class="page active">
-      <!-- Выпадающий список заведений -->
-      <div class="dropdown-container">
-        <select id="main-dropdown" class="main-dropdown">
-          <option value="">Выберите заведение</option>
-        </select>
-      </div>
-      
-      <!-- Основные кнопки -->
-      <div class="buttons-row">
-        <button class="btn-AddRestaurant">Добавить заведение</button>
-        <button class="btn-Create">Создать заявку</button>
-      </div>
-    </div>
-
-    <!-- Страница заявок -->
-    <div id="requests" class="page">
-      <div class="requests-modern requests-table">
-        <div class="requests-search-wrap">
-          <i class="fas fa-search requests-search-icon"></i>
-          <input class="requests-search-input" type="text" placeholder="Поиск" />
-          <button class="requests-filter-btn" aria-label="Фильтры">
-            <i class="fas fa-sliders-h"></i>
-          </button>
+  <header class="site-header">
+      <div class="wrap">
+        <div class="brand">
+          <img class="brand-logo-mark" src="assets/logo.png" alt="Логотип Светлая память" />
+          <img class="brand-logo-name" src="assets/name.png" alt="Светлая память" />
         </div>
+      <nav class="site-nav">
+        <a href="#services">Услуги</a>
+        <a href="#constructor">Конструктор</a>
+        <a href="#prices">Цены</a>
+        <a href="#process">Как работаем</a>
+        <a href="#contacts">Контакты</a>
+      </nav>
+      <div class="header-cta">
+        <a class="btn primary" href="tel:+79000000000">+7 (900) 000-00-00</a>
+      </div>
+    </div>
+  </header>
 
-        <div id="requests-list">
-          <div id="request-card-sample" class="request-card" style="display:none;">
-            <div class="request-card-top">
-              <span class="request-number">№101259 от 05.06</span>
-              <span class="request-status">Закрыта</span>
-            </div>
-            <div class="request-topic">Тестовая заявка</div>
-            <div class="request-meta">ООО "Ресторан Сервис" • Иван Кувшинов</div>
-            <div class="request-text">Мы в вас верим и обязательно дождемся))</div>
+  <main>
+    <section class="hero hero-video">
+      <video class="hero-bg" autoplay muted loop playsinline preload="auto">
+        <source src="assets/video/hero.mp4" type="video/mp4" />
+      </video>
+      <div class="hero-overlay"></div>
+      <div class="hero-band-wrap">
+        <div class="hero-band">
+          <article class="hero-band-item">
+            <span class="hero-band-icon" aria-hidden="true">✣</span>
+            <p>Качественная подготовка перед установкой</p>
+          </article>
+          <article class="hero-band-item">
+            <span class="hero-band-icon" aria-hidden="true">✣</span>
+            <p>Быстрое составление расчета</p>
+          </article>
+          <article class="hero-band-item">
+            <span class="hero-band-icon" aria-hidden="true">✣</span>
+            <p>Гарантия 5 лет</p>
+          </article>
+          <article class="hero-band-item hero-band-item-accent">
+            <span class="hero-band-icon" aria-hidden="true">✣</span>
+            <p>Получите персональную<br />скидку до 50%</p>
+          </article>
+        </div>
+      </div>
+      <div class="wrap">
+        <div class="hero-content">
+          <h1>Памятники, ограды и благоустройство с честной<br />сметой на месте</h1>
+          <div class="hero-actions">
+            <a class="btn primary" href="#constructor">Собрать проект</a>
           </div>
         </div>
-
-        <div class="requests-pagination">
-          <button class="requests-page-btn" disabled><i class="fas fa-angle-double-left"></i></button>
-          <button class="requests-page-btn" disabled><i class="fas fa-angle-left"></i></button>
-          <span class="requests-page-info">(1 of 1)</span>
-          <button class="requests-page-btn" disabled><i class="fas fa-angle-right"></i></button>
-          <button class="requests-page-btn" disabled><i class="fas fa-angle-double-right"></i></button>
-        </div>
-
-        <button class="btn-NewRequest"><i class="fas fa-plus"></i> Новая заявка</button>
-
+        <div class="hero-card-placeholder" aria-hidden="true"></div>
       </div>
-    </div>
+      <div class="hero-ornament"></div>
+    </section>
 
-    <!-- Страница счетов -->
-    <div id="accounts" class="page">
-        <button id="select-establishment-btn" class="btn-SelectRestModal w-full">Выбрать заведение</button>
-        <div id="selected-establishment" class="bg-gray-800 p-4 rounded-lg text-center text-gray-400 font-medium">
-            Заведение не выбрано
-        </div>
-    </div>
-
-    <!-- Страница профиля -->
-    <div id="profile" class="page">
-      <!-- Шапка профиля -->
-      <div class="profile-header">
-        <img id="user-avatar" src="  https://via.placeholder.com/40  " alt="Аватар пользователя" />
-        <div class="user-info">
-          <h2 id="user-fullname">Имя Фамилия</h2>
-          <p id="user-phone">+7 900 123 45 67</p>
-        </div>
-        <i id="edit-icon" class="fas fa-cog" title="Редактировать профиль"></i>
-      </div>
-
-      <!-- Совместимость со старым кэшем JS: элемент сохранен, но полностью скрыт -->
-      <button id="share-contact-btn" class="btn-Share hidden" style="display:none;" aria-hidden="true">Поделиться контактом</button>
-
-      <!-- Раздел заведений (Пока не надо) -->
-      <!-- <div class="mb-6">
-        <h3 class="font-bold mb-2">Заведения</h3>
-        <button class="bg-gray-800 p-3 rounded-lg w-full text-left text-gray-300">Общий доступ</button>
-      </div> -->
-
-      <!-- Раздел оценки приложения -->
-      <div class="bg-gray-800 p-4 rounded-lg">
-        <h3 class="font-bold mb-2">Оцените приложение</h3>
-        <p class="text-gray-400 text-sm mb-3">Ваши отзывы делают нас лучше</p>
-        <button class="btn-Feedback w-full">Оставить отзыв</button>
-      </div>
-    </div>
-
-    <!-- ==================== МОДАЛЬНЫЕ ОКНА ==================== -->
-    
-    <!-- Модальное окно редактирования профиля -->
-    <div id="edit-modal" class="modal hidden">
-      <div class="modal-content">
-        <button id="close-modal-icon" class="modal-close" aria-label="Закрыть">×</button>
-        <h3 class="font-bold mb-4">Редактировать профиль</h3>
-        <input type="text" id="edit-firstname" class="w-full p-2 mb-3 rounded bg-gray-700 text-white" placeholder="Имя" />
-        <input type="text" id="edit-lastname" class="w-full p-2 mb-4 rounded bg-gray-700 text-white" placeholder="Фамилия" />
-        <div class="flex gap-2">
-          <button id="save-profile-btn" class="btn-Save flex-1">Сохранить</button>
-          <button id="close-modal-btn" class="btn-CancelModal flex-1">Отмена</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Модальное окно выбора заведения -->
-    <div id="establishment-modal" class="modal hidden">
-        <div class="modal-content">
-            <h3 class="font-bold mb-4 text-center">Ваши заведения</h3>
-            <div class="establishment-list space-y-3">
-                <!-- Заполняется динамически после получения данных -->
-            </div>
-            <div class="flex gap-2 mt-6">
-            <button id="close-establishment-modal-btn" class="btn-CancelModal flex-1">Отмена</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Модальное окно: запрос номера телефона -->
-    <div id="contact-share-modal" class="modal hidden">
-      <div class="contact-share-card">
-        <div class="contact-share-icon">
-          <i class="fas fa-phone-volume"></i>
-        </div>
-        <div class="contact-share-title">Поделитесь номером</div>
-        <div class="contact-share-subtitle">POS Service получит ваш номер телефона, чтобы быстрее связываться с вами и оперативно помогать по заявкам.</div>
-        <div id="contact-share-progress" class="contact-share-progress hidden">
-          <span class="contact-share-spinner"></span>
-          <span id="contact-share-progress-text">Секунду… разработчик уже регистрирует вас в POS Service 🙂</span>
-        </div>
-        <button id="contact-share-btn" class="contact-share-btn">Поделиться номером</button>
-      </div>
-    </div>
-
-    <!-- Модальное окно: создание заявки -->
-    <div id="task-create-modal" class="modal hidden">
-      <div class="modal-content task-create-content">
-        <button id="task-create-close-icon" class="modal-close" aria-label="Закрыть">×</button>
-        <h3>Новая заявка</h3>
-
-        <label for="task-establishment-select" class="task-create-label">Заведение</label>
-        <select id="task-establishment-select" class="task-create-input">
-          <option value="">Выберите заведение</option>
-        </select>
-
-        <label for="task-description-input" class="task-create-label">Описание проблемы</label>
-        <textarea
-          id="task-description-input"
-          class="task-create-textarea"
-          rows="4"
-          placeholder="Кратко опишите проблему"
-        ></textarea>
-
-        <div class="task-create-file-row">
-          <button id="task-attach-btn" class="btn-CancelModal" type="button" style="opacity:1;transform:none;display:block;visibility:visible;">Прикрепить файлы</button>
-          <span id="task-files-count" class="task-create-file-count">Файлы не выбраны</span>
-        </div>
-        <input id="task-files-input" type="file" class="task-create-file-input" multiple />
-        <div id="task-files-list" class="task-create-files-list"></div>
-
-        <div class="task-create-actions">
-          <button id="task-send-btn" class="btn-Save" type="button" style="opacity:1;transform:none;display:block;visibility:visible;">Создать задачу</button>
-          <button id="task-cancel-btn" class="btn-CancelModal" type="button" style="opacity:1;transform:none;display:block;visibility:visible;">Отмена</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Модальное окно: диалог по заявке -->
-    <div id="request-dialog-modal" class="modal hidden request-dialog-modal">
-      <div class="request-dialog-sheet">
-        <div class="request-dialog-top">
-          <div class="request-dialog-header-row">
-            <button id="request-dialog-back" class="request-dialog-back"><i class="fas fa-arrow-left"></i> Назад</button>
+    <section class="section" id="services">
+      <div class="wrap">
+        <div class="services-panel">
+          <h2>Полный цикл работ</h2>
+          <div class="grid-3">
+            <article class="card service-card">
+              <h3>Памятники</h3>
+              <p>Гранит, мрамор, комбинированные варианты, гравировка, портреты.</p>
+            </article>
+            <article class="card service-card">
+              <h3>Ограды</h3>
+              <p>Металл, гранитные борта, декоративные элементы.</p>
+            </article>
+            <article class="card service-card">
+              <h3>Благоустройство</h3>
+              <p>Плитка, крошка, выравнивание, подсыпка, уход.</p>
+            </article>
+            <article class="card service-card">
+              <h3>Установка</h3>
+              <p>Фундамент, армирование, монтаж и гарантия.</p>
+            </article>
+            <article class="card service-card">
+              <h3>Доставка</h3>
+              <p>По Самарской области, согласование времени.</p>
+            </article>
+            <article class="card service-card">
+              <h3>Выезд на участок</h3>
+              <p>Замер, расчет и подбор решения на месте.</p>
+            </article>
           </div>
-          <div class="request-dialog-title">Заявка</div>
-          <div class="request-dialog-meta-row">
-            <span id="request-dialog-number" class="request-dialog-number">№101259 от 05.06 17:09</span>
-            <span id="request-dialog-status" class="request-dialog-status">Закрыта</span>
-          </div>
-          <div id="request-dialog-topic" class="request-dialog-topic">Тестовая заявка</div>
-          <div id="request-dialog-company" class="request-dialog-company">ООО "Ресторан Сервис..." • Иван Кувшинов</div>
         </div>
-
-        <div class="request-dialog-chat">
-          <div class="request-chat-empty">Сообщений пока нет</div>
-        </div>
-
-        <div class="request-dialog-composer">
-          <button id="request-dialog-attach" class="request-composer-attach" aria-label="Прикрепить файл">
-            <i class="fas fa-paperclip"></i>
-          </button>
-          <input id="request-dialog-file" type="file" class="request-composer-file" multiple />
-          <input id="request-dialog-input" type="text" class="request-composer-input" placeholder="Напишите сообщение..." />
-          <button id="request-dialog-send" class="request-composer-send" aria-label="Отправить">
-            <i class="fas fa-paper-plane"></i>
-          </button>
-        </div>
-        <div id="request-dialog-closed" class="request-dialog-closed hidden">Обращение закрыто</div>
       </div>
+    </section>
+
+    <section class="section accent" id="constructor">
+      <div class="wrap">
+        <div class="constructor-panel">
+          <div class="constructor">
+            <div class="constructor-main">
+              <h2>Конструктор проекта</h2>
+              <p class="constructor-subtitle">Соберите комплект под свой участок и получите ориентировочную стоимость.</p>
+              <form id="calc-form" class="calc-form">
+                <label>
+                  Тип памятника
+                  <select name="monument">
+                    <option value="classic">Классический</option>
+                    <option value="modern">Современный</option>
+                    <option value="double">Двойной</option>
+                  </select>
+                </label>
+                <label>
+                  Материал
+                  <select name="material">
+                    <option value="granite">Гранит</option>
+                    <option value="marble">Мрамор</option>
+                    <option value="mix">Комбинированный</option>
+                  </select>
+                </label>
+                <label>
+                  Ограда
+                  <select name="fence">
+                    <option value="none">Не требуется</option>
+                    <option value="metal">Металлическая</option>
+                    <option value="stone">Каменная</option>
+                  </select>
+                </label>
+                <label>
+                  Благоустройство
+                  <select name="improve">
+                    <option value="none">Минимальное</option>
+                    <option value="tile">Плитка</option>
+                    <option value="chip">Каменная крошка</option>
+                  </select>
+                </label>
+                <label class="inline">
+                  Установка
+                  <input type="checkbox" name="install" checked />
+                </label>
+                <label class="inline">
+                  Доставка
+                  <input type="checkbox" name="delivery" checked />
+                </label>
+                <div class="sizes">
+                  <label>
+                    Длина участка (м)
+                    <input type="number" name="length" min="1" step="0.1" value="2" />
+                  </label>
+                  <label>
+                    Ширина участка (м)
+                    <input type="number" name="width" min="1" step="0.1" value="1.8" />
+                  </label>
+                </div>
+              </form>
+              <div class="constructor-summary">
+                <div class="constructor-actions">
+                  <a class="btn primary" href="https://t.me/romanovgroup" target="_blank" rel="noopener">Точный расчет в Telegram</a>
+                  <a class="btn ghost" href="tel:+79000000000">Позвонить</a>
+                </div>
+              </div>
+            </div>
+            <div class="constructor-space" aria-hidden="true"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="process">
+      <div class="wrap">
+        <div class="process-panel">
+          <h2>Как мы работаем</h2>
+          <ol class="steps">
+            <li>Обсуждаем задачу и выезжаем на участок.</li>
+            <li>Снимаем размеры, уточняем бюджет и материал.</li>
+            <li>Готовим проект и прозрачную смету.</li>
+            <li>Изготавливаем и устанавливаем с гарантией.</li>
+          </ol>
+        </div>
+      </div>
+    </section>
+
+    <section class="section contact" id="contacts">
+      <div class="wrap">
+        <div>
+          <h2>Связаться с нами</h2>
+          <p>Работаем по Самарской области. Выезд и расчет на месте.</p>
+        </div>
+        <div class="contact-card">
+          <div>
+            <span class="contact-label">Телефон</span>
+            <a href="tel:+79000000000">+7 (900) 000-00-00</a>
+          </div>
+          <div>
+            <span class="contact-label">Telegram</span>
+            <a href="https://t.me/romanovgroup" target="_blank" rel="noopener">@romanovgroup</a>
+          </div>
+          <div>
+            <span class="contact-label">График</span>
+            <span>Ежедневно 9:00–20:00</span>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <div>Светлая память © 2026</div>
+      <div>Памятники, ограды, установка и благоустройство.</div>
     </div>
+  </footer>
 
-    <!-- ==================== НАВИГАЦИЯ ==================== -->
-    <nav class="nav-bar">
-      <a href="#" data-page="home" class="nav-btn active">
-        <i class="fas fa-home"></i>
-        <span>Главная</span>
-      </a>
-      <a href="#" data-page="requests" class="nav-btn">
-        <i class="fas fa-comment-alt"></i>
-        <span>Заявки</span>
-      </a>
-      <a href="#" data-page="accounts" class="nav-btn">
-        <i class="fas fa-file-invoice-dollar"></i>
-        <span>Счета</span>
-      </a>
-      <a href="#" data-page="profile" class="nav-btn">
-        <i class="fas fa-user"></i>
-        <span>Профиль</span>
-      </a>
-    </nav>
-  </div>
-
-<!-- ==================== СКРИПТЫ ==================== -->
-<script src="js/api.js?v=20260319-10"></script>
-<script src="js/auth.js?v=20260319-10"></script>
-<script src="js/app.js?v=20260319-10"></script>
+  <script src="js/main.js"></script>
 </body>
 </html>
