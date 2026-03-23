@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Конструктор проекта — Формула гранит</title>
+  <link rel="stylesheet" href="../css/styles.css" />
+</head>
+<body class="stela-page constructor-page">
+  <header class="site-header site-header-static">
+    <div class="wrap">
+      <div class="brand">
+        <img class="brand-logo-mark" src="../assets/logo.png" alt="Логотип Формула гранит" />
+        <img class="brand-logo-name" src="../assets/name.png" alt="Формула гранит" />
+      </div>
+      <nav class="site-nav">
+        <a href="../index.html">Главная</a>
+        <a href="../stela/">Формы стелы</a>
+        <a href="./">Конструктор</a>
+        <a href="../index.html#process">Как работаем</a>
+        <a href="../index.html#contacts">Контакты</a>
+      </nav>
+      <div class="header-cta">
+        <a class="btn primary" href="tel:+79000000000">+7 (900) 000-00-00</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="stela-main">
+    <section class="stela-hero constructor-hero">
+      <div class="wrap">
+        <div class="stela-hero-panel">
+          <div>
+            <span class="stela-kicker">Конструктор проекта</span>
+            <h1>Соберите памятник, ограду и благоустройство в одном расчёте</h1>
+            <p>Страница вынесена отдельно, чтобы спокойно собрать проект, увидеть ориентир по стоимости и затем перейти к точному расчёту с менеджером.</p>
+            <div class="stela-highlights">
+              <div class="stela-highlight">
+                <strong>3</strong>
+                <span>типа стелы для быстрого старта проекта</span>
+              </div>
+              <div class="stela-highlight">
+                <strong>6</strong>
+                <span>параметров проекта, которые меняют итоговую смету</span>
+              </div>
+              <div class="stela-highlight">
+                <strong>1</strong>
+                <span>страница для спокойной сборки без перегруза главного лендинга</span>
+              </div>
+            </div>
+          </div>
+          <div class="stela-hero-preview">
+            <article class="stela-hero-card">
+              <h2>Что можно собрать</h2>
+              <ul>
+                <li>Тип памятника и материал стелы.</li>
+                <li>Ограду, благоустройство, доставку и монтаж.</li>
+                <li>Размер участка, который влияет на общий объём работ.</li>
+              </ul>
+            </article>
+            <div class="stela-hero-slab" aria-hidden="true">
+              <div class="stela-hero-slab-inner"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section accent constructor-page-section">
+      <div class="wrap">
+        <div class="constructor-panel">
+          <div class="constructor">
+            <div class="constructor-main">
+              <h2>Конструктор проекта</h2>
+              <p class="constructor-subtitle">Соберите комплект под свой участок и получите ориентировочную стоимость.</p>
+              <form id="calc-form" class="calc-form">
+                <label>
+                  Тип памятника
+                  <select name="monument">
+                    <option value="classic">Классический</option>
+                    <option value="modern">Современный</option>
+                    <option value="double">Двойной</option>
+                  </select>
+                </label>
+                <label>
+                  Материал
+                  <select name="material">
+                    <option value="granite">Гранит</option>
+                    <option value="marble">Мрамор</option>
+                    <option value="mix">Комбинированный</option>
+                  </select>
+                </label>
+                <label>
+                  Ограда
+                  <select name="fence">
+                    <option value="none">Не требуется</option>
+                    <option value="metal">Металлическая</option>
+                    <option value="stone">Каменная</option>
+                  </select>
+                </label>
+                <label>
+                  Благоустройство
+                  <select name="improve">
+                    <option value="none">Минимальное</option>
+                    <option value="tile">Плитка</option>
+                    <option value="chip">Каменная крошка</option>
+                  </select>
+                </label>
+                <label class="inline">
+                  Установка
+                  <input type="checkbox" name="install" checked />
+                </label>
+                <label class="inline">
+                  Доставка
+                  <input type="checkbox" name="delivery" checked />
+                </label>
+                <div class="sizes">
+                  <label>
+                    Длина участка (м)
+                    <input type="number" name="length" min="1" step="0.1" value="2" />
+                  </label>
+                  <label>
+                    Ширина участка (м)
+                    <input type="number" name="width" min="1" step="0.1" value="1.8" />
+                  </label>
+                </div>
+              </form>
+              <div class="constructor-summary constructor-summary-page">
+                <div class="constructor-price-card">
+                  <span class="constructor-price-label">Ориентировочная стоимость</span>
+                  <strong id="calc-price">от 0 ₽</strong>
+                </div>
+                <div class="constructor-actions">
+                  <a class="btn primary" href="https://t.me/romanovgroup" target="_blank" rel="noopener">Точный расчет в Telegram</a>
+                  <a class="btn ghost" href="tel:+79000000000">Позвонить</a>
+                </div>
+              </div>
+            </div>
+            <div class="constructor-space constructor-space-panel" aria-hidden="true">
+              <div class="constructor-space-inner"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <div class="footer-badge">Формула гранит © 2026</div>
+      <div>Конструктор проекта, памятники, ограды, установка и благоустройство.</div>
+    </div>
+  </footer>
+
+  <script src="../js/main.js"></script>
+</body>
+</html>

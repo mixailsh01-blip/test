@@ -3,25 +3,50 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Светлая память — установка памятников в Самарской области</title>
+  <title>Формула гранит — установка памятников в Самарской области</title>
   <link rel="stylesheet" href="css/styles.css" />
 </head>
-<body>
+<body class="home-page">
   <header class="site-header">
       <div class="wrap">
         <div class="brand">
-          <img class="brand-logo-mark" src="assets/logo.png" alt="Логотип Светлая память" />
-          <img class="brand-logo-name" src="assets/name.png" alt="Светлая память" />
+          <img class="brand-logo-mark" src="assets/logo.png" alt="Логотип Формула гранит" />
+          <img class="brand-logo-name" src="assets/name.png" alt="Формула гранит" />
         </div>
+      <div class="mobile-header-actions" aria-hidden="true">
+        <button class="mobile-menu-toggle" type="button" aria-label="Открыть меню" aria-expanded="false" aria-controls="mobile-menu">
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+      </div>
       <nav class="site-nav">
-        <a href="#services">Услуги</a>
-        <a href="#constructor">Конструктор</a>
-        <a href="#prices">Цены</a>
+        <a href="index.html">Главная</a>
+        <a href="stela/">Формы стелы</a>
+        <a href="constructor/">Конструктор</a>
         <a href="#process">Как работаем</a>
         <a href="#contacts">Контакты</a>
       </nav>
       <div class="header-cta">
         <a class="btn primary" href="tel:+79000000000">+7 (900) 000-00-00</a>
+      </div>
+    </div>
+    <div class="mobile-nav-drawer" id="mobile-menu" hidden>
+      <div class="mobile-nav-panel">
+        <button class="mobile-nav-close" type="button" aria-label="Закрыть меню">×</button>
+        <div class="mobile-nav-brand">
+          <img class="mobile-nav-logo" src="assets/logo.png" alt="Логотип Формула гранит" />
+          <img class="mobile-nav-name" src="assets/name.png" alt="Формула гранит" />
+        </div>
+        <nav class="mobile-nav-links">
+          <a href="index.html">Главная</a>
+          <a href="stela/">Формы стелы</a>
+          <a href="constructor/">Конструктор</a>
+          <a href="#services">Полный цикл работ</a>
+          <a href="#process">Как работаем</a>
+          <a href="#contacts">Контакты</a>
+        </nav>
+        <a class="btn primary mobile-nav-cta" href="constructor/">Создать проект</a>
       </div>
     </div>
   </header>
@@ -54,9 +79,9 @@
       </div>
       <div class="wrap">
         <div class="hero-content">
-          <h1>Памятники, ограды и благоустройство с честной<br />сметой на месте</h1>
+          <h1>Памятники, ограды и<br />благоустройство с честной<br />сметой на месте</h1>
           <div class="hero-actions">
-            <a class="btn primary" href="#constructor">Собрать проект</a>
+            <a class="btn primary" href="constructor/">Создать проект</a>
           </div>
         </div>
         <div class="hero-card-placeholder" aria-hidden="true"></div>
@@ -73,7 +98,7 @@
               <h3>Памятники</h3>
               <p>Гранит, мрамор, комбинированные варианты, гравировка, портреты.</p>
             </article>
-            <article class="card service-card">
+            <article class="card service-card granite-card">
               <h3>Ограды</h3>
               <p>Металл, гранитные борта, декоративные элементы.</p>
             </article>
@@ -81,7 +106,7 @@
               <h3>Благоустройство</h3>
               <p>Плитка, крошка, выравнивание, подсыпка, уход.</p>
             </article>
-            <article class="card service-card">
+            <article class="card service-card granite-card">
               <h3>Установка</h3>
               <p>Фундамент, армирование, монтаж и гарантия.</p>
             </article>
@@ -89,82 +114,10 @@
               <h3>Доставка</h3>
               <p>По Самарской области, согласование времени.</p>
             </article>
-            <article class="card service-card">
+            <article class="card service-card granite-card">
               <h3>Выезд на участок</h3>
               <p>Замер, расчет и подбор решения на месте.</p>
             </article>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="section accent" id="constructor">
-      <div class="wrap">
-        <div class="constructor-panel">
-          <div class="constructor">
-            <div class="constructor-main">
-              <h2>Конструктор проекта</h2>
-              <p class="constructor-subtitle">Соберите комплект под свой участок и получите ориентировочную стоимость.</p>
-              <form id="calc-form" class="calc-form">
-                <label>
-                  Тип памятника
-                  <select name="monument">
-                    <option value="classic">Классический</option>
-                    <option value="modern">Современный</option>
-                    <option value="double">Двойной</option>
-                  </select>
-                </label>
-                <label>
-                  Материал
-                  <select name="material">
-                    <option value="granite">Гранит</option>
-                    <option value="marble">Мрамор</option>
-                    <option value="mix">Комбинированный</option>
-                  </select>
-                </label>
-                <label>
-                  Ограда
-                  <select name="fence">
-                    <option value="none">Не требуется</option>
-                    <option value="metal">Металлическая</option>
-                    <option value="stone">Каменная</option>
-                  </select>
-                </label>
-                <label>
-                  Благоустройство
-                  <select name="improve">
-                    <option value="none">Минимальное</option>
-                    <option value="tile">Плитка</option>
-                    <option value="chip">Каменная крошка</option>
-                  </select>
-                </label>
-                <label class="inline">
-                  Установка
-                  <input type="checkbox" name="install" checked />
-                </label>
-                <label class="inline">
-                  Доставка
-                  <input type="checkbox" name="delivery" checked />
-                </label>
-                <div class="sizes">
-                  <label>
-                    Длина участка (м)
-                    <input type="number" name="length" min="1" step="0.1" value="2" />
-                  </label>
-                  <label>
-                    Ширина участка (м)
-                    <input type="number" name="width" min="1" step="0.1" value="1.8" />
-                  </label>
-                </div>
-              </form>
-              <div class="constructor-summary">
-                <div class="constructor-actions">
-                  <a class="btn primary" href="https://t.me/romanovgroup" target="_blank" rel="noopener">Точный расчет в Telegram</a>
-                  <a class="btn ghost" href="tel:+79000000000">Позвонить</a>
-                </div>
-              </div>
-            </div>
-            <div class="constructor-space" aria-hidden="true"></div>
           </div>
         </div>
       </div>
@@ -175,10 +128,46 @@
         <div class="process-panel">
           <h2>Как мы работаем</h2>
           <ol class="steps">
-            <li>Обсуждаем задачу и выезжаем на участок.</li>
-            <li>Снимаем размеры, уточняем бюджет и материал.</li>
-            <li>Готовим проект и прозрачную смету.</li>
-            <li>Изготавливаем и устанавливаем с гарантией.</li>
+            <li>
+              <div class="step-card">
+                <div class="step-face step-front">
+                  <span class="step-phase">Этап 1</span>
+                </div>
+                <div class="step-face step-back">
+                  <p>Обсуждаем задачу и выезжаем на участок.</p>
+                </div>
+              </div>
+            </li>
+            <li>
+              <div class="step-card">
+                <div class="step-face step-front">
+                  <span class="step-phase">Этап 2</span>
+                </div>
+                <div class="step-face step-back">
+                  <p>Снимаем размеры, уточняем бюджет и материал.</p>
+                </div>
+              </div>
+            </li>
+            <li>
+              <div class="step-card">
+                <div class="step-face step-front">
+                  <span class="step-phase">Этап 3</span>
+                </div>
+                <div class="step-face step-back">
+                  <p>Готовим проект и прозрачную смету.</p>
+                </div>
+              </div>
+            </li>
+            <li>
+              <div class="step-card">
+                <div class="step-face step-front">
+                  <span class="step-phase">Этап 4</span>
+                </div>
+                <div class="step-face step-back">
+                  <p>Изготавливаем и устанавливаем с гарантией.</p>
+                </div>
+              </div>
+            </li>
           </ol>
         </div>
       </div>
@@ -186,22 +175,29 @@
 
     <section class="section contact" id="contacts">
       <div class="wrap">
-        <div>
-          <h2>Связаться с нами</h2>
-          <p>Работаем по Самарской области. Выезд и расчет на месте.</p>
-        </div>
-        <div class="contact-card">
-          <div>
-            <span class="contact-label">Телефон</span>
-            <a href="tel:+79000000000">+7 (900) 000-00-00</a>
+        <div class="contact-panel">
+          <div class="contact-info">
+            <div>
+              <h2>Связаться с нами</h2>
+            </div>
           </div>
-          <div>
-            <span class="contact-label">Telegram</span>
-            <a href="https://t.me/romanovgroup" target="_blank" rel="noopener">@romanovgroup</a>
-          </div>
-          <div>
-            <span class="contact-label">График</span>
-            <span>Ежедневно 9:00–20:00</span>
+          <div class="contact-card">
+            <div>
+              <span class="contact-label">Телефон</span>
+              <a href="tel:+79000000000">+7 (900) 000-00-00</a>
+            </div>
+            <div>
+              <span class="contact-label">Адрес</span>
+              <span>с. Тимофеевка, 2-ая Южная, 17а</span>
+            </div>
+            <div>
+              <span class="contact-label">Telegram</span>
+              <a href="https://t.me/romanovgroup" target="_blank" rel="noopener">@romanovgroup</a>
+            </div>
+            <div>
+              <span class="contact-label">График</span>
+              <span>Ежедневно 9:00–20:00</span>
+            </div>
           </div>
         </div>
       </div>
@@ -210,7 +206,7 @@
 
   <footer class="site-footer">
     <div class="wrap">
-      <div>Светлая память © 2026</div>
+      <div class="footer-badge">Формула гранит © 2026</div>
       <div>Памятники, ограды, установка и благоустройство.</div>
     </div>
   </footer>
