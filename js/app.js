@@ -1196,6 +1196,7 @@ const requestsOpenChatPollState = {
   attempt: 0,
   inFlight: false
 };
+const pendingOutgoingMessagesByTask = new Map();
 const UNREAD_STORAGE_KEY = 'miniapp_unread_counts_v1';
 const OPEN_CHAT_POLL_DELAYS_MS = [8000, 16000, 32000, 60000];
 
@@ -1225,7 +1226,52 @@ const normalizeCommentAuthor = (comment) => String(
   'Pyrus'
 );
 
-const normalizeCommentIsOutgoing = (comment, author) => {
+const normalizePendingMessageText = (value) => String(value ?? '').trim();
+
+const registerPendingOutgoingMessage = (taskId, message) => {
+  const normalizedTaskId = String(taskId || '').trim();
+  const normalizedText = normalizePendingMessageText(message?.text);
+  const timestamp = new Date(message?.date || Date.now()).getTime();
+
+  if (!normalizedTaskId || !normalizedText || Number.isNaN(timestamp)) return;
+
+  const existing = pendingOutgoingMessagesByTask.get(normalizedTaskId) || [];
+  existing.push({
+    text: normalizedText,
+    timestamp
+  });
+  pendingOutgoingMessagesByTask.set(normalizedTaskId, existing.slice(-20));
+};
+
+const matchPendingOutgoingMessage = (taskId, comment) => {
+  const normalizedTaskId = String(taskId || comment?.task_id || '').trim();
+  if (!normalizedTaskId) return false;
+
+  const pending = pendingOutgoingMessagesByTask.get(normalizedTaskId);
+  if (!pending || pending.length === 0) return false;
+
+  const normalizedText = normalizePendingMessageText(comment?.text);
+  const timestamp = new Date(comment?.date || Date.now()).getTime();
+  if (!normalizedText || Number.isNaN(timestamp)) return false;
+
+  const matchIndex = pending.findIndex((item) =>
+    item.text === normalizedText &&
+    Math.abs(item.timestamp - timestamp) <= 10 * 60 * 1000
+  );
+
+  if (matchIndex === -1) return false;
+
+  pending.splice(matchIndex, 1);
+  if (pending.length === 0) {
+    pendingOutgoingMessagesByTask.delete(normalizedTaskId);
+  } else {
+    pendingOutgoingMessagesByTask.set(normalizedTaskId, pending);
+  }
+
+  return true;
+};
+
+const normalizeCommentIsOutgoing = (comment, author, taskId = '') => {
   const currentUserId = user?.id == null ? null : String(user.id);
   const commentUserId =
     comment?.user_id ??
@@ -1253,20 +1299,22 @@ const normalizeCommentIsOutgoing = (comment, author) => {
   if (normalizedChannel.includes('telegram_webapp') || normalizedChannel.includes('miniapp')) return true;
   if (currentNames.includes(normalizedAuthor)) return true;
   if (normalizedAuthor === 'вы') return true;
+  if (matchPendingOutgoingMessage(taskId, comment)) return true;
   return false;
 };
 
-const normalizeTaskComment = (comment, fallbackText = '') => {
+const normalizeTaskComment = (comment, fallbackText = '', taskId = '') => {
   const author = normalizeCommentAuthor(comment);
+  const normalizedTaskId = String(comment?.task_id ?? taskId ?? '');
 
   return {
-    taskId: String(comment?.task_id ?? ''),
+    taskId: normalizedTaskId,
     commentId: String(comment?.comment_id ?? `${Date.now()}`),
     author,
     text: String(comment?.text ?? fallbackText ?? ''),
     date: comment?.date || new Date().toISOString(),
     channelType: String(comment?.channel_type ?? comment?.channelType ?? 'custom'),
-    isOutgoing: normalizeCommentIsOutgoing(comment, author)
+    isOutgoing: normalizeCommentIsOutgoing(comment, author, normalizedTaskId)
   };
 };
 
@@ -1332,7 +1380,7 @@ const normalizeTaskFromWebhook = (item) => {
   if (!item || (!item.task_id && !item.taskId)) return null;
   const taskId = String(item.task_id ?? item.taskId);
   const chatItems = Array.isArray(item.chat) ? item.chat : [];
-  const normalizedChat = chatItems.map((comment) => normalizeTaskComment(comment, item.description)).filter((comment) => comment.text);
+  const normalizedChat = chatItems.map((comment) => normalizeTaskComment(comment, item.description, taskId)).filter((comment) => comment.text);
   const lastMessage = normalizedChat[normalizedChat.length - 1];
   const description = item.description == null ? '' : String(item.description ?? item.text ?? '');
   const hasStatus = Object.prototype.hasOwnProperty.call(item, 'status');
@@ -1973,14 +2021,16 @@ const setupRequestDetailsView = () => {
     const activeTask = requestsState.tasks.find((item) => item.taskId === requestsState.activeTaskId);
     if (!activeTask || isTaskClosed(activeTask)) return;
 
-    activeTask.chat.push(normalizeTaskComment({
+    const pendingMessage = normalizeTaskComment({
       task_id: activeTask.taskId,
       comment_id: `${Date.now()}`,
       author: user?.first_name || user?.username || 'Вы',
       text,
       date: new Date().toISOString(),
       channel_type: 'telegram_webapp'
-    }));
+    });
+    registerPendingOutgoingMessage(activeTask.taskId, pendingMessage);
+    activeTask.chat.push(pendingMessage);
 
     renderRequestsList();
     renderDialogChat(activeTask);
@@ -2011,14 +2061,16 @@ const setupRequestDetailsView = () => {
     }
 
     files.forEach((file) => {
-      activeTask.chat.push(normalizeTaskComment({
+      const pendingMessage = normalizeTaskComment({
         task_id: activeTask.taskId,
         comment_id: `${Date.now()}-${file.name}`,
         author: user?.first_name || user?.username || 'Вы',
         text: `Файл: ${file.name}`,
         date: new Date().toISOString(),
         channel_type: 'telegram_webapp'
-      }));
+      });
+      registerPendingOutgoingMessage(activeTask.taskId, pendingMessage);
+      activeTask.chat.push(pendingMessage);
       renderRequestsList();
       renderDialogChat(activeTask);
     });
