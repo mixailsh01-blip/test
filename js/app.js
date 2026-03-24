@@ -1217,14 +1217,58 @@ const formatRequestDate = (value) => {
   return `${day}.${month} ${hours}:${minutes}`;
 };
 
-const normalizeTaskComment = (comment, fallbackText = '') => ({
-  taskId: String(comment?.task_id ?? ''),
-  commentId: String(comment?.comment_id ?? `${Date.now()}`),
-  author: String(comment?.author ?? 'Pyrus'),
-  text: String(comment?.text ?? fallbackText ?? ''),
-  date: comment?.date || new Date().toISOString(),
-  channelType: String(comment?.channel_type ?? 'custom')
-});
+const normalizeCommentAuthor = (comment) => String(
+  comment?.author ??
+  comment?.sender ??
+  comment?.sender_name ??
+  comment?.username ??
+  'Pyrus'
+);
+
+const normalizeCommentIsOutgoing = (comment, author) => {
+  const currentUserId = user?.id == null ? null : String(user.id);
+  const commentUserId =
+    comment?.user_id ??
+    comment?.userId ??
+    comment?.author_id ??
+    comment?.authorId ??
+    comment?.sender_id ??
+    comment?.senderId ??
+    null;
+  const normalizedChannel = String(comment?.channel_type ?? comment?.channelType ?? '').toLowerCase();
+  const normalizedAuthor = String(author || '').trim().toLowerCase();
+  const currentNames = [
+    user?.first_name,
+    user?.username,
+    [user?.first_name, user?.last_name].filter(Boolean).join(' ')
+  ]
+    .filter(Boolean)
+    .map((value) => String(value).trim().toLowerCase());
+
+  if (comment?.is_outgoing != null) return Boolean(comment.is_outgoing);
+  if (comment?.isOutgoing != null) return Boolean(comment.isOutgoing);
+  if (comment?.from_me != null) return Boolean(comment.from_me);
+  if (comment?.fromMe != null) return Boolean(comment.fromMe);
+  if (currentUserId && commentUserId != null && String(commentUserId) === currentUserId) return true;
+  if (normalizedChannel.includes('telegram_webapp') || normalizedChannel.includes('miniapp')) return true;
+  if (currentNames.includes(normalizedAuthor)) return true;
+  if (normalizedAuthor === 'вы') return true;
+  return false;
+};
+
+const normalizeTaskComment = (comment, fallbackText = '') => {
+  const author = normalizeCommentAuthor(comment);
+
+  return {
+    taskId: String(comment?.task_id ?? ''),
+    commentId: String(comment?.comment_id ?? `${Date.now()}`),
+    author,
+    text: String(comment?.text ?? fallbackText ?? ''),
+    date: comment?.date || new Date().toISOString(),
+    channelType: String(comment?.channel_type ?? comment?.channelType ?? 'custom'),
+    isOutgoing: normalizeCommentIsOutgoing(comment, author)
+  };
+};
 
 const getCommentIdentity = (comment) => `${comment.commentId}|${comment.date}|${comment.author}|${comment.text}`;
 const getTaskStorageKey = (task) => String(task?.chatId || task?.taskId || '');
@@ -1279,7 +1323,6 @@ const getNextOpenChatPollDelay = (attempt) => {
   return OPEN_CHAT_POLL_DELAYS_MS[index];
 };
 
-const isPyrusAuthor = (author) => String(author || '').toLowerCase().includes('pyrus');
 const isTaskClosed = (task) => {
   const normalizedStatus = String(task?.status || '').trim().toLowerCase();
   return Boolean(task?.isClosed) || ['решена', 'закрыта', 'закрыт', 'closed'].includes(normalizedStatus);
@@ -1352,7 +1395,7 @@ const upsertRequestTask = (task, options = {}) => {
     const nextChat = task.chat.length > 0 ? task.chat : existingTask.chat;
     const newIncomingCount = (task.chat || [])
       .filter((message) => !existingKeys.has(getCommentIdentity(message)))
-      .filter((message) => message.author !== (user?.first_name || user?.username || 'Вы'))
+      .filter((message) => !message.isOutgoing)
       .length;
 
     requestsState.tasks[existingIndex] = {
@@ -1845,7 +1888,7 @@ const setupRequestDetailsView = () => {
     }
 
     task.chat.forEach((message) => {
-      const isOutgoing = isPyrusAuthor(message.author);
+      const isOutgoing = Boolean(message.isOutgoing);
       const msg = document.createElement('div');
       msg.className = `request-msg ${isOutgoing ? 'request-msg-right request-msg-outgoing' : 'request-msg-left'}`;
       msg.innerHTML = `
