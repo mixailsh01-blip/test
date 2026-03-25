@@ -2090,13 +2090,20 @@ body.hide-main-logo #requests.page {
 
 .request-composer-input {
   flex: 1;
-  border: none;
+  border: 1px solid #3b3f4d;
   outline: none;
-  background: #24252d;
+  background: #1f2027;
   color: #ffffff;
   border-radius: 999px;
-  padding: 10px 14px;
-  font-size: 14px;
+  padding: 12px 16px;
+  min-height: 44px;
+  font-size: 16px;
+  line-height: 1.2;
+}
+
+.request-composer-input:focus {
+  border-color: #0c86ff;
+  box-shadow: 0 0 0 3px rgba(12, 134, 255, 0.18);
 }
 
 .request-composer-input::placeholder {

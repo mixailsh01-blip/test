@@ -2240,6 +2240,12 @@ const setupRequestDetailsView = () => {
     }, user, tg, files);
   };
 
+  const keepComposerVisible = () => {
+    requestAnimationFrame(() => {
+      composer.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    });
+  };
+
   const sendCurrentMessage = async () => {
     const text = input.value.trim();
     if (!text) return;
@@ -2270,6 +2276,7 @@ const setupRequestDetailsView = () => {
   });
   backBtn?.addEventListener('click', closeDialog);
   sendBtn.addEventListener('click', sendCurrentMessage);
+  input.addEventListener('focus', keepComposerVisible);
   input.addEventListener('keydown', (event) => {
     if (event.key === 'Enter') {
       event.preventDefault();
