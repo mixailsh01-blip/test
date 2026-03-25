@@ -25,7 +25,7 @@ body {
   background-color: #121212;
   z-index: 10;
   width: 100%;
-  top: 40px;
+  top: 28px;
   height: 80px;
 }
 
@@ -95,7 +95,7 @@ body.hide-main-logo .main-logo-container {
 }
 
 #home.page {
-  padding-top: 86px;
+  padding-top: 72px;
 }
 
 .home-hidden-select {
@@ -104,10 +104,10 @@ body.hide-main-logo .main-logo-container {
 
 .home-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(180px, 34%);
+  grid-template-columns: minmax(0, 1fr) minmax(165px, 31%);
   gap: 14px;
-  min-height: min(58vh, 560px);
-  align-items: stretch;
+  min-height: min(54vh, 500px);
+  align-items: start;
 }
 
 .home-layout__empty {
@@ -116,10 +116,10 @@ body.hide-main-logo .main-logo-container {
 
 .home-primary-card {
   width: 100%;
-  max-width: 260px;
-  min-height: min(58vh, 560px);
+  max-width: 235px;
+  min-height: min(54vh, 500px);
   margin: 0;
-  padding: 22px 22px;
+  padding: 20px 20px;
   border: none;
   border-radius: 34px;
   display: flex;
@@ -1319,13 +1319,13 @@ body.hide-main-logo #requests.page {
   }
 
   .home-layout {
-    grid-template-columns: minmax(0, 1fr) minmax(170px, 42%);
-    min-height: 52vh;
+    grid-template-columns: minmax(0, 1fr) minmax(156px, 40%);
+    min-height: 48vh;
   }
 
   .home-primary-card {
-    max-width: 220px;
-    min-height: 52vh;
+    max-width: 205px;
+    min-height: 48vh;
   }
 
   .home-dashboard {
