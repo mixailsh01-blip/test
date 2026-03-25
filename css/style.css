@@ -104,7 +104,7 @@ body.hide-main-logo .main-logo-container {
 
 .home-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(220px, 46%);
+  grid-template-columns: minmax(0, 1fr) minmax(180px, 34%);
   gap: 14px;
   min-height: min(58vh, 560px);
   align-items: stretch;
@@ -116,7 +116,7 @@ body.hide-main-logo .main-logo-container {
 
 .home-primary-card {
   width: 100%;
-  max-width: none;
+  max-width: 260px;
   min-height: min(58vh, 560px);
   margin: 0;
   padding: 22px 22px;
@@ -129,6 +129,7 @@ body.hide-main-logo .main-logo-container {
   text-align: left;
   background: linear-gradient(180deg, #ef1f17 0%, #d9130d 100%);
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
+  justify-self: end;
 }
 
 .home-primary-card__title {
@@ -1318,11 +1319,12 @@ body.hide-main-logo #requests.page {
   }
 
   .home-layout {
-    grid-template-columns: minmax(0, 0.62fr) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) minmax(170px, 42%);
     min-height: 52vh;
   }
 
   .home-primary-card {
+    max-width: 220px;
     min-height: 52vh;
   }
 
