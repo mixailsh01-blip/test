@@ -98,6 +98,64 @@ body.hide-main-logo .main-logo-container {
   padding-top: 100px;
 }
 
+.home-hero {
+  position: relative;
+  width: min(100%, 720px);
+  margin: clamp(18px, 4vw, 36px) auto clamp(12px, 3vw, 24px);
+  padding: clamp(22px, 5vw, 34px);
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at top right, rgba(0, 200, 255, 0.22), transparent 36%),
+    linear-gradient(145deg, #1f1f1f 0%, #151515 100%);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.28);
+  overflow: hidden;
+}
+
+.home-hero::after {
+  content: '';
+  position: absolute;
+  inset: auto -40px -60px auto;
+  width: 180px;
+  height: 180px;
+  background: radial-gradient(circle, rgba(0, 112, 255, 0.22), transparent 68%);
+  pointer-events: none;
+}
+
+.home-hero-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #8ce7ff;
+  font-size: clamp(12px, 2vw, 14px);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.home-hero-title {
+  max-width: 540px;
+  margin: 0;
+  font-size: clamp(28px, 6vw, 42px);
+  line-height: 1.05;
+  font-weight: 700;
+}
+
+.home-hero-text {
+  max-width: 560px;
+  margin: 14px 0 0;
+  color: #b6b6b6;
+  font-size: clamp(14px, 2.8vw, 18px);
+  line-height: 1.5;
+}
+
+.home-hidden-select {
+  display: none;
+}
+
 #requests.page {
   padding-top: 24px;
 }
@@ -179,6 +237,7 @@ body.hide-main-logo #requests.page {
 .btn-Save,
 .btn-CancelModal,
 .btn-AddRestaurant,
+.btn-Market,
 .btn-SelectRestModal,
 .btn-RestModal {
   font-family: 'PT Root UI', sans-serif;
@@ -216,6 +275,7 @@ body.hide-main-logo #requests.page {
 .btn-Share,
 .btn-Feedback,
 .btn-AddRestaurant,
+.btn-Market,
 .btn-SelectRestModal {
   background-color: #00c8ff;
   color: white;
@@ -225,6 +285,7 @@ body.hide-main-logo #requests.page {
 .btn-Share:hover,
 .btn-Feedback:hover,
 .btn-AddRestaurant:hover,
+.btn-Market:hover,
 .btn-SelectRestModal:hover {
   background-color: #0070ff;
 }
@@ -255,6 +316,7 @@ body.hide-main-logo #requests.page {
 .btn-Share:active,
 .btn-Feedback:active,
 .btn-AddRestaurant:active,
+.btn-Market:active,
 .btn-Save:active,
 .btn-CancelModal:active,
 .btn-RestModal:active {
@@ -267,6 +329,7 @@ body.hide-main-logo #requests.page {
 .btn-Share:not(:active),
 .btn-Feedback:not(:active),
 .btn-AddRestaurant:not(:active),
+.btn-Market:not(:active),
 .btn-Save:not(:active),
 .btn-CancelModal:not(:active),
 .btn-RestModal:not(:active) {
@@ -284,6 +347,7 @@ body.hide-main-logo #requests.page {
 .btn-Share.slide-in,
 .btn-Feedback.slide-in,
 .btn-AddRestaurant.slide-in,
+.btn-Market.slide-in,
 .btn-Save.slide-in
 .btn-SelectRestModal.slide-in {
   opacity: 1;
@@ -304,6 +368,7 @@ body.hide-main-logo #requests.page {
 
 /* Исходные позиции для анимации слева (без slide-in класса) */
 .btn-AddRestaurant:not(.slide-in),
+.btn-Market:not(.slide-in),
 .btn-Feedback:not(.slide-in),
 .btn-SelectRestModal:not(.slide-in) {
   transform: translateX(-500px);
@@ -741,8 +806,97 @@ body.hide-main-logo #requests.page {
   display: flex;
   gap: clamp(15px, 3vw, 30px);
   justify-content: center;
+  align-items: stretch;
   margin-bottom: clamp(30px, 6vw, 60px);
   flex-wrap: wrap;
+}
+
+.buttons-row--cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(14px, 3vw, 22px);
+  width: min(100%, 760px);
+  margin: 0 auto clamp(30px, 6vw, 60px);
+}
+
+.home-action-card {
+  position: relative;
+  min-height: clamp(210px, 38vw, 320px);
+  max-width: none;
+  margin: 0;
+  padding: clamp(22px, 5vw, 30px);
+  border-radius: 34px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-direction: column;
+  overflow: hidden;
+  text-align: left;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
+  transition: opacity 1.5s ease, transform 1.5s ease, box-shadow 0.25s ease, filter 0.25s ease;
+}
+
+.home-action-card::before {
+  content: '';
+  position: absolute;
+  inset: auto -18% -24% auto;
+  width: 58%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.07);
+  pointer-events: none;
+}
+
+.home-action-card:hover {
+  filter: brightness(1.04);
+  box-shadow: 0 22px 46px rgba(0, 0, 0, 0.34);
+}
+
+.home-action-card--create {
+  background: linear-gradient(180deg, #0c86ff 0%, #0560dc 100%);
+  grid-column: 1 / -1;
+}
+
+.home-action-card--restaurant {
+  background: linear-gradient(180deg, #34a8ff 0%, #1176e8 100%);
+}
+
+.home-action-card--market {
+  background: linear-gradient(180deg, #0058d9 0%, #003fa7 100%);
+}
+
+.home-action-card__title {
+  position: relative;
+  z-index: 1;
+  max-width: 75%;
+  font-size: clamp(28px, 5.5vw, 44px);
+  line-height: 1;
+  font-weight: 700;
+}
+
+.home-action-card__icon {
+  position: relative;
+  z-index: 1;
+  align-self: flex-end;
+  width: clamp(58px, 13vw, 72px);
+  height: clamp(58px, 13vw, 72px);
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  color: inherit;
+  font-size: clamp(26px, 5vw, 34px);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.18);
+}
+
+.home-action-card--create .home-action-card__icon,
+.home-action-card--market .home-action-card__icon {
+  color: currentColor;
+}
+
+.home-action-card--restaurant .home-action-card__icon {
+  color: #0a4ea8;
 }
 
 /* ==================== ТАБЛИЦЫ ==================== */
@@ -952,15 +1106,24 @@ body.hide-main-logo #requests.page {
   
   /* Адаптация кнопок в строку */
   .buttons-row {
-    flex-direction: column;
-    align-items: center;
     gap: clamp(10px, 2vw, 20px);
   }
-  
-  .btn-AddRestaurant,
-  .btn-Create {
-    width: 100%;
-    max-width: 300px;
+
+  .buttons-row--cards {
+    grid-template-columns: 1fr;
+  }
+
+  .home-action-card {
+    min-height: 220px;
+  }
+
+  .home-action-card--create {
+    grid-column: auto;
+  }
+
+  .home-action-card__title {
+    max-width: 82%;
+    font-size: clamp(26px, 8vw, 38px);
   }
 }
 

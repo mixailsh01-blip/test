@@ -43,17 +43,33 @@
     
     <!-- Главная страница -->
     <div id="home" class="page active">
-      <!-- Выпадающий список заведений -->
-      <div class="dropdown-container">
-        <select id="main-dropdown" class="main-dropdown">
+      <div class="home-hero">
+        <div class="home-hero-kicker">POS Bazar</div>
+        <h1 class="home-hero-title">Управляйте заведениями и заявками без лишних шагов</h1>
+        <p class="home-hero-text">Добавляйте точки, создавайте обращения и следите за статусом поддержки в одном окне.</p>
+      </div>
+
+      <!-- Технический список заведений для текущей логики приложения -->
+      <div class="home-hidden-select" aria-hidden="true">
+        <select id="main-dropdown" class="main-dropdown" tabindex="-1">
           <option value="">Выберите заведение</option>
         </select>
       </div>
       
       <!-- Основные кнопки -->
-      <div class="buttons-row">
-        <button class="btn-AddRestaurant">Добавить заведение</button>
-        <button class="btn-Create">Создать заявку</button>
+      <div class="buttons-row buttons-row--cards">
+        <button class="btn-Create home-action-card home-action-card--create">
+          <span class="home-action-card__title">Создать заявку</span>
+          <span class="home-action-card__icon" aria-hidden="true"><i class="fas fa-plus"></i></span>
+        </button>
+        <button class="btn-AddRestaurant home-action-card home-action-card--restaurant">
+          <span class="home-action-card__title">Добавить заведение</span>
+          <span class="home-action-card__icon" aria-hidden="true"><i class="fas fa-store"></i></span>
+        </button>
+        <button class="btn-Market home-action-card home-action-card--market">
+          <span class="home-action-card__title">PosBazar Market</span>
+          <span class="home-action-card__icon" aria-hidden="true"><i class="fas fa-bag-shopping"></i></span>
+        </button>
       </div>
     </div>
 

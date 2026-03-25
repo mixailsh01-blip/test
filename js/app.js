@@ -458,6 +458,21 @@ const setupAddRestaurantButton = () => {
   }
 };
 
+const setupMarketButton = () => {
+  const marketBtn = document.querySelector('.btn-Market');
+  if (!marketBtn) return;
+  const marketUrl = 'https://posbazar.ru/item/pos-kassy/';
+
+  marketBtn.addEventListener('click', () => {
+    if (typeof tg?.openLink === 'function') {
+      tg.openLink(marketUrl);
+      return;
+    }
+
+    window.open(marketUrl, '_blank', 'noopener,noreferrer');
+  });
+};
+
 /* ==================== РАБОТА С МОДАЛЬНЫМИ ОКНАМИ ==================== */
 
 const setupModal = () => {
@@ -2187,6 +2202,7 @@ const initializeApp = () => {
     setupContactSharing();
     setupNavigation();
     setupAddRestaurantButton();
+    setupMarketButton();
     enhanceMobileUX();
     setupTableFiltersAndSorting();
     setupEstablishmentSelection();
