@@ -130,6 +130,7 @@ body.hide-main-logo .main-logo-container {
   width: 100%;
   min-height: min(54vh, 500px);
   padding-top: 74px;
+  transform: translateY(-200px);
 }
 
 .home-secondary-card,
