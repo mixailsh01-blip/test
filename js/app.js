@@ -292,34 +292,31 @@ const startQrScanner = (video, stream) => {
   }
 };
 
-const handleQrResult = (data, stream) => {
+const handleQrResult = async (data, stream) => {
   try {
     console.log('QR-код распознан:', data);
     closeCamera(stream);
 
     if (window.API?.sendQrData) {
-      window.API.sendQrData(data, user)
-        .then((result) => {
-          const restaurants = normalizeRestaurantsFromQrResponse(result);
-          if (restaurants.length > 0) {
-            applyRestaurants(restaurants);
-            alert('Заведение привязано: ' + restaurants[0].name);
-          } else {
-            console.warn('QR отправлен, но заведение не получено. Ответ вебхука:', result);
-            alert('QR отправлен, но заведение не получено');
-          }
+      const result = await window.API.sendQrData(data, user);
+      const restaurants = normalizeRestaurantsFromQrResponse(result);
+      if (restaurants.length > 0) {
+        applyRestaurants(restaurants);
+        alert('Заведение привязано: ' + restaurants[0].name);
+        return restaurants;
+      }
 
-        })
-        .catch((error) => {
-          console.error('Ошибка отправки QR в вебхук:', error);
-          alert('QR-код распознан: ' + data);
-        });
-    } else {
-      alert('QR-код распознан: ' + data);
+      console.warn('QR отправлен, но заведение не получено. Ответ вебхука:', result);
+      alert('QR отправлен, но заведение не получено');
+      return [];
     }
+
+    alert('QR-код распознан: ' + data);
+    return [];
   } catch (error) {
     console.error('Ошибка обработки результата QR:', error);
     alert('Не удалось обработать QR-код');
+    return [];
   }
 };
 
@@ -412,48 +409,53 @@ const handleRestaurantPhoto = (blob) => {
   }
 };
 
+const startAddRestaurantFlow = async () => {
+  if (tg && typeof tg.openCodeReader === 'function') {
+    try {
+      const result = await tg.openCodeReader();
+      const code = typeof result === 'string' ? result : (result?.text ?? result?.data ?? null);
+      if (!code) {
+        console.log('QR-сканер MAX закрыт без результата');
+        return [];
+      }
+
+      return await handleQrResult(code, null);
+    } catch (error) {
+      console.warn('Не удалось использовать MAX Code Reader, переключаемся на камеру:', error);
+    }
+  }
+
+  const scanMethod =
+    (tg && typeof tg.showScanQrPopup === 'function' && 'showScanQrPopup') ||
+    (tg && typeof tg.openScanQrPopup === 'function' && 'openScanQrPopup');
+
+  if (scanMethod) {
+    return new Promise((resolve) => {
+      tg[scanMethod]({ text: 'Сканируйте QR-код заведения' }, async (text) => {
+        if (!text) {
+          console.log('QR-сканер закрыт без результата');
+          resolve([]);
+          return true;
+        }
+
+        const restaurants = await handleQrResult(text, null);
+        resolve(restaurants);
+        return true;
+      });
+    });
+  }
+
+  openCameraForRestaurant();
+  return [];
+};
+
 const setupAddRestaurantButton = () => {
   const addRestaurantBtn = document.querySelector('.btn-AddRestaurant');
   if (addRestaurantBtn) {
     addRestaurantBtn.addEventListener('click', async (e) => {
       e.preventDefault();
       e.stopPropagation();
-
-      if (tg && typeof tg.openCodeReader === 'function') {
-        try {
-          const result = await tg.openCodeReader();
-          const code = typeof result === 'string' ? result : (result?.text ?? result?.data ?? null);
-          if (!code) {
-            console.log('QR-сканер MAX закрыт без результата');
-            return;
-          }
-
-          handleQrResult(code, null);
-          return;
-        } catch (error) {
-          console.warn('Не удалось использовать MAX Code Reader, переключаемся на камеру:', error);
-        }
-      }
-
-      const scanMethod =
-        (tg && typeof tg.showScanQrPopup === 'function' && 'showScanQrPopup') ||
-        (tg && typeof tg.openScanQrPopup === 'function' && 'openScanQrPopup');
-
-      if (scanMethod) {
-        tg[scanMethod]({ text: 'Сканируйте QR-код заведения' }, (text) => {
-          if (!text) {
-            console.log('QR-сканер закрыт без результата');
-            return true;
-          }
-
-          handleQrResult(text, null);
-          return true;
-        });
-        return;
-      }
-
-      // Фолбэк для обычного браузера
-      openCameraForRestaurant();
+      await startAddRestaurantFlow();
     });
   }
 };
@@ -1732,10 +1734,14 @@ const setupTaskCreation = () => {
   const modal = document.getElementById('task-create-modal');
   const sendBtn = document.getElementById('task-send-btn');
   const establishmentSelect = document.getElementById('task-establishment-select');
+  const establishmentToggle = document.getElementById('task-establishment-toggle');
+  const establishmentToggleText = document.getElementById('task-establishment-toggle-text');
+  const establishmentMenu = document.getElementById('task-establishment-menu');
+  const establishmentOptions = document.getElementById('task-establishment-options');
+  const addEstablishmentBtn = document.getElementById('task-add-establishment-btn');
   const descriptionInput = document.getElementById('task-description-input');
   const filesInput = document.getElementById('task-files-input');
   const attachBtn = document.getElementById('task-attach-btn');
-  const filesCount = document.getElementById('task-files-count');
   const filesList = document.getElementById('task-files-list');
 
   if (
@@ -1743,10 +1749,14 @@ const setupTaskCreation = () => {
     !modal ||
     !sendBtn ||
     !establishmentSelect ||
+    !establishmentToggle ||
+    !establishmentToggleText ||
+    !establishmentMenu ||
+    !establishmentOptions ||
+    !addEstablishmentBtn ||
     !descriptionInput ||
     !filesInput ||
     !attachBtn ||
-    !filesCount ||
     !filesList
   ) return;
 
@@ -1761,10 +1771,6 @@ const setupTaskCreation = () => {
 
   const renderSelectedFiles = () => {
     const files = Array.from(filesInput.files || []);
-    filesCount.textContent = files.length
-      ? `Файлов выбрано: ${files.length}`
-      : 'Файлы не выбраны';
-
     filesList.innerHTML = '';
     files.forEach((file) => {
       const item = document.createElement('div');
@@ -1772,6 +1778,65 @@ const setupTaskCreation = () => {
       item.textContent = `${file.name} (${Math.ceil(file.size / 1024)} KB)`;
       filesList.appendChild(item);
     });
+  };
+
+  const updateSendButtonState = () => {
+    const hasEstablishment = Boolean((establishmentSelect.value || '').trim());
+    sendBtn.disabled = !hasEstablishment;
+    sendBtn.textContent = hasEstablishment ? 'Создать' : 'Выберите заведение';
+    sendBtn.classList.toggle('is-disabled', !hasEstablishment);
+  };
+
+  const setEstablishmentValue = (value = '') => {
+    establishmentSelect.value = value;
+    const activeOption = Array.from(establishmentSelect.options).find((option) => option.value === value);
+    establishmentToggleText.textContent = activeOption?.textContent?.trim() || 'Выберите заведение';
+    updateSendButtonState();
+  };
+
+  const toggleEstablishmentMenu = (isOpen) => {
+    establishmentMenu.classList.toggle('hidden', !isOpen);
+    establishmentToggle.classList.toggle('is-open', isOpen);
+    establishmentToggle.setAttribute('aria-expanded', String(isOpen));
+  };
+
+  const renderEstablishmentPicker = (preferredId = '') => {
+    const { items, selectedId } = getEstablishmentsFromMainDropdown();
+    const nextSelectedId =
+      preferredId ||
+      selectedId ||
+      (items.length === 1 ? items[0].id : '');
+
+    establishmentSelect.innerHTML = '<option value="">Выберите заведение</option>';
+    establishmentOptions.innerHTML = '';
+
+    if (items.length === 0) {
+      const emptyState = document.createElement('div');
+      emptyState.className = 'task-establishment-empty';
+      emptyState.textContent = 'Заведений пока нет';
+      establishmentOptions.appendChild(emptyState);
+    }
+
+    items.forEach((item) => {
+      const option = document.createElement('option');
+      option.value = item.id;
+      option.textContent = item.name;
+      establishmentSelect.appendChild(option);
+
+      const itemButton = document.createElement('button');
+      itemButton.type = 'button';
+      itemButton.className = 'task-establishment-option';
+      itemButton.dataset.id = item.id;
+      itemButton.innerHTML = `<span>${escapeHtml(item.name)}</span><i class="fas fa-check" aria-hidden="true"></i>`;
+      if (item.id === nextSelectedId) {
+        itemButton.classList.add('is-selected');
+      }
+      establishmentOptions.appendChild(itemButton);
+    });
+
+    addEstablishmentBtn.classList.remove('hidden');
+    setEstablishmentValue(items.some((item) => item.id === nextSelectedId) ? nextSelectedId : '');
+    toggleEstablishmentMenu(false);
   };
 
   const handlePlatformBack = () => {
@@ -1803,27 +1868,12 @@ const setupTaskCreation = () => {
 
   const closeModal = () => {
     modal.classList.add('hidden');
+    toggleEstablishmentMenu(false);
     syncPlatformBackButton(false);
   };
 
   const openModal = () => {
-    const { items, selectedId } = getEstablishmentsFromMainDropdown();
-    establishmentSelect.innerHTML = '<option value="">Выберите заведение</option>';
-    items.forEach((item) => {
-      const option = document.createElement('option');
-      option.value = item.id;
-      option.textContent = item.name;
-      establishmentSelect.appendChild(option);
-    });
-
-    if (items.length === 1) {
-      establishmentSelect.value = items[0].id;
-    } else if (selectedId && items.some((item) => item.id === selectedId)) {
-      establishmentSelect.value = selectedId;
-    } else {
-      establishmentSelect.value = '';
-    }
-
+    renderEstablishmentPicker();
     descriptionInput.value = '';
     filesInput.value = '';
     renderSelectedFiles();
@@ -1838,7 +1888,6 @@ const setupTaskCreation = () => {
     const files = Array.from(filesInput.files || []);
 
     if (!establishmentId) {
-      showPlatformPopup('Заведение не выбрано', 'Выберите заведение перед отправкой заявки.');
       return;
     }
 
@@ -1891,8 +1940,7 @@ const setupTaskCreation = () => {
           : 'Не удалось отправить заявку. Проверьте сеть и логи.'
       );
     } finally {
-      sendBtn.disabled = false;
-      sendBtn.textContent = 'Создать задачу';
+      updateSendButtonState();
     }
   };
 
@@ -1902,11 +1950,32 @@ const setupTaskCreation = () => {
   };
 
   createBtns.forEach((btn) => btn.addEventListener('click', openHandler));
+  establishmentToggle.addEventListener('click', () => {
+    toggleEstablishmentMenu(establishmentMenu.classList.contains('hidden'));
+  });
+  establishmentOptions.addEventListener('click', (event) => {
+    const optionButton = event.target.closest('.task-establishment-option');
+    if (!optionButton) return;
+
+    setEstablishmentValue(optionButton.dataset.id || '');
+    renderEstablishmentPicker(optionButton.dataset.id || '');
+    toggleEstablishmentMenu(false);
+  });
+  addEstablishmentBtn.addEventListener('click', async () => {
+    const restaurants = await startAddRestaurantFlow();
+    const preferredId = restaurants[0]?.id || '';
+    renderEstablishmentPicker(preferredId);
+  });
   attachBtn.addEventListener('click', () => filesInput.click());
   filesInput.addEventListener('change', renderSelectedFiles);
   sendBtn.addEventListener('click', sendTaskHandler);
   modal.addEventListener('click', (event) => {
     if (event.target === modal) closeModal();
+  });
+  document.addEventListener('click', (event) => {
+    if (!modal.classList.contains('hidden') && !event.target.closest('.task-establishment-picker')) {
+      toggleEstablishmentMenu(false);
+    }
   });
 };
 

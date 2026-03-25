@@ -15,6 +15,10 @@ body {
   font-size: clamp(14px, 2.5vw, 18px);
 }
 
+.hidden {
+  display: none !important;
+}
+
 /* ==================== ЛОГОТИПЫ ==================== */
 /* Общий логотип для всех страниц */
 .main-logo-container {
@@ -955,7 +959,7 @@ body.hide-main-logo #requests.page {
 
 .task-create-header h3 {
   margin: 0;
-  text-align: left;
+  text-align: center;
   font-size: clamp(22px, 4.6vw, 30px);
 }
 
@@ -964,6 +968,123 @@ body.hide-main-logo #requests.page {
   margin: 6px 0 8px;
   font-size: 14px;
   color: #c7cbda;
+}
+
+.task-establishment-picker {
+  position: relative;
+  margin-bottom: 12px;
+  z-index: 8;
+}
+
+.task-establishment-toggle {
+  width: 100%;
+  min-height: 50px;
+  border: 1px solid #5a5d69;
+  background: #2a2b33;
+  color: #ffffff;
+  border-radius: 20px;
+  padding: 11px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-family: 'PT Root UI', sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+}
+
+.task-establishment-toggle i {
+  font-size: 18px;
+  transition: transform 0.2s ease;
+}
+
+.task-establishment-toggle.is-open i {
+  transform: rotate(180deg);
+}
+
+.task-establishment-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  z-index: 12;
+  padding: 8px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  background: #23242b;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.32), inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+}
+
+.task-establishment-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.task-establishment-empty {
+  min-height: 50px;
+  border-radius: 16px;
+  padding: 11px 18px;
+  display: flex;
+  align-items: center;
+  background: #2a2b33;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 15px;
+}
+
+.task-establishment-option,
+.task-add-establishment-btn {
+  width: 100%;
+  min-height: 50px;
+  border: none;
+  border-radius: 16px;
+  padding: 11px 18px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: 'PT Root UI', sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.task-establishment-option {
+  justify-content: space-between;
+  background: #2a2b33;
+  color: #ffffff;
+}
+
+.task-establishment-option i {
+  opacity: 0;
+}
+
+.task-establishment-option.is-selected {
+  background: linear-gradient(180deg, rgba(12, 134, 255, 0.32) 0%, rgba(5, 96, 220, 0.28) 100%);
+  box-shadow: inset 0 0 0 1px rgba(12, 134, 255, 0.42);
+}
+
+.task-establishment-option.is-selected i {
+  opacity: 1;
+}
+
+.task-add-establishment-btn {
+  justify-content: center;
+  margin-top: 8px;
+  background: #2a2b33;
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.task-add-establishment-btn i {
+  font-size: 18px;
+}
+
+.task-create-input--hidden {
+  display: none;
 }
 
 .task-create-input,
@@ -991,9 +1112,7 @@ body.hide-main-logo #requests.page {
 }
 
 .task-create-file-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  display: block;
   margin-bottom: 8px;
 }
 
@@ -1004,15 +1123,27 @@ body.hide-main-logo #requests.page {
   transform: none;
   max-width: none;
   margin-top: 0;
+  min-height: 50px;
+  padding: 11px 22px;
+  border-radius: 999px;
+  font-weight: 700;
+}
+
+.task-create-file-row .btn-CancelModal {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: linear-gradient(180deg, #0c86ff 0%, #0560dc 100%);
+  color: #ffffff;
+}
+
+.task-create-file-row .btn-CancelModal:hover {
+  background: linear-gradient(180deg, #1b92ff 0%, #0a69e7 100%);
 }
 
 .task-create-file-input {
   display: none;
-}
-
-.task-create-file-count {
-  color: #9ea3b2;
-  font-size: 13px;
 }
 
 .task-create-files-list {
@@ -1035,13 +1166,36 @@ body.hide-main-logo #requests.page {
   margin-top: 10px;
   position: sticky;
   bottom: 0;
-  background: #1e1e1e;
-  padding-top: 12px;
+  background: transparent;
+  padding-top: 0;
 }
 
 .task-create-actions .btn-Save,
 .task-create-actions .btn-CancelModal {
   width: 100%;
+}
+
+.task-create-actions .btn-Save {
+  background: #ffffff;
+  color: #111111;
+}
+
+.task-create-actions .btn-Save:hover {
+  background: #f3f4f6;
+  color: #111111;
+}
+
+.task-create-actions .btn-Save.is-disabled,
+.task-create-actions .btn-Save:disabled {
+  background: #2f3037;
+  color: rgba(255, 255, 255, 0.72);
+  cursor: default;
+}
+
+.task-create-actions .btn-Save.is-disabled:hover,
+.task-create-actions .btn-Save:disabled:hover {
+  background: #2f3037;
+  color: rgba(255, 255, 255, 0.72);
 }
 
 .contact-share-progress {

@@ -197,13 +197,26 @@
     <div id="task-create-modal" class="modal hidden">
       <div class="modal-content task-create-content">
         <div class="task-create-header">
-          <h3>Новая заявка</h3>
+          <h3>Создать заявку</h3>
         </div>
 
         <label for="task-establishment-select" class="task-create-label">Заведение</label>
-        <select id="task-establishment-select" class="task-create-input">
-          <option value="">Выберите заведение</option>
-        </select>
+        <div class="task-establishment-picker">
+          <button id="task-establishment-toggle" class="task-establishment-toggle" type="button" aria-expanded="false">
+            <span id="task-establishment-toggle-text">Выберите заведение</span>
+            <i class="fas fa-chevron-down" aria-hidden="true"></i>
+          </button>
+          <div id="task-establishment-menu" class="task-establishment-menu hidden">
+            <div id="task-establishment-options" class="task-establishment-options"></div>
+            <button id="task-add-establishment-btn" class="task-add-establishment-btn hidden" type="button">
+              <i class="fas fa-plus" aria-hidden="true"></i>
+              <span>Добавить заведение</span>
+            </button>
+          </div>
+          <select id="task-establishment-select" class="task-create-input task-create-input--hidden">
+            <option value="">Выберите заведение</option>
+          </select>
+        </div>
 
         <label for="task-description-input" class="task-create-label">Описание проблемы</label>
         <textarea
@@ -214,14 +227,16 @@
         ></textarea>
 
         <div class="task-create-file-row">
-          <button id="task-attach-btn" class="btn-CancelModal" type="button" style="opacity:1;transform:none;display:block;visibility:visible;">Прикрепить файлы</button>
-          <span id="task-files-count" class="task-create-file-count">Файлы не выбраны</span>
+          <button id="task-attach-btn" class="btn-CancelModal" type="button" style="opacity:1;transform:none;display:block;visibility:visible;">
+            <i class="fas fa-paperclip" aria-hidden="true"></i>
+            <span>Прикрепить доп. материалы</span>
+          </button>
         </div>
         <input id="task-files-input" type="file" class="task-create-file-input" multiple />
         <div id="task-files-list" class="task-create-files-list"></div>
 
         <div class="task-create-actions">
-          <button id="task-send-btn" class="btn-Save" type="button" style="opacity:1;transform:none;display:block;visibility:visible;">Создать задачу</button>
+          <button id="task-send-btn" class="btn-Save" type="button" style="opacity:1;transform:none;display:block;visibility:visible;">Создать</button>
         </div>
       </div>
     </div>
