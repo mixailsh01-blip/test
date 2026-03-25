@@ -58,7 +58,7 @@
         <button class="home-secondary-card">
           <span class="home-secondary-card__title">База знаний</span>
         </button>
-        <button class="home-secondary-card home-secondary-card--right home-secondary-card--primary">
+        <button class="btn-Create home-secondary-card home-secondary-card--right home-secondary-card--primary">
           <span class="home-secondary-card__title">Создать заявку</span>
           <span class="home-secondary-card__icon" aria-hidden="true"><i class="fas fa-plus"></i></span>
         </button>
@@ -196,8 +196,14 @@
     <!-- Модальное окно: создание заявки -->
     <div id="task-create-modal" class="modal hidden">
       <div class="modal-content task-create-content">
-        <button id="task-create-close-icon" class="modal-close" aria-label="Закрыть">×</button>
-        <h3>Новая заявка</h3>
+        <div class="task-create-header">
+          <button id="task-create-back-btn" class="task-create-back" type="button">
+            <i class="fas fa-arrow-left"></i>
+            <span>Назад</span>
+          </button>
+          <h3>Новая заявка</h3>
+          <button id="task-create-close-icon" class="modal-close task-create-close" aria-label="Закрыть">×</button>
+        </div>
 
         <label for="task-establishment-select" class="task-create-label">Заведение</label>
         <select id="task-establishment-select" class="task-create-input">

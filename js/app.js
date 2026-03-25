@@ -1730,6 +1730,7 @@ const setupEstablishmentSelection = () => {
 const setupTaskCreation = () => {
   const createBtns = document.querySelectorAll('.btn-Create, .btn-NewRequest');
   const modal = document.getElementById('task-create-modal');
+  const backBtn = document.getElementById('task-create-back-btn');
   const closeIconBtn = document.getElementById('task-create-close-icon');
   const cancelBtn = document.getElementById('task-cancel-btn');
   const sendBtn = document.getElementById('task-send-btn');
@@ -1743,6 +1744,7 @@ const setupTaskCreation = () => {
   if (
     !createBtns.length ||
     !modal ||
+    !backBtn ||
     !closeIconBtn ||
     !cancelBtn ||
     !sendBtn ||
@@ -1784,11 +1786,6 @@ const setupTaskCreation = () => {
 
   const openModal = () => {
     const { items, selectedId } = getEstablishmentsFromMainDropdown();
-    if (!items.length) {
-      showPlatformPopup('Нет заведений', 'Сначала добавьте или привяжите заведение.');
-      return;
-    }
-
     establishmentSelect.innerHTML = '<option value="">Выберите заведение</option>';
     items.forEach((item) => {
       const option = document.createElement('option');
@@ -1882,6 +1879,7 @@ const setupTaskCreation = () => {
   };
 
   createBtns.forEach((btn) => btn.addEventListener('click', openHandler));
+  backBtn.addEventListener('click', closeModal);
   closeIconBtn.addEventListener('click', closeModal);
   cancelBtn.addEventListener('click', closeModal);
   attachBtn.addEventListener('click', () => filesInput.click());

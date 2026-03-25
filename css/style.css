@@ -914,10 +914,74 @@ body.hide-main-logo #requests.page {
 }
 
 .task-create-content {
-  max-width: min(560px, 92vw);
-  max-height: min(88vh, 760px);
+  width: 100vw;
+  max-width: none;
+  height: 100vh;
+  max-height: none;
   overflow-y: auto;
-  padding-bottom: 18px;
+  padding: 20px 18px 24px;
+  border-radius: 0;
+  background: #121212;
+}
+
+#task-create-modal {
+  align-items: stretch;
+  justify-content: stretch;
+  background: #121212;
+}
+
+.task-create-header {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding-top: 2px;
+}
+
+.task-create-header h3 {
+  margin: 0;
+  text-align: center;
+  font-size: clamp(22px, 4.6vw, 30px);
+}
+
+.task-create-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 999px;
+  background: #2f3037;
+  color: #ffffff;
+  font-family: 'PT Root UI', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.task-create-back i {
+  font-size: 14px;
+}
+
+.task-create-close {
+  position: static;
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  background: #2f3037;
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+}
+
+.task-create-close:hover,
+.task-create-back:hover {
+  background: #3a3b43;
+  color: #ffffff;
 }
 
 .task-create-label {
