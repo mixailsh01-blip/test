@@ -1392,7 +1392,9 @@ const matchPendingOutgoingMessage = (taskId, comment) => {
 const normalizeCommentIsOutgoing = (comment, author, taskId = '') => {
   const currentUserId = user?.id == null ? null : String(user.id);
   const commentUserId =
+    comment?.UserID ??
     comment?.IDUser ??
+    comment?.userID ??
     comment?.id_user ??
     comment?.idUser ??
     comment?.user_id ??
@@ -1508,7 +1510,7 @@ const normalizeTaskFromWebhook = (item) => {
   const normalizedChat = chatItems
     .map((comment) => normalizeTaskComment({
       ...comment,
-      IDUser: comment?.IDUser ?? item?.IDUser ?? null
+      IDUser: comment?.IDUser ?? comment?.UserID ?? item?.IDUser ?? item?.UserID ?? null
     }, item.description, taskId))
     .filter((comment) => comment.text);
   const lastMessage = normalizedChat[normalizedChat.length - 1];
