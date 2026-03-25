@@ -596,7 +596,7 @@ body.hide-main-logo #requests.page {
 .btn-AddRestaurant,
 .btn-Market,
 .btn-SelectRestModal {
-  background-color: #00c8ff;
+  background-color: #0c86ff;
   color: white;
 }
 
@@ -606,17 +606,17 @@ body.hide-main-logo #requests.page {
 .btn-AddRestaurant:hover,
 .btn-Market:hover,
 .btn-SelectRestModal:hover {
-  background-color: #0070ff;
+  background-color: #0560dc;
 }
 
 /* Вспомогательные кнопки */
 .btn-Save {
-  background-color: #00c8ff;
+  background-color: #0c86ff;
   color: white;
 }
 
 .btn-Save:hover {
-  background-color: #0070ff;
+  background-color: #0560dc;
 }
 
 .btn-CancelModal,
@@ -691,6 +691,24 @@ body.hide-main-logo #requests.page {
 .btn-Feedback:not(.slide-in),
 .btn-SelectRestModal:not(.slide-in) {
   transform: translateX(-500px);
+}
+
+.home-layout .btn-Create.home-secondary-card {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 18px 18px;
+  border-radius: 28px;
+  opacity: 1;
+  transform: none;
+  transition: box-shadow 0.2s ease, filter 0.2s ease;
+}
+
+.home-layout .btn-Create.home-secondary-card:active,
+.home-layout .btn-Create.home-secondary-card:not(:active),
+.home-layout .btn-Create.home-secondary-card.slide-in,
+.home-layout .btn-Create.home-secondary-card:not(.slide-in) {
+  transform: none;
 }
 
 /* ==================== СОСТОЯНИЕ ВЫБРАННОГО ЗАВЕДЕНИЯ ==================== */
@@ -821,7 +839,7 @@ body.hide-main-logo #requests.page {
 }
 
 .modal-close:hover {
-  color: #00c8ff;
+  color: #0c86ff;
 }
 
 /* ==================== МОДАЛКА "ПОДЕЛИТЬСЯ НОМЕРОМ" ==================== */
@@ -854,7 +872,7 @@ body.hide-main-logo #requests.page {
 
 .contact-share-close:hover {
   border-color: rgba(0, 200, 255, 0.35);
-  color: #00c8ff;
+  color: #0c86ff;
 }
 
 .contact-share-icon {
@@ -871,8 +889,8 @@ body.hide-main-logo #requests.page {
 
 .contact-share-icon i {
   font-size: 40px;
-  color: #00c8ff;
-  text-shadow: 0 0 18px rgba(0, 200, 255, 0.35);
+  color: #0c86ff;
+  text-shadow: 0 0 18px rgba(12, 134, 255, 0.35);
 }
 
 .contact-share-title {
@@ -900,8 +918,8 @@ body.hide-main-logo #requests.page {
   font-size: 16px;
   cursor: pointer;
   color: #00121a;
-  background: linear-gradient(90deg, #00c8ff 0%, #0070ff 100%);
-  box-shadow: 0 10px 26px rgba(0, 200, 255, 0.22);
+  background: linear-gradient(180deg, #0c86ff 0%, #0560dc 100%);
+  box-shadow: 0 10px 26px rgba(12, 134, 255, 0.22);
 }
 
 .contact-share-btn:hover {
@@ -931,57 +949,14 @@ body.hide-main-logo #requests.page {
 }
 
 .task-create-header {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: 12px;
   margin-bottom: 20px;
   padding-top: 2px;
 }
 
 .task-create-header h3 {
   margin: 0;
-  text-align: center;
+  text-align: left;
   font-size: clamp(22px, 4.6vw, 30px);
-}
-
-.task-create-back {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 42px;
-  padding: 0 14px;
-  border: none;
-  border-radius: 999px;
-  background: #2f3037;
-  color: #ffffff;
-  font-family: 'PT Root UI', sans-serif;
-  font-size: 15px;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.task-create-back i {
-  font-size: 14px;
-}
-
-.task-create-close {
-  position: static;
-  width: 42px;
-  height: 42px;
-  border-radius: 999px;
-  background: #2f3037;
-  color: #ffffff;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 24px;
-}
-
-.task-create-close:hover,
-.task-create-back:hover {
-  background: #3a3b43;
-  color: #ffffff;
 }
 
 .task-create-label {
@@ -1007,7 +982,7 @@ body.hide-main-logo #requests.page {
 
 .task-create-input:focus,
 .task-create-textarea:focus {
-  border-color: #00c8ff;
+  border-color: #0c86ff;
 }
 
 .task-create-textarea {
@@ -1056,9 +1031,7 @@ body.hide-main-logo #requests.page {
 }
 
 .task-create-actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  display: block;
   margin-top: 10px;
   position: sticky;
   bottom: 0;
@@ -1090,7 +1063,7 @@ body.hide-main-logo #requests.page {
   width: 18px;
   height: 18px;
   border: 2px solid rgba(255, 255, 255, 0.25);
-  border-top-color: #00c8ff;
+  border-top-color: #0c86ff;
   border-radius: 50%;
   animation: contact-share-spin 0.9s linear infinite;
   flex: 0 0 auto;
@@ -1114,7 +1087,7 @@ body.hide-main-logo #requests.page {
 }
 
 .establishment-list::-webkit-scrollbar-thumb {
-  background-color: #00c8ff;
+  background-color: #0c86ff;
   border-radius: 3px;
 }
 
@@ -1130,7 +1103,7 @@ body.hide-main-logo #requests.page {
 }
 
 .establishment-item:active {
-  background-color: #0070ff !important;
+  background-color: #0560dc !important;
   transform: scale(0.99);
 }
 
@@ -1176,7 +1149,7 @@ body.hide-main-logo #requests.page {
 }
 
 .main-dropdown:focus {
-  border-color: #00c8ff;
+  border-color: #0c86ff;
 }
 
 .main-dropdown option {
@@ -1241,7 +1214,7 @@ body.hide-main-logo #requests.page {
 }
 
 .home-action-card--restaurant {
-  background: linear-gradient(180deg, #34a8ff 0%, #1176e8 100%);
+  background: linear-gradient(180deg, #0c86ff 0%, #0560dc 100%);
 }
 
 .home-action-card--market {
@@ -1398,7 +1371,7 @@ body.hide-main-logo #requests.page {
 }
 
 .filter-input:focus {
-  border-color: #00c8ff;
+  border-color: #0c86ff;
 }
 
 .btn-ClearFilters {
@@ -1432,12 +1405,12 @@ body.hide-main-logo #requests.page {
 
 .sort-arrow.asc::after {
   content: "▲";
-  color: #00c8ff;
+  color: #0c86ff;
 }
 
 .sort-arrow.desc::after {
   content: "▼";
-  color: #00c8ff;
+  color: #0c86ff;
 }
 
 /* ==================== АДАПТИВНЫЕ СТИЛИ ==================== */
@@ -1704,7 +1677,7 @@ body.hide-main-logo #requests.page {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(90deg, #00c8ff 0%, #0070ff 100%);
+  background: linear-gradient(180deg, #0c86ff 0%, #0560dc 100%);
   color: #ffffff;
   font-size: 12px;
   font-weight: 700;
@@ -1749,7 +1722,7 @@ body.hide-main-logo #requests.page {
   font-weight: 700;
   font-size: clamp(14px, 3vw, 18px);
   color: white;
-  background: linear-gradient(90deg, #00c8ff 0%, #0070ff 100%);
+  background: linear-gradient(180deg, #0c86ff 0%, #0560dc 100%);
   box-shadow: 0 12px 26px rgba(0, 112, 255, 0.3);
   display: flex;
   align-items: center;
@@ -1874,7 +1847,7 @@ body.hide-main-logo #requests.page {
 }
 
 .request-msg-outgoing {
-  background: linear-gradient(90deg, #00c8ff 0%, #0070ff 100%);
+  background: linear-gradient(180deg, #0c86ff 0%, #0560dc 100%);
   color: #ffffff;
 }
 
@@ -1957,7 +1930,7 @@ body.hide-main-logo #requests.page {
 }
 
 .request-composer-send {
-  background: linear-gradient(90deg, #00c8ff 0%, #0070ff 100%);
+  background: linear-gradient(180deg, #0c86ff 0%, #0560dc 100%);
   color: #ffffff;
 }
 

@@ -1730,9 +1730,6 @@ const setupEstablishmentSelection = () => {
 const setupTaskCreation = () => {
   const createBtns = document.querySelectorAll('.btn-Create, .btn-NewRequest');
   const modal = document.getElementById('task-create-modal');
-  const backBtn = document.getElementById('task-create-back-btn');
-  const closeIconBtn = document.getElementById('task-create-close-icon');
-  const cancelBtn = document.getElementById('task-cancel-btn');
   const sendBtn = document.getElementById('task-send-btn');
   const establishmentSelect = document.getElementById('task-establishment-select');
   const descriptionInput = document.getElementById('task-description-input');
@@ -1744,9 +1741,6 @@ const setupTaskCreation = () => {
   if (
     !createBtns.length ||
     !modal ||
-    !backBtn ||
-    !closeIconBtn ||
-    !cancelBtn ||
     !sendBtn ||
     !establishmentSelect ||
     !descriptionInput ||
@@ -1780,8 +1774,36 @@ const setupTaskCreation = () => {
     });
   };
 
+  const handlePlatformBack = () => {
+    closeModal();
+  };
+
+  const syncPlatformBackButton = (isVisible) => {
+    const bridgeBackButton = tg?.BackButton;
+    if (!bridgeBackButton) return;
+
+    if (typeof bridgeBackButton.offClick === 'function') {
+      bridgeBackButton.offClick(handlePlatformBack);
+    }
+
+    if (isVisible) {
+      if (typeof bridgeBackButton.onClick === 'function') {
+        bridgeBackButton.onClick(handlePlatformBack);
+      }
+      if (typeof bridgeBackButton.show === 'function') {
+        bridgeBackButton.show();
+      }
+      return;
+    }
+
+    if (typeof bridgeBackButton.hide === 'function') {
+      bridgeBackButton.hide();
+    }
+  };
+
   const closeModal = () => {
     modal.classList.add('hidden');
+    syncPlatformBackButton(false);
   };
 
   const openModal = () => {
@@ -1806,6 +1828,7 @@ const setupTaskCreation = () => {
     filesInput.value = '';
     renderSelectedFiles();
     modal.classList.remove('hidden');
+    syncPlatformBackButton(true);
   };
 
   const sendTaskHandler = async () => {
@@ -1879,9 +1902,6 @@ const setupTaskCreation = () => {
   };
 
   createBtns.forEach((btn) => btn.addEventListener('click', openHandler));
-  backBtn.addEventListener('click', closeModal);
-  closeIconBtn.addEventListener('click', closeModal);
-  cancelBtn.addEventListener('click', closeModal);
   attachBtn.addEventListener('click', () => filesInput.click());
   filesInput.addEventListener('change', renderSelectedFiles);
   sendBtn.addEventListener('click', sendTaskHandler);
