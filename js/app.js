@@ -413,9 +413,11 @@ const startAddRestaurantFlow = async () => {
   if (tg && typeof tg.openCodeReader === 'function') {
     try {
       const result = await tg.openCodeReader();
-      const code = typeof result === 'string' ? result : (result?.text ?? result?.data ?? null);
+      const code = typeof result === 'string'
+        ? result
+        : (result?.value ?? result?.text ?? result?.data ?? null);
       if (!code) {
-        console.log('QR-сканер MAX закрыт без результата');
+        console.log('QR-сканер MAX закрыт без результата', result);
         return [];
       }
 
