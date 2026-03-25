@@ -1784,9 +1784,18 @@ const setupTaskCreation = () => {
 
   const updateSendButtonState = () => {
     const hasEstablishment = Boolean((establishmentSelect.value || '').trim());
-    sendBtn.disabled = !hasEstablishment;
-    sendBtn.textContent = hasEstablishment ? 'Создать' : 'Выберите заведение';
-    sendBtn.classList.toggle('is-disabled', !hasEstablishment);
+    const hasDescription = Boolean((descriptionInput.value || '').trim());
+    const isReady = hasEstablishment && hasDescription;
+
+    sendBtn.disabled = !isReady;
+    if (!hasEstablishment) {
+      sendBtn.textContent = 'Выберите заведение';
+    } else if (!hasDescription) {
+      sendBtn.textContent = 'Заполните описание';
+    } else {
+      sendBtn.textContent = 'Создать';
+    }
+    sendBtn.classList.toggle('is-disabled', !isReady);
   };
 
   const setEstablishmentValue = (value = '') => {
@@ -1970,6 +1979,7 @@ const setupTaskCreation = () => {
   });
   attachBtn.addEventListener('click', () => filesInput.click());
   filesInput.addEventListener('change', renderSelectedFiles);
+  descriptionInput.addEventListener('input', updateSendButtonState);
   sendBtn.addEventListener('click', sendTaskHandler);
   modal.addEventListener('click', (event) => {
     if (event.target === modal) closeModal();
