@@ -2,7 +2,7 @@
 /* Отвечает за авторизацию, кэширование, обновление UI */
 
 const Auth = {
-  tg: window.Telegram?.WebApp,
+  tg: window.WebApp ?? window.Telegram?.WebApp ?? null,
   CACHE_KEY: 'user_profile_data',
   CACHE_TTL: 24 * 60 * 60 * 1000, // 24 часа
 
@@ -98,7 +98,7 @@ const Auth = {
    */
   updateProfile(userData) {
     // Исправлена опечатка: famely -> lastName
-    const firstName = userData.name || '';
+    const firstName = userData.first_name || userData.name || '';
     const lastName = userData.last_name || userData.family || ''; // Добавлена проверка на last_name
     const fullName = [firstName, lastName].filter(Boolean).join(' ') || 'Без имени';
 
@@ -109,7 +109,7 @@ const Auth = {
     if (userName) userName.textContent = firstName || 'Гость';
 
     // Обновляем телефон
-    const phone = userData.phone || userData.Nubmer || userData.Number || null;
+    const phone = userData.phone || userData.phone_number || userData.Nubmer || userData.Number || null;
     const userPhone = document.getElementById('user-phone');
     const shareContactBtn = document.getElementById('share-contact-btn');
 
@@ -255,7 +255,7 @@ const Auth = {
 
   /**
    * Основной процесс авторизации
-   * @param {Object} userData - Данные пользователя из Telegram
+   * @param {Object} userData - Данные пользователя из MAX/Telegram Bridge
    * @param {Function} onReady - Callback, вызываемый после завершения авторизации (всегда!)
    */
   async authorize(userData, onReady = null) {

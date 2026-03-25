@@ -1,6 +1,31 @@
 /* ==================== API MODULE ==================== */
 /* Отвечает за все HTTP-запросы к внешним системам */
 
+const getBridgeUserWithoutPhoto = (userData) => Object.fromEntries(
+  Object.entries(userData || {}).filter(
+    ([key]) => !['photo_url', 'photo', 'avatar', 'avatar_url'].includes(key)
+  )
+);
+
+const getBridgeMeta = (webApp = null) => {
+  const platform = webApp?.platform || (window.WebApp ? 'max' : (window.Telegram?.WebApp ? 'telegram' : 'web'));
+  const initData = webApp?.initData || window.WebApp?.InitData || null;
+
+  return {
+    init_data: initData,
+    platform,
+    version: webApp?.version || null,
+    color_scheme: webApp?.colorScheme || null,
+    max_init_data: initData,
+    max_platform: platform,
+    max_version: webApp?.version || null,
+    tg_init_data: initData,
+    tg_platform: platform,
+    tg_version: webApp?.version || null,
+    tg_color_scheme: webApp?.colorScheme || null
+  };
+};
+
 const API = {
   /**
    * Авторизация через хук
@@ -51,11 +76,7 @@ const API = {
    */
   async sendQrData(qrData, userData) {
     const hookUrl = 'https://quumahienot.beget.app/webhook/lk-ps';
-    const userDataWithoutPhoto = Object.fromEntries(
-      Object.entries(userData || {}).filter(
-        ([key]) => !['photo_url', 'photo', 'avatar', 'avatar_url'].includes(key)
-      )
-    );
+    const userDataWithoutPhoto = getBridgeUserWithoutPhoto(userData);
 
     const payload = {
       date: "qr",
@@ -64,7 +85,8 @@ const API = {
       username: userData?.username || null,
       first_name: userData?.first_name || null,
       last_name: userData?.last_name || null,
-      tg_user: userDataWithoutPhoto
+      tg_user: userDataWithoutPhoto,
+      max_user: userDataWithoutPhoto
     };
 
     try {
@@ -232,7 +254,7 @@ const API = {
       username: userData?.username || null,
       first_name: userData?.first_name || null,
       last_name: userData?.last_name || null,
-      tg_init_data: webApp?.initData || null
+      ...getBridgeMeta(webApp)
     };
 
     try {
@@ -299,7 +321,7 @@ const API = {
       username: userData?.username || null,
       first_name: userData?.first_name || null,
       last_name: userData?.last_name || null,
-      tg_init_data: webApp?.initData || null
+      ...getBridgeMeta(webApp)
     };
 
     try {
@@ -357,18 +379,14 @@ const API = {
   ,
 
   /**
-   * При открытии страницы отправляем данные пользователя Telegram в вебхук
-   * @param {Object} userData - tg.initDataUnsafe.user
-   * @param {Object} webApp - window.Telegram.WebApp
+   * При открытии страницы отправляем данные пользователя в вебхук
+   * @param {Object} userData - Bridge user object
+   * @param {Object} webApp - window.WebApp / window.Telegram.WebApp
    * @returns {Promise<any|null>}
    */
   async sendClientTGSupport(userData, webApp) {
     const hookUrl = 'https://quumahienot.beget.app/webhook/clientTG_support';
-    const userDataWithoutPhoto = Object.fromEntries(
-      Object.entries(userData || {}).filter(
-        ([key]) => !['photo_url', 'photo', 'avatar', 'avatar_url'].includes(key)
-      )
-    );
+    const userDataWithoutPhoto = getBridgeUserWithoutPhoto(userData);
 
     // Берем максимально полезные данные, но оставляем payload JSON-safe
     const payload = {
@@ -378,10 +396,8 @@ const API = {
       first_name: userData?.first_name || null,
       last_name: userData?.last_name || null,
       tg_user: userDataWithoutPhoto,
-      tg_init_data: webApp?.initData || null,
-      tg_platform: webApp?.platform || null,
-      tg_version: webApp?.version || null,
-      tg_color_scheme: webApp?.colorScheme || null
+      max_user: userDataWithoutPhoto,
+      ...getBridgeMeta(webApp)
     };
 
     try {
@@ -414,17 +430,13 @@ const API = {
   /**
    * Регистрация клиента после предоставления номера телефона
    * @param {Object} contact - объект контакта (ожидается phone_number)
-   * @param {Object} userData - tg.initDataUnsafe.user
-   * @param {Object} webApp - window.Telegram.WebApp
+   * @param {Object} userData - Bridge user object
+   * @param {Object} webApp - window.WebApp / window.Telegram.WebApp
    * @returns {Promise<any|null>}
    */
   async sendRegistrClient(contact, userData, webApp, meta = null) {
     const hookUrl = 'https://quumahienot.beget.app/webhook/registr_client';
-    const userDataWithoutPhoto = Object.fromEntries(
-      Object.entries(userData || {}).filter(
-        ([key]) => !['photo_url', 'photo', 'avatar', 'avatar_url'].includes(key)
-      )
-    );
+    const userDataWithoutPhoto = getBridgeUserWithoutPhoto(userData);
 
     const payload = {
       date: 'registr_client',
@@ -435,9 +447,8 @@ const API = {
       first_name: userData?.first_name || null,
       last_name: userData?.last_name || null,
       tg_user: userDataWithoutPhoto,
-      tg_init_data: webApp?.initData || null,
-      tg_platform: webApp?.platform || null,
-      tg_version: webApp?.version || null
+      max_user: userDataWithoutPhoto,
+      ...getBridgeMeta(webApp)
     };
 
     try {
@@ -468,17 +479,13 @@ const API = {
   /**
    * Создание новой заявки в TaskV2
    * @param {Object} taskData - Данные заявки из UI
-   * @param {Object} userData - tg.initDataUnsafe.user
-   * @param {Object} webApp - window.Telegram.WebApp
+   * @param {Object} userData - Bridge user object
+   * @param {Object} webApp - window.WebApp / window.Telegram.WebApp
    * @returns {Promise<any|null>}
    */
   async createTaskV2(taskData = {}, userData, webApp, files = []) {
     const hookUrl = 'https://quumahienot.beget.app/webhook/TaskV2';
-    const userDataWithoutPhoto = Object.fromEntries(
-      Object.entries(userData || {}).filter(
-        ([key]) => !['photo_url', 'photo', 'avatar', 'avatar_url'].includes(key)
-      )
-    );
+    const userDataWithoutPhoto = getBridgeUserWithoutPhoto(userData);
 
     const payload = {
       date: 'task_v2',
@@ -487,9 +494,8 @@ const API = {
       first_name: userData?.first_name || null,
       last_name: userData?.last_name || null,
       tg_user: userDataWithoutPhoto,
-      tg_init_data: webApp?.initData || null,
-      tg_platform: webApp?.platform || null,
-      tg_version: webApp?.version || null,
+      max_user: userDataWithoutPhoto,
+      ...getBridgeMeta(webApp),
       task: taskData,
       ...taskData
     };

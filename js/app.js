@@ -1,27 +1,31 @@
 /* ==================== Логирование ==================== */
-// Добавить в начало файла для лучшего логирования
-if (typeof Telegram !== 'undefined' && Telegram.WebApp) {
-    Telegram.WebApp.expand();
-    Telegram.WebApp.ready();
-    
-    // Показывать ошибки прямо в приложении
-    window.onerror = function(message, source, lineno, colno, error) {
-        Telegram.WebApp.showPopup({
-            title: "Ошибка",
-            message: message + " (строка " + lineno + ")",
-            buttons: [{type: "close"}]
-        });
-        return true;
-    };
-}
-
-/* ==================== ИНИЦИАЛИЗАЦИЯ TELEGRAM WEB APP ==================== */
-const tg = window.Telegram?.WebApp;
+const tg = window.WebApp ?? window.Telegram?.WebApp ?? null;
 const user = tg?.initDataUnsafe?.user;
+const platformName = window.WebApp ? 'max' : (window.Telegram?.WebApp ? 'telegram' : 'web');
+
+const showPlatformPopup = (title, message) => {
+  if (typeof tg?.showAlert === 'function') {
+    tg.showAlert(message);
+    return;
+  }
+
+  alert(title ? `${title}\n\n${message}` : message);
+};
+
+const handleGlobalError = (message, source, lineno) => {
+  showPlatformPopup('Ошибка', `${message} (строка ${lineno})`);
+  return true;
+};
+
+window.onerror = handleGlobalError;
 
 if (tg) {
-  tg.expand();
-  tg.ready();
+  if (typeof tg.expand === 'function') {
+    tg.expand();
+  }
+  if (typeof tg.ready === 'function') {
+    tg.ready();
+  }
 }
 
 /* ==================== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==================== */
@@ -48,7 +52,7 @@ const formatPhoneNumber = (phone) => {
 const initializeUserData = () => {
   const greeting = getGreetingByTime();
   
-  // Получаем имя из Telegram сразу
+  // Получаем имя пользователя сразу из Bridge-данных
   let displayName = 'Гость';
   if (user?.first_name) {
     displayName = user.first_name;
@@ -62,11 +66,11 @@ const initializeUserData = () => {
     const fullName = [user.first_name, user.last_name].filter(Boolean).join(' ') || 'Без имени';
     document.getElementById('user-fullname').textContent = fullName;
 
-    if (user.photo_url) {
-      document.getElementById('user-avatar').src = user.photo_url;
+    if (user.photo_url || user.photo) {
+      document.getElementById('user-avatar').src = user.photo_url || user.photo;
     }
 
-    const phoneNumber = user.phone_number;
+    const phoneNumber = user.phone_number || user.phone || null;
     if (phoneNumber) {
       document.getElementById('user-phone').textContent = formatPhoneNumber(phoneNumber);
     } else {
@@ -376,12 +380,26 @@ const handleRestaurantPhoto = (blob) => {
 const setupAddRestaurantButton = () => {
   const addRestaurantBtn = document.querySelector('.btn-AddRestaurant');
   if (addRestaurantBtn) {
-    addRestaurantBtn.addEventListener('click', (e) => {
+    addRestaurantBtn.addEventListener('click', async (e) => {
       e.preventDefault();
       e.stopPropagation();
-      
-      // Если запущено внутри Telegram и есть встроенный сканер — используем его
-      // В разных версиях API встречаются разные названия методов.
+
+      if (tg && typeof tg.openCodeReader === 'function') {
+        try {
+          const result = await tg.openCodeReader();
+          const code = typeof result === 'string' ? result : (result?.text ?? result?.data ?? null);
+          if (!code) {
+            console.log('QR-сканер MAX закрыт без результата');
+            return;
+          }
+
+          handleQrResult(code, null);
+          return;
+        } catch (error) {
+          console.warn('Не удалось использовать MAX Code Reader, переключаемся на камеру:', error);
+        }
+      }
+
       const scanMethod =
         (tg && typeof tg.showScanQrPopup === 'function' && 'showScanQrPopup') ||
         (tg && typeof tg.openScanQrPopup === 'function' && 'openScanQrPopup');
@@ -389,17 +407,18 @@ const setupAddRestaurantButton = () => {
       if (scanMethod) {
         tg[scanMethod]({ text: 'Сканируйте QR-код заведения' }, (text) => {
           if (!text) {
-            console.log('QR-сканер Telegram закрыт без результата');
+            console.log('QR-сканер закрыт без результата');
             return true;
           }
 
           handleQrResult(text, null);
-          return true; // закрыть попап после успешного скана
+          return true;
         });
-      } else {
-        // Иначе пробуем открыть камеру браузера
-        openCameraForRestaurant();
+        return;
       }
+
+      // Фолбэк для обычного браузера
+      openCameraForRestaurant();
     });
   }
 };
@@ -491,22 +510,17 @@ const setContactShareLoading = (enabled, message = '') => {
 const notifyRegistrClient = async (contact, meta = null) => {
   if (!window.API?.sendRegistrClient) {
     console.warn('⚠️ [registr_client] Не вызываем: API.sendRegistrClient не найден');
-    Telegram.WebApp?.showPopup?.({
-      title: 'Ошибка',
-      message: 'API.sendRegistrClient не найден (скрипты не обновились).',
-      buttons: [{ type: 'close' }]
-    });
+    showPlatformPopup('Ошибка', 'API.sendRegistrClient не найден (скрипты не обновились).');
     return;
   }
 
   console.log('📨 [registr_client] Вызываем вебхук...', { phone_number: contact?.phone_number || null, meta });
   const result = await window.API.sendRegistrClient(contact, user, tg, meta);
 
-  Telegram.WebApp?.showPopup?.({
-    title: 'Контакт',
-    message: result ? 'Номер отправлен в систему.' : 'Не удалось отправить номер. Проверьте сеть/логи.',
-    buttons: [{ type: 'close' }]
-  });
+  showPlatformPopup(
+    'Контакт',
+    result ? 'Номер отправлен в систему.' : 'Не удалось отправить номер. Проверьте сеть или логи.'
+  );
 };
 
 const clientSupportResponseHasId = (result) => {
@@ -611,8 +625,10 @@ const normalizeContactData = (raw) => {
 
   const phone =
     source?.phone_number ??
+    source?.phone ??
     source?.phoneNumber ??
     raw?.phone_number ??
+    raw?.phone ??
     raw?.phoneNumber ??
     null;
 
@@ -633,8 +649,10 @@ const normalizeContactData = (raw) => {
     null;
 
   const userId =
+    source?.id ??
     source?.user_id ??
     source?.userId ??
+    raw?.id ??
     raw?.user_id ??
     raw?.userId ??
     user?.id ??
@@ -652,38 +670,67 @@ const setupContactSharing = () => {
   const shareBtn = document.getElementById('share-contact-btn');
   const modalBtn = document.getElementById('contact-share-btn');
 
-  const requestContactAndUpdate = () => {
+  const requestPlatformContact = () => {
+    if (typeof tg?.requestContact !== 'function') {
+      return Promise.reject(new Error('Метод requestContact не поддерживается'));
+    }
+
+    return new Promise((resolve, reject) => {
+      let settled = false;
+
+      const finishResolve = (value) => {
+        if (settled) return;
+        settled = true;
+        resolve(value);
+      };
+
+      const finishReject = (error) => {
+        if (settled) return;
+        settled = true;
+        reject(error);
+      };
+
+      try {
+        const maybePromise = tg.requestContact((value) => finishResolve(value));
+        if (maybePromise && typeof maybePromise.then === 'function') {
+          maybePromise.then(finishResolve).catch(finishReject);
+          return;
+        }
+
+        if (maybePromise !== undefined) {
+          finishResolve(maybePromise);
+        }
+      } catch (error) {
+        finishReject(error);
+      }
+    });
+  };
+
+  const requestContactAndUpdate = async () => {
     console.log('📤 Запрашиваем контакт...');
-    
-    // Проверяем поддержку метода
-    if (typeof Telegram?.WebApp?.requestContact !== 'function') {
+
+    if (typeof tg?.requestContact !== 'function') {
       showContactError('Метод requestContact не поддерживается');
       return;
     }
 
-    // Запрашиваем контакт
-    Telegram.WebApp.requestContact((result) => {
+    try {
+      const result = await requestPlatformContact();
       console.log('📥 Результат requestContact:', result);
-      
-      // Проверяем результат
+
       if (!result) {
         console.warn('⚠️ Контакт не предоставлен');
         showContactError('Контакт не был предоставлен. Попробуйте еще раз.');
         return;
       }
-      
-      // Если результат true - контакт запрошен, данные нужно получить из initDataUnsafe
+
       if (result === true) {
         console.log('✅ Контакт запрошен, пытаемся получить данные...');
         setContactShareLoading(true, 'Секунду… разработчик уже регистрирует вас в POS Service 🙂');
 
-        // В большинстве случаев номер телефона НЕ доступен внутри WebApp.
-        // Он приходит боту отдельным сообщением. Поэтому вместо registr_client без номера
-        // ждём, пока backend начнёт возвращать ID через clientTG_support.
-        // Иногда phone_number появляется с задержкой. Пулим несколько раз.
         let attemptsLeft = 6;
         const tryReadInitData = () => {
-          const initData = Telegram.WebApp.initDataUnsafe;
+          const initData = tg?.initDataUnsafe;
           console.log(`🔍 initDataUnsafe (попытка ${7 - attemptsLeft}/6):`, initData);
 
           const normalized = normalizeContactData(initData?.user);
@@ -704,7 +751,7 @@ const setupContactSharing = () => {
                 showContactInfo('Номер получен. Доступ обновлён.');
               } else {
                 setContactShareLoading(false);
-                showContactInfo('Контакт отправлен в Telegram. Если доступ не обновился, перезапустите приложение.');
+                showContactInfo('Контакт отправлен в MAX. Если доступ не обновился, перезапустите приложение.');
               }
             });
             return;
@@ -714,9 +761,10 @@ const setupContactSharing = () => {
         };
 
         setTimeout(tryReadInitData, 300);
-        
-      } else if (typeof result === 'object') {
-        // Если сразу получили объект с данными
+        return;
+      }
+
+      if (typeof result === 'object') {
         console.log('✅ Получен контакт напрямую');
         const normalized = normalizeContactData(result);
         if (!normalized?.phone_number) {
@@ -727,8 +775,10 @@ const setupContactSharing = () => {
         updateContactInfo(normalized);
         notifyRegistrClient(normalized, { stage: 'requestContact_object' });
         hideContactShareModal();
-      } else if (typeof result === 'string') {
-        // Если получили строку (возможно URL-параметры)
+        return;
+      }
+
+      if (typeof result === 'string') {
         try {
           const contact = parseContactString(result);
           if (contact) {
@@ -748,8 +798,14 @@ const setupContactSharing = () => {
         } catch (e) {
           console.error('❌ Ошибка парсинга строки контакта:', e);
         }
+        return;
       }
-    });
+
+      showContactError('Не удалось обработать ответ MAX Bridge при запросе контакта.');
+    } catch (error) {
+      console.error('❌ Ошибка requestContact:', error);
+      showContactError(error?.message || 'Не удалось запросить номер телефона.');
+    }
   };
 
   shareBtn?.addEventListener('click', requestContactAndUpdate);
@@ -778,23 +834,13 @@ const parseContactString = (contactString) => {
 
 // Функция для показа ошибки
 const showContactError = (message) => {
-  Telegram.WebApp?.showPopup?.({
-    title: "Ошибка",
-    message: message,
-    buttons: [{type: "close"}]
-  });
-  
+  showPlatformPopup('Ошибка', message);
   console.error('❌ Ошибка получения контакта:', message);
 };
 
 // Функция для показа информационного сообщения
 const showContactInfo = (message) => {
-  Telegram.WebApp?.showPopup?.({
-    title: "Информация",
-    message: message,
-    buttons: [{type: "close"}]
-  });
-  
+  showPlatformPopup('Информация', message);
   console.log('ℹ️ Информация:', message);
 };
 
@@ -1296,7 +1342,11 @@ const normalizeCommentIsOutgoing = (comment, author, taskId = '') => {
   if (comment?.from_me != null) return Boolean(comment.from_me);
   if (comment?.fromMe != null) return Boolean(comment.fromMe);
   if (currentUserId && commentUserId != null && String(commentUserId) === currentUserId) return true;
-  if (normalizedChannel.includes('telegram_webapp') || normalizedChannel.includes('miniapp')) return true;
+  if (
+    normalizedChannel.includes('telegram_webapp') ||
+    normalizedChannel.includes('max_webapp') ||
+    normalizedChannel.includes('miniapp')
+  ) return true;
   if (currentNames.includes(normalizedAuthor)) return true;
   if (normalizedAuthor === 'вы') return true;
   if (matchPendingOutgoingMessage(taskId, comment)) return true;
@@ -1667,11 +1717,7 @@ const setupTaskCreation = () => {
   const openModal = () => {
     const { items, selectedId } = getEstablishmentsFromMainDropdown();
     if (!items.length) {
-      Telegram.WebApp?.showPopup?.({
-        title: 'Нет заведений',
-        message: 'Сначала добавьте или привяжите заведение.',
-        buttons: [{ type: 'close' }]
-      });
+      showPlatformPopup('Нет заведений', 'Сначала добавьте или привяжите заведение.');
       return;
     }
 
@@ -1704,29 +1750,17 @@ const setupTaskCreation = () => {
     const files = Array.from(filesInput.files || []);
 
     if (!establishmentId) {
-      Telegram.WebApp?.showPopup?.({
-        title: 'Заведение не выбрано',
-        message: 'Выберите заведение перед отправкой заявки.',
-        buttons: [{ type: 'close' }]
-      });
+      showPlatformPopup('Заведение не выбрано', 'Выберите заведение перед отправкой заявки.');
       return;
     }
 
     if (!description) {
-      Telegram.WebApp?.showPopup?.({
-        title: 'Пустое описание',
-        message: 'Добавьте описание проблемы.',
-        buttons: [{ type: 'close' }]
-      });
+      showPlatformPopup('Пустое описание', 'Добавьте описание проблемы.');
       return;
     }
 
     if (!window.API?.createTaskV2) {
-      Telegram.WebApp?.showPopup?.({
-        title: 'Ошибка',
-        message: 'Метод API.createTaskV2 не найден.',
-        buttons: [{ type: 'close' }]
-      });
+      showPlatformPopup('Ошибка', 'Метод API.createTaskV2 не найден.');
       return;
     }
 
@@ -1743,7 +1777,7 @@ const setupTaskCreation = () => {
         Client: establishmentName,
         ID: establishmentId,
         files_count: files.length,
-        source: 'telegram_webapp'
+        source: `${platformName}_webapp`
       };
 
       const result = await window.API.createTaskV2(taskData, user, tg, files);
@@ -1762,13 +1796,12 @@ const setupTaskCreation = () => {
         }
       }
 
-      Telegram.WebApp?.showPopup?.({
-        title: result ? 'Заявка создана' : 'Ошибка',
-        message: result
+      showPlatformPopup(
+        result ? 'Заявка создана' : 'Ошибка',
+        result
           ? 'Заявка отправлена в TaskV2.'
-          : 'Не удалось отправить заявку. Проверьте сеть и логи.',
-        buttons: [{ type: 'close' }]
-      });
+          : 'Не удалось отправить заявку. Проверьте сеть и логи.'
+      );
     } finally {
       sendBtn.disabled = false;
       sendBtn.textContent = 'Создать задачу';
@@ -2027,7 +2060,7 @@ const setupRequestDetailsView = () => {
       author: user?.first_name || user?.username || 'Вы',
       text,
       date: new Date().toISOString(),
-      channel_type: 'telegram_webapp'
+      channel_type: `${platformName}_webapp`
     });
     registerPendingOutgoingMessage(activeTask.taskId, pendingMessage);
     activeTask.chat.push(pendingMessage);
@@ -2067,7 +2100,7 @@ const setupRequestDetailsView = () => {
         author: user?.first_name || user?.username || 'Вы',
         text: `Файл: ${file.name}`,
         date: new Date().toISOString(),
-        channel_type: 'telegram_webapp'
+        channel_type: `${platformName}_webapp`
       });
       registerPendingOutgoingMessage(activeTask.taskId, pendingMessage);
       activeTask.chat.push(pendingMessage);
@@ -2101,7 +2134,7 @@ const setupRequestDetailsView = () => {
 
 const initializeApp = () => {
   try {
-    initializeUserData(); // Показываем имя из Telegram сразу
+    initializeUserData();
 
     // При входе в WebApp отправляем данные пользователя в вебхук clientTG_support
     if (user?.id && window.API?.sendClientTGSupport) {
@@ -2110,7 +2143,7 @@ const initializeApp = () => {
         syncOpenTasksForKnownEstablishments();
         // Если ID пришёл, то всё ок. Если ответ пустой — просим номер телефона.
         if (clientSupportResponseHasId(result)) return;
-        if (user?.phone_number) return;
+        if (user?.phone_number || user?.phone) return;
         showContactShareModal();
       });
     }
@@ -2138,12 +2171,7 @@ const initializeApp = () => {
   } catch (error) {
     console.error('❌ Ошибка инициализации приложения:', error);
     const message = `Ошибка запуска: ${error?.message || 'unknown error'}`;
-    Telegram.WebApp?.showPopup?.({
-      title: "Ошибка запуска",
-      message: message,
-      buttons: [{type: "close"}]
-    });
-    alert(message);
+    showPlatformPopup('Ошибка запуска', message);
     setTimeout(() => {
       startAnimation();
     }, 1000);
