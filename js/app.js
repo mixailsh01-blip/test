@@ -1391,6 +1391,18 @@ const matchPendingOutgoingMessage = (taskId, comment) => {
 
 const normalizeCommentIsOutgoing = (comment, author, taskId = '') => {
   const currentUserId = user?.id == null ? null : String(user.id);
+  const hasExplicitCommentUserId =
+    Object.prototype.hasOwnProperty.call(comment || {}, 'UserID') ||
+    Object.prototype.hasOwnProperty.call(comment || {}, 'IDUser') ||
+    Object.prototype.hasOwnProperty.call(comment || {}, 'userID') ||
+    Object.prototype.hasOwnProperty.call(comment || {}, 'id_user') ||
+    Object.prototype.hasOwnProperty.call(comment || {}, 'idUser') ||
+    Object.prototype.hasOwnProperty.call(comment || {}, 'user_id') ||
+    Object.prototype.hasOwnProperty.call(comment || {}, 'userId') ||
+    Object.prototype.hasOwnProperty.call(comment || {}, 'author_id') ||
+    Object.prototype.hasOwnProperty.call(comment || {}, 'authorId') ||
+    Object.prototype.hasOwnProperty.call(comment || {}, 'sender_id') ||
+    Object.prototype.hasOwnProperty.call(comment || {}, 'senderId');
   const commentUserId =
     comment?.UserID ??
     comment?.IDUser ??
@@ -1418,6 +1430,9 @@ const normalizeCommentIsOutgoing = (comment, author, taskId = '') => {
   if (comment?.isOutgoing != null) return Boolean(comment.isOutgoing);
   if (comment?.from_me != null) return Boolean(comment.from_me);
   if (comment?.fromMe != null) return Boolean(comment.fromMe);
+  if (hasExplicitCommentUserId) {
+    return Boolean(currentUserId && commentUserId != null && String(commentUserId) === currentUserId);
+  }
   if (currentUserId && commentUserId != null && String(commentUserId) === currentUserId) return true;
   if (
     normalizedChannel.includes('telegram_webapp') ||
