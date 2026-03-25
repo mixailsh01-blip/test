@@ -459,18 +459,36 @@ const setupAddRestaurantButton = () => {
 };
 
 const setupMarketButton = () => {
-  const marketBtn = document.querySelector('.btn-Market');
+  const marketBtn = document.querySelector('.home-market-link');
   if (!marketBtn) return;
-  const marketUrl = 'https://posbazar.ru/item/pos-kassy/';
+  const marketUrl = 'https://posbazar.ru/item/pos-terminaly/';
+  let isNavigating = false;
 
-  marketBtn.addEventListener('click', () => {
+  const openMarketLink = (event) => {
+    event?.preventDefault?.();
+    event?.stopPropagation?.();
+    if (isNavigating) return;
+    isNavigating = true;
+
     if (typeof tg?.openLink === 'function') {
-      tg.openLink(marketUrl);
+      try {
+        tg.openLink(marketUrl);
+        return;
+      } catch (error) {
+        console.warn('Не удалось открыть ссылку через Bridge, используем fallback:', error);
+      }
+    }
+
+    const openedWindow = window.open(marketUrl, '_blank', 'noopener,noreferrer');
+    if (openedWindow) {
       return;
     }
 
-    window.open(marketUrl, '_blank', 'noopener,noreferrer');
-  });
+    window.location.href = marketUrl;
+  };
+
+  marketBtn.addEventListener('click', openMarketLink);
+  marketBtn.addEventListener('touchend', openMarketLink, { passive: false });
 };
 
 /* ==================== РАБОТА С МОДАЛЬНЫМИ ОКНАМИ ==================== */

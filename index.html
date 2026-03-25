@@ -36,7 +36,7 @@
     
     <!-- Логотип приложения -->
     <div class="main-logo-container">
-      <img id="main-logo" src="assets/icons/Logo_Main_v2.png" alt="Основной логотип" />
+      <img id="main-logo" src="assets/icons/Logo_Main2_v2.png" alt="Основной логотип" />
     </div>
     
     <!-- ==================== СТРАНИЦЫ ПРИЛОЖЕНИЯ ==================== -->
@@ -50,11 +50,27 @@
         </select>
       </div>
 
+      <div class="home-centered-logo" aria-hidden="true">
+        <img src="assets/icons/Logo_Main_v2.png" alt="Логотип" />
+      </div>
+
       <div class="home-layout">
-        <div class="home-layout__empty" aria-hidden="true"></div>
-        <button class="btn-Create home-primary-card">
-          <span class="home-primary-card__title">Новая заявка</span>
-          <span class="home-primary-card__icon" aria-hidden="true"><i class="fas fa-plus"></i></span>
+        <button class="home-secondary-card">
+          <span class="home-secondary-card__title">База знаний</span>
+        </button>
+        <button class="home-secondary-card home-secondary-card--right home-secondary-card--primary">
+          <span class="home-secondary-card__title">Создать заявку</span>
+          <span class="home-secondary-card__icon" aria-hidden="true"><i class="fas fa-plus"></i></span>
+        </button>
+        <button class="home-secondary-card home-secondary-card--bottom home-market-link">
+          <span class="home-market-row__media" aria-hidden="true">
+            <img src="assets/icons/market.png" alt="" />
+          </span>
+          <span class="home-market-row__content">
+            <span class="home-market-row__title">PosBazar маркет</span>
+            <span class="home-market-row__subtitle">товары и услуги</span>
+          </span>
+          <span class="home-market-row__arrow" aria-hidden="true"><i class="fas fa-arrow-right"></i></span>
         </button>
       </div>
     </div>
