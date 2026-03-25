@@ -123,16 +123,20 @@ body.hide-main-logo .main-logo-container {
 
 .home-layout {
   position: relative;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  align-items: start;
   width: 100%;
   min-height: min(54vh, 500px);
+  padding-top: 74px;
 }
 
 .home-secondary-card,
 .home-primary-card {
-  position: absolute;
-  top: -61px;
-  width: 184px;
-  max-width: 184px;
+  position: relative;
+  width: 100%;
+  max-width: none;
   min-height: min(26vh, 258px);
   margin: 0;
   padding: 18px 18px;
@@ -146,12 +150,8 @@ body.hide-main-logo .main-logo-container {
 }
 
 .home-secondary-card {
-  left: 5px;
-  right: auto;
   color: #f2f2f2;
   border-radius: 28px;
-  width: 184px;
-  max-width: 184px;
   background: linear-gradient(180deg, rgba(122, 129, 145, 0.28) 0%, rgba(79, 84, 96, 0.22) 100%);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
@@ -159,21 +159,11 @@ body.hide-main-logo .main-logo-container {
 }
 
 .home-secondary-card--right {
-  left: auto;
-  right: 1px;
-  transform: translateX(2px);
-}
-
-.home-secondary-card--right {
-  right: 8px;
+  transform: none;
 }
 
 .home-secondary-card--bottom {
-  top: 194px;
-  left: 5px;
-  right: auto;
-  width: 406px;
-  max-width: 406px;
+  grid-column: 1 / -1;
   min-height: min(16vh, 122px);
   border-radius: 32px;
   display: grid;
@@ -192,7 +182,6 @@ body.hide-main-logo .main-logo-container {
 }
 
 .home-primary-card {
-  right: 8px;
   border-radius: 28px;
   background: linear-gradient(180deg, #0c86ff 0%, #0560dc 100%);
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
@@ -1440,6 +1429,8 @@ body.hide-main-logo #requests.page {
 
   .home-layout {
     min-height: 44vh;
+    gap: 12px;
+    padding-top: 62px;
   }
 
   .home-centered-logo {
@@ -1448,29 +1439,17 @@ body.hide-main-logo #requests.page {
   }
 
   .home-secondary-card {
-    left: 5px;
-    right: auto;
-    max-width: 198px;
-    width: 198px;
+    max-width: none;
+    width: 100%;
     min-height: calc(25vh + 20px);
   }
 
   .home-secondary-card--right {
-    left: auto;
-    right: 1px;
-    transform: translateX(2px);
-  }
-
-  .home-secondary-card--right {
-    right: 8px;
+    transform: none;
   }
 
   .home-secondary-card--bottom {
-    left: 5px;
-    right: auto;
-    top: 194px;
-    width: 405px;
-    max-width: 405px;
+    grid-column: 1 / -1;
     min-height: 14vh;
   }
 
