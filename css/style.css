@@ -102,6 +102,55 @@ body.hide-main-logo .main-logo-container {
   display: none;
 }
 
+.home-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 46%);
+  gap: 14px;
+  min-height: min(58vh, 560px);
+  align-items: stretch;
+}
+
+.home-layout__empty {
+  min-height: 100%;
+}
+
+.home-primary-card {
+  width: 100%;
+  max-width: none;
+  min-height: min(58vh, 560px);
+  margin: 0;
+  padding: 22px 22px;
+  border: none;
+  border-radius: 34px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-start;
+  text-align: left;
+  background: linear-gradient(180deg, #ef1f17 0%, #d9130d 100%);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
+}
+
+.home-primary-card__title {
+  max-width: 80%;
+  font-size: clamp(28px, 5.4vw, 46px);
+  line-height: 0.98;
+  font-weight: 700;
+}
+
+.home-primary-card__icon {
+  align-self: flex-end;
+  display: inline-flex;
+  width: clamp(58px, 13vw, 72px);
+  height: clamp(58px, 13vw, 72px);
+  border-radius: 50%;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  color: #d9130d;
+  font-size: clamp(26px, 5vw, 34px);
+}
+
 .home-strip {
   display: grid;
   grid-auto-flow: column;
@@ -1266,6 +1315,15 @@ body.hide-main-logo #requests.page {
   /* Адаптация кнопок в строку */
   .buttons-row {
     gap: clamp(10px, 2vw, 20px);
+  }
+
+  .home-layout {
+    grid-template-columns: minmax(0, 0.62fr) minmax(0, 1fr);
+    min-height: 52vh;
+  }
+
+  .home-primary-card {
+    min-height: 52vh;
   }
 
   .home-dashboard {
