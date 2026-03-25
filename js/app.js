@@ -1392,6 +1392,9 @@ const matchPendingOutgoingMessage = (taskId, comment) => {
 const normalizeCommentIsOutgoing = (comment, author, taskId = '') => {
   const currentUserId = user?.id == null ? null : String(user.id);
   const commentUserId =
+    comment?.IDUser ??
+    comment?.id_user ??
+    comment?.idUser ??
     comment?.user_id ??
     comment?.userId ??
     comment?.author_id ??
@@ -1502,7 +1505,12 @@ const normalizeTaskFromWebhook = (item) => {
   if (!item || (!item.task_id && !item.taskId)) return null;
   const taskId = String(item.task_id ?? item.taskId);
   const chatItems = Array.isArray(item.chat) ? item.chat : [];
-  const normalizedChat = chatItems.map((comment) => normalizeTaskComment(comment, item.description, taskId)).filter((comment) => comment.text);
+  const normalizedChat = chatItems
+    .map((comment) => normalizeTaskComment({
+      ...comment,
+      IDUser: comment?.IDUser ?? item?.IDUser ?? null
+    }, item.description, taskId))
+    .filter((comment) => comment.text);
   const lastMessage = normalizedChat[normalizedChat.length - 1];
   const description = item.description == null ? '' : String(item.description ?? item.text ?? '');
   const hasStatus = Object.prototype.hasOwnProperty.call(item, 'status');
