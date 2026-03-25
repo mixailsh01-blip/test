@@ -47,10 +47,40 @@ const formatPhoneNumber = (phone) => {
     : `+7 (${cleaned.substring(0, 3)})-${cleaned.substring(3, 6)}-${cleaned.substring(6, 8)}-${cleaned.substring(8, 10)}`;
 };
 
+const getAvatarFallbackSrc = (person = null) => {
+  const firstName = person?.first_name || person?.name || '';
+  const lastName = person?.last_name || person?.family || '';
+  const initials = `${firstName.charAt(0)}${lastName.charAt(0)}`.trim().toUpperCase() || 'PS';
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96">
+      <rect width="96" height="96" rx="48" fill="#252525"/>
+      <text x="50%" y="54%" text-anchor="middle" dominant-baseline="middle"
+        font-family="PT Root UI, Arial, sans-serif" font-size="34" font-weight="700" fill="#f2f2f2">${initials}</text>
+    </svg>
+  `.trim();
+
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+};
+
+const getUserPhotoUrl = (person = null) => {
+  const rawPhoto = person?.photo_url ?? person?.photo ?? person?.avatar_url ?? person?.avatar ?? null;
+  if (typeof rawPhoto !== 'string') return null;
+
+  const normalizedPhoto = rawPhoto.trim();
+  if (!normalizedPhoto) return null;
+
+  if (/^(https?:|data:|blob:|\/)/i.test(normalizedPhoto)) {
+    return normalizedPhoto;
+  }
+
+  return null;
+};
+
 /* ==================== РАБОТА С ДАННЫМИ ПОЛЬЗОВАТЕЛЯ ==================== */
 
 const initializeUserData = () => {
   const greeting = getGreetingByTime();
+  const userAvatar = document.getElementById('user-avatar');
   
   // Получаем имя пользователя сразу из Bridge-данных
   let displayName = 'Гость';
@@ -61,14 +91,19 @@ const initializeUserData = () => {
   // Устанавливаем имя сразу, без "Загрузка..."
   document.querySelector('#welcome-screen p').innerHTML = `${greeting}, <span id="user-name">${displayName}</span>`;
 
+  if (userAvatar) {
+    const fallbackAvatar = getAvatarFallbackSrc(user);
+    userAvatar.onerror = () => {
+      userAvatar.onerror = null;
+      userAvatar.src = fallbackAvatar;
+    };
+    userAvatar.src = getUserPhotoUrl(user) || fallbackAvatar;
+  }
+
   // Остальная логика остаётся без изменений — обновление аватара, телефона и т.д.
   if (user) {
     const fullName = [user.first_name, user.last_name].filter(Boolean).join(' ') || 'Без имени';
     document.getElementById('user-fullname').textContent = fullName;
-
-    if (user.photo_url || user.photo) {
-      document.getElementById('user-avatar').src = user.photo_url || user.photo;
-    }
 
     const phoneNumber = user.phone_number || user.phone || null;
     if (phoneNumber) {
