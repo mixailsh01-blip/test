@@ -1171,7 +1171,7 @@ body.hide-main-logo #requests.page {
 
 .task-create-files-list {
   flex: 1;
-  margin-bottom: 8px;
+  margin-bottom: 0;
 }
 
 .task-create-file-summary {
