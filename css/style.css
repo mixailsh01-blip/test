@@ -1116,6 +1116,12 @@ body.hide-main-logo #requests.page {
   margin-bottom: 8px;
 }
 
+.task-create-file-row.has-files {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .task-create-file-row .btn-CancelModal,
 .task-create-actions .btn-Save,
 .task-create-actions .btn-CancelModal {
@@ -1142,23 +1148,75 @@ body.hide-main-logo #requests.page {
   background: linear-gradient(180deg, #1b92ff 0%, #0a69e7 100%);
 }
 
+.task-create-file-row .btn-CancelModal.is-compact {
+  width: 78px;
+  min-width: 78px;
+  min-height: 78px;
+  padding: 0;
+  border-radius: 50%;
+  flex: 0 0 auto;
+}
+
+.task-create-file-row .btn-CancelModal.is-compact span {
+  display: none;
+}
+
+.task-create-file-row .btn-CancelModal.is-compact i {
+  font-size: 28px;
+}
+
 .task-create-file-input {
   display: none;
 }
 
 .task-create-files-list {
-  max-height: 120px;
-  overflow-y: auto;
+  flex: 1;
   margin-bottom: 8px;
 }
 
-.task-create-file-item {
-  color: #c8ccda;
-  font-size: 12px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  margin-bottom: 4px;
+.task-create-file-summary {
+  min-height: 78px;
+  border-radius: 22px;
+  background: #2a2b33;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+}
+
+.task-create-file-remove {
+  width: 42px;
+  height: 42px;
+  border: none;
+  background: transparent;
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  cursor: pointer;
+}
+
+.task-create-file-remove i {
+  font-size: 26px;
+}
+
+.task-create-file-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.task-create-file-title {
+  font-size: 16px;
+  font-weight: 500;
+  color: #ffffff;
+}
+
+.task-create-file-size {
+  font-size: 16px;
+  color: #ffffff;
+  opacity: 0.92;
 }
 
 .task-create-actions {

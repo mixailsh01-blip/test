@@ -1799,12 +1799,28 @@ const setupTaskCreation = () => {
   const renderSelectedFiles = () => {
     const files = Array.from(filesInput.files || []);
     filesList.innerHTML = '';
-    files.forEach((file) => {
-      const item = document.createElement('div');
-      item.className = 'task-create-file-item';
-      item.textContent = `${file.name} (${Math.ceil(file.size / 1024)} KB)`;
-      filesList.appendChild(item);
-    });
+    const totalSizeBytes = files.reduce((sum, file) => sum + Number(file.size || 0), 0);
+    const totalSizeMb = totalSizeBytes / (1024 * 1024);
+    const totalSizeLabel = totalSizeMb >= 1
+      ? `${totalSizeMb.toFixed(totalSizeMb >= 10 ? 0 : 1)} МБ`
+      : `${Math.max(1, Math.ceil(totalSizeBytes / 1024))} КБ`;
+
+    document.querySelector('.task-create-file-row')?.classList.toggle('has-files', files.length > 0);
+    attachBtn.classList.toggle('is-compact', files.length > 0);
+
+    if (!files.length) return;
+
+    filesList.innerHTML = `
+      <div class="task-create-file-summary">
+        <button type="button" class="task-create-file-remove" aria-label="Удалить файлы">
+          <i class="fas fa-trash-alt" aria-hidden="true"></i>
+        </button>
+        <div class="task-create-file-meta">
+          <div class="task-create-file-title">Кол-во файлов: ${files.length}</div>
+          <div class="task-create-file-size">${totalSizeLabel}</div>
+        </div>
+      </div>
+    `;
   };
 
   const updateSendButtonState = () => {
@@ -2004,6 +2020,11 @@ const setupTaskCreation = () => {
   });
   attachBtn.addEventListener('click', () => filesInput.click());
   filesInput.addEventListener('change', renderSelectedFiles);
+  filesList.addEventListener('click', (event) => {
+    if (!event.target.closest('.task-create-file-remove')) return;
+    filesInput.value = '';
+    renderSelectedFiles();
+  });
   descriptionInput.addEventListener('input', updateSendButtonState);
   sendBtn.addEventListener('click', sendTaskHandler);
   modal.addEventListener('click', (event) => {
