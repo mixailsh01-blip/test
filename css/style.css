@@ -2110,7 +2110,8 @@ body.hide-main-logo #requests.page {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 12px 12px calc(18px + env(safe-area-inset-bottom));
+  min-height: 86px;
+  padding: 12px 12px calc(26px + env(safe-area-inset-bottom));
   margin: 8px 0 10px;
   border-radius: 12px 12px 0 0;
   background: #2f3037;
