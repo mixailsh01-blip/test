@@ -1973,26 +1973,11 @@ body.hide-main-logo #requests.page {
   background: #2f3037;
 }
 
-.request-dialog-header-row {
-  display: flex;
-  justify-content: flex-start;
-}
-
-.request-dialog-back {
-  border: none;
-  border-radius: 10px;
-  padding: 7px 10px;
-  background: #3a3d49;
-  color: #d6dae7;
-  font-family: 'PT Root UI', sans-serif;
-  font-size: 13px;
-}
-
 .request-dialog-title {
   text-align: center;
   font-size: 18px;
   font-weight: 700;
-  margin: 8px 0 8px;
+  margin: -4px 0 8px;
 }
 
 .request-dialog-meta-row {
@@ -2038,7 +2023,7 @@ body.hide-main-logo #requests.page {
   gap: 8px;
   background:
     linear-gradient(180deg, rgba(18, 18, 18, 0.14) 0%, rgba(18, 18, 18, 0.24) 100%),
-    url('../assets/icons/wallpaper.png') center/cover no-repeat;
+    url('../assets/icons/wallpaper.png') center calc(50% - 10px) / cover no-repeat;
 }
 
 .request-chat-empty {

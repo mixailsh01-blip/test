@@ -2075,7 +2075,6 @@ const setupRequestDetailsView = () => {
   const requestsList = document.getElementById('requests-list');
   const dialogModal = document.getElementById('request-dialog-modal');
   const dialogChat = dialogModal?.querySelector('.request-dialog-chat');
-  const backBtn = document.getElementById('request-dialog-back');
   const input = document.getElementById('request-dialog-input');
   const sendBtn = document.getElementById('request-dialog-send');
   const attachBtn = document.getElementById('request-dialog-attach');
@@ -2108,6 +2107,25 @@ const setupRequestDetailsView = () => {
     requestsOpenChatPollState.timerId = null;
     requestsOpenChatPollState.attempt = 0;
     requestsOpenChatPollState.inFlight = false;
+  };
+
+  const closeDialog = () => {
+    stopOpenChatPolling();
+    dialogModal.classList.add('hidden');
+
+    const bridgeBackButton = tg?.BackButton;
+    if (bridgeBackButton) {
+      if (typeof bridgeBackButton.offClick === 'function') {
+        bridgeBackButton.offClick(closeDialog);
+      }
+      if (typeof bridgeBackButton.hide === 'function') {
+        bridgeBackButton.hide();
+      }
+    }
+
+    if (document.getElementById('requests')?.classList.contains('active')) {
+      scheduleRequestsOpenChatPolling();
+    }
   };
 
   const requestOpenChat = async (task) => {
@@ -2267,17 +2285,20 @@ const setupRequestDetailsView = () => {
     renderDialogChat(task);
     updateDialogComposerState(task);
     dialogModal.classList.remove('hidden');
+    if (tg?.BackButton) {
+      if (typeof tg.BackButton.offClick === 'function') {
+        tg.BackButton.offClick(closeDialog);
+      }
+      if (typeof tg.BackButton.onClick === 'function') {
+        tg.BackButton.onClick(closeDialog);
+      }
+      if (typeof tg.BackButton.show === 'function') {
+        tg.BackButton.show();
+      }
+    }
     stopRequestsOpenChatPolling();
     requestOpenChat(task);
     scheduleOpenChatPolling(task.taskId);
-  };
-
-  const closeDialog = () => {
-    stopOpenChatPolling();
-    dialogModal.classList.add('hidden');
-    if (document.getElementById('requests')?.classList.contains('active')) {
-      scheduleRequestsOpenChatPolling();
-    }
   };
 
   const sendMessageToMiniappWebhook = async (activeTask, payload, files = []) => {
@@ -2327,7 +2348,6 @@ const setupRequestDetailsView = () => {
     if (!card?.dataset?.taskId) return;
     openDialog(card.dataset.taskId);
   });
-  backBtn?.addEventListener('click', closeDialog);
   sendBtn.addEventListener('click', sendCurrentMessage);
   input.addEventListener('focus', keepComposerVisible);
   input.addEventListener('keydown', (event) => {
