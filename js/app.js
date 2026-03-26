@@ -1848,7 +1848,7 @@ const setupTaskCreation = () => {
           <i class="fas fa-trash-alt" aria-hidden="true"></i>
         </button>
         <div class="task-create-file-meta">
-          <div class="task-create-file-title">Кол-во файлов: ${files.length}</div>
+          <div class="task-create-file-title">Файлов: ${files.length}</div>
           <div class="task-create-file-size">${totalSizeLabel}</div>
         </div>
       </div>

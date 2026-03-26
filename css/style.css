@@ -1114,6 +1114,7 @@ body.hide-main-logo #requests.page {
 .task-create-file-row {
   display: block;
   margin-bottom: 8px;
+  background: transparent;
 }
 
 .task-create-file-row.has-files {
@@ -1149,9 +1150,9 @@ body.hide-main-logo #requests.page {
 }
 
 .task-create-file-row .btn-CancelModal.is-compact {
-  width: 64px;
-  min-width: 64px;
-  min-height: 64px;
+  width: 56px;
+  min-width: 56px;
+  min-height: 56px;
   padding: 0;
   border-radius: 50%;
   flex: 0 0 auto;
@@ -1162,7 +1163,7 @@ body.hide-main-logo #requests.page {
 }
 
 .task-create-file-row .btn-CancelModal.is-compact i {
-  font-size: 24px;
+  font-size: 21px;
 }
 
 .task-create-file-input {
@@ -1172,21 +1173,22 @@ body.hide-main-logo #requests.page {
 .task-create-files-list {
   flex: 1;
   margin-bottom: 0;
+  background: transparent;
 }
 
 .task-create-file-summary {
-  min-height: 64px;
-  border-radius: 18px;
-  background: #2a2b33;
+  min-height: 56px;
+  border-radius: 16px;
+  background: transparent;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 14px;
+  gap: 10px;
+  padding: 0;
 }
 
 .task-create-file-remove {
-  width: 34px;
-  height: 34px;
+  width: 30px;
+  height: 30px;
   border: none;
   background: transparent;
   color: #ffffff;
@@ -1198,7 +1200,7 @@ body.hide-main-logo #requests.page {
 }
 
 .task-create-file-remove i {
-  font-size: 22px;
+  font-size: 19px;
 }
 
 .task-create-file-meta {
@@ -1208,13 +1210,13 @@ body.hide-main-logo #requests.page {
 }
 
 .task-create-file-title {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 500;
   color: #ffffff;
 }
 
 .task-create-file-size {
-  font-size: 15px;
+  font-size: 14px;
   color: #ffffff;
   opacity: 0.92;
 }
