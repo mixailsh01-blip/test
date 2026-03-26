@@ -2136,8 +2136,8 @@ body.hide-main-logo #requests.page {
 .request-composer-attach,
 .request-composer-send {
   border: none;
-  width: 36px;
-  height: 36px;
+  width: 42px;
+  height: 42px;
   border-radius: 50%;
   display: inline-flex;
   align-items: center;
