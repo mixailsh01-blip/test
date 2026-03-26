@@ -2023,7 +2023,7 @@ body.hide-main-logo #requests.page {
   gap: 8px;
   background:
     linear-gradient(180deg, rgba(18, 18, 18, 0.14) 0%, rgba(18, 18, 18, 0.24) 100%),
-    url('../assets/icons/wallpaper.png') center calc(50% - 10px) / 115% auto no-repeat;
+    url('../assets/icons/wallpaper.png?v=20260326-1') center calc(50% - 10px) / 115% auto no-repeat;
 }
 
 .request-chat-empty {
