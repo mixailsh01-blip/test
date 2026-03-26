@@ -410,6 +410,8 @@ const handleRestaurantPhoto = (blob) => {
 };
 
 const startAddRestaurantFlow = async () => {
+  const isMaxWebApp = Boolean(window.WebApp);
+
   if (tg && typeof tg.openCodeReader === 'function') {
     try {
       const result = await tg.openCodeReader();
@@ -444,8 +446,17 @@ const startAddRestaurantFlow = async () => {
         return [];
       }
 
+      if (isMaxWebApp) {
+        console.warn('Ошибка MAX Code Reader без fallback на сайт-камеру:', error);
+        return [];
+      }
+
       console.warn('Не удалось использовать MAX Code Reader, переключаемся на камеру:', error);
     }
+  }
+
+  if (isMaxWebApp) {
+    return [];
   }
 
   const scanMethod =
