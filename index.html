@@ -21,7 +21,7 @@
   <link href="https://fonts.googleapis.com/css2?family=PT+Root+UI:wght@500;700&display=swap" rel="stylesheet">
   
   <!-- ==================== СТИЛИ ==================== -->
-  <link rel="stylesheet" href="css/style.css?v=20260326-1" />
+  <link rel="stylesheet" href="css/style.css?v=20260327-4" />
 </head>
 
 <body>
@@ -98,16 +98,29 @@
           </div>
         </div>
 
-        <div class="requests-pagination">
-          <button class="requests-page-btn" disabled><i class="fas fa-angle-double-left"></i></button>
-          <button class="requests-page-btn" disabled><i class="fas fa-angle-left"></i></button>
-          <span class="requests-page-info">(1 of 1)</span>
-          <button class="requests-page-btn" disabled><i class="fas fa-angle-right"></i></button>
-          <button class="requests-page-btn" disabled><i class="fas fa-angle-double-right"></i></button>
+      </div>
+      <button class="btn-NewRequest"><i class="fas fa-plus"></i> Новая заявка</button>
+    </div>
+
+    <div id="requests-filters-modal" class="modal hidden requests-filters-modal" aria-hidden="true">
+      <div class="requests-filters-sheet">
+        <div class="requests-filters-header">
+          <button id="requests-filters-close" class="requests-filters-icon-btn" type="button" aria-label="Закрыть">
+            <i class="fas fa-times" aria-hidden="true"></i>
+          </button>
+          <div class="requests-filters-title">Фильтры</div>
+          <button id="requests-filters-reset" class="requests-filters-reset-btn" type="button">Сбросить</button>
         </div>
 
-        <button class="btn-NewRequest"><i class="fas fa-plus"></i> Новая заявка</button>
+        <label for="requests-filter-establishment" class="requests-filters-label">Заведение</label>
+        <div class="requests-filters-select-wrap">
+          <select id="requests-filter-establishment" class="requests-filters-select">
+            <option value="">Все заведения</option>
+          </select>
+          <i class="fas fa-chevron-down requests-filters-select-icon" aria-hidden="true"></i>
+        </div>
 
+        <button id="requests-filters-apply" class="requests-filters-apply-btn" type="button">Применить</button>
       </div>
     </div>
 
@@ -115,7 +128,7 @@
     <div id="accounts" class="page">
         <button id="select-establishment-btn" class="btn-SelectRestModal w-full">Выбрать заведение</button>
         <div id="selected-establishment" class="bg-gray-800 p-4 rounded-lg text-center text-gray-400 font-medium">
-            Заведение не выбрано
+            Раздел счетов скоро станет доступен. Следите за обновлениями приложения.
         </div>
     </div>
 
@@ -250,7 +263,7 @@
             <span id="request-dialog-number" class="request-dialog-number">№101259 от 05.06 17:09</span>
             <span id="request-dialog-status" class="request-dialog-status">Закрыта</span>
           </div>
-          <div id="request-dialog-topic" class="request-dialog-topic">Тестовая заявка</div>
+          <div id="request-dialog-topic" class="request-dialog-topic">Описание</div>
           <div id="request-dialog-company" class="request-dialog-company">ООО "Ресторан Сервис..." • Иван Кувшинов</div>
         </div>
 
@@ -263,7 +276,18 @@
             <i class="fas fa-paperclip"></i>
           </button>
           <input id="request-dialog-file" type="file" class="request-composer-file" multiple />
-          <input id="request-dialog-input" type="text" class="request-composer-input" placeholder="Напишите сообщение..." />
+          <input
+            id="request-dialog-input"
+            type="text"
+            class="request-composer-input"
+            placeholder="Напишите сообщение..."
+            inputmode="text"
+            enterkeyhint="send"
+            autocomplete="off"
+            autocorrect="off"
+            autocapitalize="off"
+            spellcheck="false"
+          />
           <button id="request-dialog-send" class="request-composer-send" aria-label="Отправить">
             <i class="fas fa-paper-plane"></i>
           </button>
@@ -294,8 +318,8 @@
   </div>
 
 <!-- ==================== СКРИПТЫ ==================== -->
-<script src="js/api.js?v=20260324-13"></script>
-<script src="js/auth.js?v=20260324-13"></script>
-<script src="js/app.js?v=20260324-13"></script>
+<script src="js/api.js?v=20260327-4"></script>
+<script src="js/auth.js?v=20260327-4"></script>
+<script src="js/app.js?v=20260327-4"></script>
 </body>
 </html>

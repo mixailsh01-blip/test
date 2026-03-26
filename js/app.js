@@ -1332,6 +1332,10 @@ const requestsState = {
   tasks: [],
   activeTaskId: null
 };
+const requestsFiltersState = {
+  search: '',
+  establishment: ''
+};
 const openTaskSyncState = {
   lastSignature: '',
   inFlight: false
@@ -1350,34 +1354,62 @@ const pendingOutgoingMessagesByTask = new Map();
 const UNREAD_STORAGE_KEY = 'miniapp_unread_counts_v1';
 const OPEN_CHAT_POLL_DELAYS_MS = [8000, 16000, 32000, 60000];
 const LOCAL_PREVIEW_ESTABLISHMENTS = [
-  { id: 'demo-1', name: 'ресторан «Я семья»' }
+  { id: 'demo-1', name: 'ресторан «Я семья»' },
+  { id: 'demo-2', name: 'кофейня «Атлас»' },
+  { id: 'demo-3', name: 'бар «Север»' },
+  { id: 'demo-4', name: 'кафе «Бруно»' },
+  { id: 'demo-5', name: 'пиццерия «Тесто»' },
+  { id: 'demo-6', name: 'ресторан «Мореман»' },
+  { id: 'demo-7', name: 'пекарня «Хлебный двор»' },
+  { id: 'demo-8', name: 'бистро «Парк»' },
+  { id: 'demo-9', name: 'кафе «Лайм»' },
+  { id: 'demo-10', name: 'ресторан «Гринвич»' }
 ];
-const LOCAL_PREVIEW_TASK = {
-  task_id: '345246422',
-  chat_id: 'demo_345246422_chat',
-  Client: 'ресторан «Я семья»',
-  status: 'Новая',
-  description: 'Прыг',
-  chat: [
-    {
-      task_id: '345246422',
-      comment_id: 'demo-1',
-      author: 'Pyrus',
-      text: 'Здравствуйте, это тестовый диалог для локального просмотра.',
-      date: new Date().toISOString(),
-      channel_type: 'custom'
-    },
-    {
-      task_id: '345246422',
-      comment_id: 'demo-2',
-      author: 'Вы',
-      text: 'Проверяю локальный интерфейс.',
-      date: new Date(Date.now() + 60 * 1000).toISOString(),
-      channel_type: 'web',
-      is_outgoing: true
-    }
-  ]
-};
+const LOCAL_PREVIEW_DESCRIPTIONS = [
+  'Не печатает чек',
+  'Не открывается смена',
+  'Ошибка эквайринга',
+  'Терминал зависает',
+  'Не приходит заказ на кухню',
+  'Проблема с интеграцией',
+  'Касса уходит в офлайн',
+  'Нет связи с принтером',
+  'Сбой оплаты по QR',
+  'Не грузится меню'
+];
+const LOCAL_PREVIEW_TASKS = Array.from({ length: 20 }, (_, index) => {
+  const establishment = LOCAL_PREVIEW_ESTABLISHMENTS[index % LOCAL_PREVIEW_ESTABLISHMENTS.length];
+  const description = LOCAL_PREVIEW_DESCRIPTIONS[index % LOCAL_PREVIEW_DESCRIPTIONS.length];
+  const taskId = String(345246422 + index);
+  const baseTime = Date.now() - ((20 - index) * 60 * 60 * 1000);
+
+  return {
+    task_id: taskId,
+    chat_id: `demo_${taskId}_chat`,
+    Client: establishment.name,
+    status: index % 4 === 0 ? 'В работе' : (index % 5 === 0 ? 'Закрыта' : 'Новая'),
+    description,
+    chat: [
+      {
+        task_id: taskId,
+        comment_id: `demo-${taskId}-1`,
+        author: 'Pyrus',
+        text: `Здравствуйте. Проверяем заявку: ${description.toLowerCase()}.`,
+        date: new Date(baseTime).toISOString(),
+        channel_type: 'custom'
+      },
+      {
+        task_id: taskId,
+        comment_id: `demo-${taskId}-2`,
+        author: 'Вы',
+        text: `Локальный просмотр диалога для ${establishment.name}.`,
+        date: new Date(baseTime + 20 * 60 * 1000).toISOString(),
+        channel_type: 'web',
+        is_outgoing: true
+      }
+    ]
+  };
+});
 
 const escapeHtml = (value) => String(value ?? '')
   .replace(/&/g, '&amp;')
@@ -1680,12 +1712,34 @@ const renderRequestsList = () => {
   const list = document.getElementById('requests-list');
   if (!list) return;
 
-  if (requestsState.tasks.length === 0) {
-    list.innerHTML = '<div class="requests-empty">Заявок пока нет</div>';
+  const search = String(requestsFiltersState.search || '').trim().toLowerCase();
+  const establishment = String(requestsFiltersState.establishment || '').trim();
+  const filteredTasks = requestsState.tasks.filter((task) => {
+    const previewText = task.chat[task.chat.length - 1]?.text || task.description || '';
+    const matchesSearch = !search || [
+      task.taskId,
+      task.status,
+      task.org,
+      task.description,
+      previewText
+    ]
+      .filter(Boolean)
+      .some((value) => String(value).toLowerCase().includes(search));
+    const matchesEstablishment = !establishment || String(task.org || '').trim() === establishment;
+    return matchesSearch && matchesEstablishment;
+  });
+
+  const filterBtn = document.querySelector('.requests-filter-btn');
+  if (filterBtn) {
+    filterBtn.classList.toggle('is-active', Boolean(search || establishment));
+  }
+
+  if (filteredTasks.length === 0) {
+    list.innerHTML = `<div class="requests-empty">${search || establishment ? 'По вашему фильтру ничего не найдено' : 'Заявок пока нет'}</div>`;
     return;
   }
 
-  list.innerHTML = requestsState.tasks
+  list.innerHTML = filteredTasks
     .map((task) => {
       const previewText = task.chat[task.chat.length - 1]?.text || task.description || 'Без описания';
       return `
@@ -1777,16 +1831,113 @@ const seedLocalPreviewData = () => {
     applyRestaurants(LOCAL_PREVIEW_ESTABLISHMENTS);
   }
 
-  const previewTask = normalizeTaskFromWebhook(LOCAL_PREVIEW_TASK);
-  if (!previewTask) return;
+  LOCAL_PREVIEW_TASKS
+    .map(normalizeTaskFromWebhook)
+    .filter(Boolean)
+    .forEach((task) => {
+      upsertRequestTask(task, { markRead: true });
+    });
 
-  upsertRequestTask(previewTask, { markRead: true });
   renderRequestsList();
 
   const mainDropdown = document.getElementById('main-dropdown');
   if (mainDropdown && Array.from(mainDropdown.options).some((option) => option.value === LOCAL_PREVIEW_ESTABLISHMENTS[0].id)) {
     mainDropdown.value = LOCAL_PREVIEW_ESTABLISHMENTS[0].id;
   }
+};
+
+const setupRequestsFiltersModal = () => {
+  const modal = document.getElementById('requests-filters-modal');
+  const filterBtn = document.querySelector('.requests-filter-btn');
+  const closeBtn = document.getElementById('requests-filters-close');
+  const resetBtn = document.getElementById('requests-filters-reset');
+  const applyBtn = document.getElementById('requests-filters-apply');
+  const searchInput = document.querySelector('.requests-search-input');
+  const establishmentSelect = document.getElementById('requests-filter-establishment');
+
+  if (!modal || !filterBtn || !closeBtn || !resetBtn || !applyBtn || !searchInput || !establishmentSelect) {
+    return;
+  }
+
+  let closeTimerId = null;
+
+  const getEstablishmentNames = () => {
+    const knownItems = getKnownEstablishments()
+      .map((item) => item.name)
+      .filter(Boolean);
+    const taskItems = requestsState.tasks
+      .map((task) => String(task.org || '').trim())
+      .filter(Boolean);
+
+    return Array.from(new Set([...knownItems, ...taskItems]))
+      .sort((a, b) => a.localeCompare(b, 'ru'));
+  };
+
+  const populateEstablishmentOptions = () => {
+    const options = getEstablishmentNames();
+    establishmentSelect.innerHTML = '<option value="">Все заведения</option>';
+
+    options.forEach((name) => {
+      const option = document.createElement('option');
+      option.value = name;
+      option.textContent = name;
+      establishmentSelect.appendChild(option);
+    });
+
+    establishmentSelect.value = options.includes(requestsFiltersState.establishment)
+      ? requestsFiltersState.establishment
+      : '';
+  };
+
+  const openModal = () => {
+    if (closeTimerId) {
+      clearTimeout(closeTimerId);
+      closeTimerId = null;
+    }
+
+    populateEstablishmentOptions();
+    modal.classList.remove('hidden');
+    modal.setAttribute('aria-hidden', 'false');
+    requestAnimationFrame(() => modal.classList.add('is-open'));
+  };
+
+  const closeModal = () => {
+    modal.classList.remove('is-open');
+    modal.setAttribute('aria-hidden', 'true');
+    closeTimerId = window.setTimeout(() => {
+      modal.classList.add('hidden');
+    }, 220);
+  };
+
+  searchInput.value = requestsFiltersState.search;
+  searchInput.addEventListener('input', () => {
+    requestsFiltersState.search = searchInput.value;
+    renderRequestsList();
+  });
+
+  filterBtn.addEventListener('click', openModal);
+  closeBtn.addEventListener('click', closeModal);
+
+  resetBtn.addEventListener('click', () => {
+    requestsFiltersState.search = '';
+    requestsFiltersState.establishment = '';
+    searchInput.value = '';
+    establishmentSelect.value = '';
+    renderRequestsList();
+    closeModal();
+  });
+
+  applyBtn.addEventListener('click', () => {
+    requestsFiltersState.establishment = establishmentSelect.value;
+    renderRequestsList();
+    closeModal();
+  });
+
+  modal.addEventListener('click', (event) => {
+    if (event.target === modal) {
+      closeModal();
+    }
+  });
 };
 
 const setupEstablishmentSelection = () => {
@@ -2328,7 +2479,7 @@ const setupRequestDetailsView = () => {
 
     if (dialogNumber) dialogNumber.textContent = `№${task.taskId} от ${formatRequestDate(task.createdAt)}`;
     if (dialogStatus) dialogStatus.textContent = task.status;
-    if (dialogTopic) dialogTopic.textContent = task.description || 'Новая заявка';
+    if (dialogTopic) dialogTopic.textContent = 'Описание';
     if (dialogCompany) dialogCompany.textContent = task.org;
 
     renderDialogChat(task);
@@ -2363,10 +2514,30 @@ const setupRequestDetailsView = () => {
     }, user, tg, files);
   };
 
+  const syncKeyboardOffset = () => {
+    const viewport = window.visualViewport;
+    if (!viewport || dialogModal.classList.contains('hidden')) {
+      dialogModal.style.setProperty('--dialog-keyboard-offset', '0px');
+      dialogChat.style.paddingBottom = '10px';
+      return;
+    }
+
+    const keyboardOffset = Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop);
+    dialogModal.style.setProperty('--dialog-keyboard-offset', `${keyboardOffset}px`);
+    dialogChat.style.paddingBottom = `${10 + keyboardOffset}px`;
+  };
+
   const keepComposerVisible = () => {
-    requestAnimationFrame(() => {
+    requestAnimationFrame(syncKeyboardOffset);
+    setTimeout(() => {
       composer.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-    });
+    }, 80);
+  };
+
+  const focusComposerInput = () => {
+    if (input.disabled) return;
+    input.focus();
+    keepComposerVisible();
   };
 
   const sendCurrentMessage = async () => {
@@ -2399,6 +2570,15 @@ const setupRequestDetailsView = () => {
   });
   sendBtn.addEventListener('click', sendCurrentMessage);
   input.addEventListener('focus', keepComposerVisible);
+  input.addEventListener('blur', syncKeyboardOffset);
+  composer.addEventListener('click', (event) => {
+    if (event.target.closest('.request-composer-attach, .request-composer-send')) return;
+    focusComposerInput();
+  });
+  composer.addEventListener('touchend', (event) => {
+    if (event.target.closest('.request-composer-attach, .request-composer-send')) return;
+    focusComposerInput();
+  });
   input.addEventListener('keydown', (event) => {
     if (event.key === 'Enter') {
       event.preventDefault();
@@ -2406,6 +2586,8 @@ const setupRequestDetailsView = () => {
     }
   });
   attachBtn.addEventListener('click', () => fileInput.click());
+  window.visualViewport?.addEventListener('resize', syncKeyboardOffset);
+  window.visualViewport?.addEventListener('scroll', syncKeyboardOffset);
   fileInput.addEventListener('change', async () => {
     const files = Array.from(fileInput.files || []);
     const activeTask = requestsState.tasks.find((item) => item.taskId === requestsState.activeTaskId);
@@ -2478,6 +2660,7 @@ const initializeApp = () => {
     setupTableFiltersAndSorting();
     setupEstablishmentSelection();
     setupTaskCreation();
+    setupRequestsFiltersModal();
     setupRequestDetailsView();
     seedLocalPreviewData();
 
