@@ -423,6 +423,27 @@ const startAddRestaurantFlow = async () => {
 
       return await handleQrResult(code, null);
     } catch (error) {
+      const errorText = String(
+        error?.message ??
+        error?.error ??
+        error?.reason ??
+        error ??
+        ''
+      ).toLowerCase();
+      const isUserCancelled =
+        errorText.includes('cancel') ||
+        errorText.includes('closed') ||
+        errorText.includes('close') ||
+        errorText.includes('abort') ||
+        errorText.includes('dismiss') ||
+        errorText.includes('назад') ||
+        errorText.includes('закры');
+
+      if (isUserCancelled) {
+        console.log('QR-сканер MAX закрыт пользователем');
+        return [];
+      }
+
       console.warn('Не удалось использовать MAX Code Reader, переключаемся на камеру:', error);
     }
   }
