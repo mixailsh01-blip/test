@@ -1349,6 +1349,35 @@ const requestsOpenChatPollState = {
 const pendingOutgoingMessagesByTask = new Map();
 const UNREAD_STORAGE_KEY = 'miniapp_unread_counts_v1';
 const OPEN_CHAT_POLL_DELAYS_MS = [8000, 16000, 32000, 60000];
+const LOCAL_PREVIEW_ESTABLISHMENTS = [
+  { id: 'demo-1', name: 'ресторан «Я семья»' }
+];
+const LOCAL_PREVIEW_TASK = {
+  task_id: '345246422',
+  chat_id: 'demo_345246422_chat',
+  Client: 'ресторан «Я семья»',
+  status: 'Новая',
+  description: 'Прыг',
+  chat: [
+    {
+      task_id: '345246422',
+      comment_id: 'demo-1',
+      author: 'Pyrus',
+      text: 'Здравствуйте, это тестовый диалог для локального просмотра.',
+      date: new Date().toISOString(),
+      channel_type: 'custom'
+    },
+    {
+      task_id: '345246422',
+      comment_id: 'demo-2',
+      author: 'Вы',
+      text: 'Проверяю локальный интерфейс.',
+      date: new Date(Date.now() + 60 * 1000).toISOString(),
+      channel_type: 'web',
+      is_outgoing: true
+    }
+  ]
+};
 
 const escapeHtml = (value) => String(value ?? '')
   .replace(/&/g, '&amp;')
@@ -1737,6 +1766,26 @@ const syncOpenTasksForKnownEstablishments = async () => {
     console.error('❌ Ошибка синхронизации open_task:', error);
   } finally {
     openTaskSyncState.inFlight = false;
+  }
+};
+
+const seedLocalPreviewData = () => {
+  const hasBridgeUser = Boolean(user?.id);
+  if (hasBridgeUser) return;
+  if (requestsState.tasks.length > 0) return;
+  if (getKnownEstablishments().length === 0) {
+    applyRestaurants(LOCAL_PREVIEW_ESTABLISHMENTS);
+  }
+
+  const previewTask = normalizeTaskFromWebhook(LOCAL_PREVIEW_TASK);
+  if (!previewTask) return;
+
+  upsertRequestTask(previewTask, { markRead: true });
+  renderRequestsList();
+
+  const mainDropdown = document.getElementById('main-dropdown');
+  if (mainDropdown && Array.from(mainDropdown.options).some((option) => option.value === LOCAL_PREVIEW_ESTABLISHMENTS[0].id)) {
+    mainDropdown.value = LOCAL_PREVIEW_ESTABLISHMENTS[0].id;
   }
 };
 
@@ -2430,6 +2479,7 @@ const initializeApp = () => {
     setupEstablishmentSelection();
     setupTaskCreation();
     setupRequestDetailsView();
+    seedLocalPreviewData();
 
     // Показываем приветственный экран
     //const welcomeScreen = document.getElementById('welcome-screen');
