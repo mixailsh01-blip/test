@@ -2034,6 +2034,9 @@ body.hide-main-logo #requests.page {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  background:
+    linear-gradient(180deg, rgba(18, 18, 18, 0.14) 0%, rgba(18, 18, 18, 0.24) 100%),
+    url('../assets/icons/wallpaper.png') center/cover no-repeat;
 }
 
 .request-chat-empty {
