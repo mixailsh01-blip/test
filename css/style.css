@@ -2013,6 +2013,7 @@ body.hide-main-logo #requests.page {
 }
 
 .request-dialog-chat {
+  position: relative;
   flex: 1;
   min-height: 180px;
   max-height: none;
@@ -2021,9 +2022,23 @@ body.hide-main-logo #requests.page {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  background: transparent;
+}
+
+.request-dialog-chat::before {
+  content: '';
+  position: absolute;
+  inset: 0;
   background:
     linear-gradient(180deg, rgba(18, 18, 18, 0.14) 0%, rgba(18, 18, 18, 0.24) 100%),
     url('../assets/icons/wallpaper.png?v=20260326-1') center calc(50% - 20px) / 120% auto no-repeat;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.request-dialog-chat > * {
+  position: relative;
+  z-index: 1;
 }
 
 .request-chat-empty {
