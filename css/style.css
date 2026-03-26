@@ -1967,7 +1967,7 @@ body.hide-main-logo #requests.page {
 }
 
 .request-dialog-top {
-  margin: 8px 10px 0;
+  margin: 8px 4px 0;
   padding: 12px;
   border-radius: 12px;
   background: #2f3037;
@@ -2019,7 +2019,7 @@ body.hide-main-logo #requests.page {
   min-height: 0;
   max-height: none;
   overflow-y: auto;
-  margin: 6px 10px 0;
+  margin: 6px 0 0;
   padding: 10px 10px 10px;
   display: flex;
   flex-direction: column;
@@ -2031,7 +2031,7 @@ body.hide-main-logo #requests.page {
   content: '';
   position: absolute;
   inset: 0;
-  border-radius: 12px;
+  border-radius: 0;
   background:
     linear-gradient(180deg, rgba(18, 18, 18, 0.14) 0%, rgba(18, 18, 18, 0.24) 100%),
     url('../assets/icons/wallpaper.png?v=20260326-1') center calc(50% - 10px) / 108% auto no-repeat;
@@ -2111,7 +2111,7 @@ body.hide-main-logo #requests.page {
   align-items: center;
   gap: 8px;
   padding: 10px;
-  margin: 8px 10px max(10px, env(safe-area-inset-bottom));
+  margin: 8px 4px max(10px, env(safe-area-inset-bottom));
   border-radius: 12px;
   background: #2f3037;
   flex: 0 0 auto;
@@ -2123,7 +2123,7 @@ body.hide-main-logo #requests.page {
 }
 
 .request-dialog-closed {
-  margin: 8px 10px max(10px, env(safe-area-inset-bottom));
+  margin: 8px 4px max(10px, env(safe-area-inset-bottom));
   border-radius: 12px;
   background: #2f3037;
   color: #ffffff;
