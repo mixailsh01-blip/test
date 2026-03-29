@@ -1351,10 +1351,13 @@ const requestsOpenChatPollState = {
   inFlight: false
 };
 const requestDeepLinkState = {
-  chatId: '',
+  rawParam: '',
+  type: '',
+  value: '',
   handled: false,
   attempt: 0,
-  timerId: null
+  timerId: null,
+  inFlight: false
 };
 const pendingOutgoingMessagesByTask = new Map();
 const UNREAD_STORAGE_KEY = 'miniapp_unread_counts_v1';
@@ -1661,6 +1664,27 @@ const normalizeDeepLinkChatId = (value = '') => String(value || '')
   .trim()
   .replace(/^['"]+|['"]+$/g, '');
 
+const parseMiniAppStartParam = (value = '') => {
+  const normalized = normalizeDeepLinkChatId(value);
+  if (!normalized) return { type: '', value: '' };
+  if (normalized.startsWith('add_restaurant_')) {
+    return {
+      type: 'add_restaurant',
+      value: normalized.slice('add_restaurant_'.length)
+    };
+  }
+  if (normalized.startsWith('chat_')) {
+    return {
+      type: 'chat',
+      value: normalized.slice('chat_'.length)
+    };
+  }
+  return {
+    type: 'chat',
+    value: normalized
+  };
+};
+
 const getMiniAppStartParam = () => {
   const candidates = [
     tg?.initDataUnsafe?.start_param,
@@ -1677,6 +1701,12 @@ const getMiniAppStartParam = () => {
     .find(Boolean);
 
   return resolved || '';
+};
+
+const normalizeRestaurantsFromTaskSupportResponse = (result) => {
+  const qrRestaurants = normalizeRestaurantsFromQrResponse(result);
+  if (qrRestaurants.length > 0) return qrRestaurants;
+  return normalizeRestaurantsFromClientSupportResponse(result);
 };
 
 const loadUnreadCountsFromStorage = () => {
@@ -2804,7 +2834,9 @@ const setupRequestDetailsView = () => {
   };
 
   const openDeepLinkedRequest = () => {
-    const deepLinkedChatId = requestDeepLinkState.chatId;
+    const deepLinkedChatId = requestDeepLinkState.type === 'chat'
+      ? String(requestDeepLinkState.value || '').trim()
+      : '';
     if (!deepLinkedChatId || requestDeepLinkState.handled) return false;
 
     const task = requestsState.tasks.find((item) => String(item.chatId || '').trim() === deepLinkedChatId);
@@ -2822,9 +2854,75 @@ const setupRequestDetailsView = () => {
     return true;
   };
 
+  const openDeepLinkedRestaurant = async () => {
+    const restaurantId = requestDeepLinkState.type === 'add_restaurant'
+      ? String(requestDeepLinkState.value || '').trim()
+      : '';
+    if (!restaurantId || requestDeepLinkState.handled) return false;
+
+    const existingRestaurant = getKnownEstablishments().find((item) => item.id === restaurantId);
+    if (existingRestaurant) {
+      const dropdown = document.getElementById('main-dropdown');
+      if (dropdown) {
+        dropdown.value = restaurantId;
+      }
+      stopDeepLinkOpenPolling();
+      requestDeepLinkState.handled = true;
+      showPlatformPopup('Заведение', `Заведение добавлено: ${existingRestaurant.name}`);
+      return true;
+    }
+
+    if (!window.API?.sendTaskSupport || requestDeepLinkState.inFlight) return false;
+
+    requestDeepLinkState.inFlight = true;
+    try {
+      const result = await window.API.sendTaskSupport({
+        Client: restaurantId,
+        ID: restaurantId
+      }, user);
+      const restaurants = normalizeRestaurantsFromTaskSupportResponse(result);
+      if (restaurants.length === 0) return false;
+
+      applyRestaurants(restaurants);
+      const dropdown = document.getElementById('main-dropdown');
+      if (dropdown && restaurants.some((item) => item.id === restaurantId)) {
+        dropdown.value = restaurantId;
+      }
+      stopDeepLinkOpenPolling();
+      requestDeepLinkState.handled = true;
+      const addedRestaurant = restaurants.find((item) => item.id === restaurantId) || restaurants[0];
+      showPlatformPopup('Заведение', `Заведение добавлено: ${addedRestaurant?.name || restaurantId}`);
+      return true;
+    } catch (error) {
+      console.error('❌ Ошибка deep link add_restaurant:', error);
+      return false;
+    } finally {
+      requestDeepLinkState.inFlight = false;
+    }
+  };
+
   const scheduleDeepLinkOpen = () => {
-    if (!requestDeepLinkState.chatId || requestDeepLinkState.handled) return;
-    if (openDeepLinkedRequest()) return;
+    if (!requestDeepLinkState.rawParam || requestDeepLinkState.handled) return;
+
+    if (requestDeepLinkState.type === 'chat') {
+      if (openDeepLinkedRequest()) return;
+    } else if (requestDeepLinkState.type === 'add_restaurant') {
+      openDeepLinkedRestaurant().then((handled) => {
+        if (handled || requestDeepLinkState.handled) return;
+
+        stopDeepLinkOpenPolling();
+        if (requestDeepLinkState.attempt >= 20) return;
+
+        const delay = requestDeepLinkState.attempt < 5 ? 400 : 1200;
+        requestDeepLinkState.attempt += 1;
+        requestDeepLinkState.timerId = window.setTimeout(() => {
+          scheduleDeepLinkOpen();
+        }, delay);
+      });
+      return;
+    } else {
+      return;
+    }
 
     stopDeepLinkOpenPolling();
     if (requestDeepLinkState.attempt >= 20) return;
@@ -2836,7 +2934,10 @@ const setupRequestDetailsView = () => {
     }, delay);
   };
 
-  requestDeepLinkState.chatId = getMiniAppStartParam();
+  requestDeepLinkState.rawParam = getMiniAppStartParam();
+  const parsedStartParam = parseMiniAppStartParam(requestDeepLinkState.rawParam);
+  requestDeepLinkState.type = parsedStartParam.type;
+  requestDeepLinkState.value = parsedStartParam.value;
   window.tryOpenDeepLinkedRequest = scheduleDeepLinkOpen;
   scheduleDeepLinkOpen();
 
