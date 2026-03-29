@@ -1546,6 +1546,8 @@ const normalizeTaskComment = (comment, fallbackText = '', taskId = '') => {
   const legacyAttachmentUrls = Array.isArray(comment?.attachmentsURL) ? comment.attachmentsURL : [];
   const legacyAttachmentIds = Array.isArray(comment?.attachmentsID) ? comment.attachmentsID : [];
   const legacyAttachmentMd5 = Array.isArray(comment?.attachmentsMD5) ? comment.attachmentsMD5 : [];
+  const legacyAttachmentMimeTypes = Array.isArray(comment?.attachmentsMimeType) ? comment.attachmentsMimeType : [];
+  const legacyAttachmentPreviewUrls = Array.isArray(comment?.attachmentsPreviewURL) ? comment.attachmentsPreviewURL : [];
   const objectAttachments = Array.isArray(comment?.attachments) ? comment.attachments : [];
   const attachments = objectAttachments.length > 0
     ? objectAttachments
@@ -1553,14 +1555,18 @@ const normalizeTaskComment = (comment, fallbackText = '', taskId = '') => {
         id: String(item?.id ?? item?.attachment_id ?? item?.ID ?? index),
         name: String(item?.name ?? item?.file_name ?? item?.title ?? `Файл ${index + 1}`),
         url: String(item?.url ?? item?.file_url ?? item?.href ?? ''),
-        md5: String(item?.md5 ?? item?.hash ?? '')
+        md5: String(item?.md5 ?? item?.hash ?? ''),
+        mimeType: String(item?.mime_type ?? item?.mimeType ?? ''),
+        previewUrl: String(item?.preview_url ?? item?.previewUrl ?? item?.thumb_url ?? item?.thumbnail ?? item?.url ?? '')
       }))
       .filter((item) => item.name || item.url)
     : legacyAttachmentNames.map((name, index) => ({
       id: String(legacyAttachmentIds[index] ?? index),
       name: String(name ?? `Файл ${index + 1}`),
       url: String(legacyAttachmentUrls[index] ?? ''),
-      md5: String(legacyAttachmentMd5[index] ?? '')
+      md5: String(legacyAttachmentMd5[index] ?? ''),
+      mimeType: String(legacyAttachmentMimeTypes[index] ?? ''),
+      previewUrl: String(legacyAttachmentPreviewUrls[index] ?? legacyAttachmentUrls[index] ?? '')
     }))
       .filter((item) => item.name || item.url);
   const fallbackFileText = attachments.length > 0
@@ -1745,6 +1751,13 @@ const getRequestMessagePreview = (message, fallback = 'Без описания')
     return `Файлы: ${message.attachments.length}`;
   }
   return message.text || fallback;
+};
+
+const isImageAttachment = (attachment) => {
+  const mimeType = String(attachment?.mimeType || '').toLowerCase();
+  if (mimeType.startsWith('image/')) return true;
+  const source = String(attachment?.name || attachment?.url || attachment?.previewUrl || '').toLowerCase();
+  return /\.(png|jpe?g|gif|webp|bmp|svg|heic|heif|avif)(\?|#|$)/i.test(source);
 };
 
 const renderRequestsList = () => {
@@ -2489,18 +2502,38 @@ const setupRequestDetailsView = () => {
       if (bodyElement) {
         if (hasAttachments) {
           const attachmentsHtml = message.attachments.map((attachment) => `
-            <a
-              class="request-file-chip"
-              href="${escapeHtml(attachment.url || '#')}"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <span class="request-file-chip__icon"><i class="fas fa-paperclip" aria-hidden="true"></i></span>
-              <span class="request-file-chip__meta">
-                <span class="request-file-chip__name">${escapeHtml(attachment.name || 'Файл')}</span>
-                <span class="request-file-chip__action">${attachment.url ? 'Открыть файл' : 'Файл недоступен'}</span>
-              </span>
-            </a>
+            ${isImageAttachment(attachment) ? `
+              <a
+                class="request-image-chip"
+                href="${escapeHtml(attachment.url || attachment.previewUrl || '#')}"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <img
+                  class="request-image-chip__preview"
+                  src="${escapeHtml(attachment.previewUrl || attachment.url || '')}"
+                  alt="${escapeHtml(attachment.name || 'Изображение')}"
+                  loading="lazy"
+                />
+                <span class="request-image-chip__footer">
+                  <span class="request-image-chip__name">${escapeHtml(attachment.name || 'Изображение')}</span>
+                  <span class="request-image-chip__action">${attachment.url ? 'Открыть изображение' : 'Изображение недоступно'}</span>
+                </span>
+              </a>
+            ` : `
+              <a
+                class="request-file-chip"
+                href="${escapeHtml(attachment.url || '#')}"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <span class="request-file-chip__icon"><i class="fas fa-paperclip" aria-hidden="true"></i></span>
+                <span class="request-file-chip__meta">
+                  <span class="request-file-chip__name">${escapeHtml(attachment.name || 'Файл')}</span>
+                  <span class="request-file-chip__action">${attachment.url ? 'Открыть файл' : 'Файл недоступен'}</span>
+                </span>
+              </a>
+            `}
           `).join('');
           bodyElement.innerHTML = `
             ${message.text ? `<div class="request-msg-text">${escapeHtml(message.text)}</div>` : ''}
