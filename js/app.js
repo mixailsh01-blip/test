@@ -2604,35 +2604,72 @@ const setupRequestDetailsView = () => {
     return result;
   };
 
-  const openBlobResult = (blob, fileName = 'file') => {
+  const formatFileSize = (sizeBytes) => {
+    const size = Number(sizeBytes || 0);
+    if (!Number.isFinite(size) || size <= 0) return '0 B';
+    if (size < 1024) return `${size} B`;
+    if (size < 1024 * 1024) return `${Math.round(size / 1024)} KB`;
+    return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const openBlobResult = async (blob, fileName = 'file') => {
     const objectUrl = URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
-    anchor.href = objectUrl;
-    anchor.download = fileName;
-    anchor.target = '_blank';
-    anchor.rel = 'noopener noreferrer';
-    document.body.appendChild(anchor);
-    anchor.click();
-    anchor.remove();
+    const popup = window.open(objectUrl, '_blank', 'noopener,noreferrer');
+
+    if (!popup) {
+      const anchor = document.createElement('a');
+      anchor.href = objectUrl;
+      anchor.download = fileName;
+      anchor.target = '_blank';
+      anchor.rel = 'noopener noreferrer';
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+    }
+
+    if (navigator.share && typeof File === 'function') {
+      try {
+        const file = new File([blob], fileName, { type: blob.type || 'application/octet-stream' });
+        if (!navigator.canShare || navigator.canShare({ files: [file] })) {
+          await navigator.share({ files: [file], title: fileName });
+        }
+      } catch (error) {
+        // Игнорируем: share здесь только как дополнительный fallback.
+      }
+    }
+
     setTimeout(() => {
       URL.revokeObjectURL(objectUrl);
     }, 60 * 1000);
   };
 
-  const handleAttachmentResponse = (result, fallbackName = 'file') => {
+  const handleAttachmentResponse = async (result, fallbackName = 'file') => {
     if (!result) {
       throw new Error('empty attachment response');
     }
 
     if (result.kind === 'blob' && result.blob) {
-      openBlobResult(result.blob, result.fileName || fallbackName);
+      await openBlobResult(result.blob, result.fileName || fallbackName);
       return;
     }
 
     if (result.kind === 'json' && result.data) {
       const payload = result.data;
-      const directUrl = payload?.url || payload?.file_url || payload?.href || null;
-      const base64Value = payload?.content_base64 || payload?.base64 || null;
+      const dataNode = payload?.data && typeof payload.data === 'object' ? payload.data : null;
+      const directUrl =
+        payload?.url ||
+        payload?.file_url ||
+        payload?.href ||
+        dataNode?.url ||
+        dataNode?.file_url ||
+        dataNode?.href ||
+        null;
+      const base64Value =
+        payload?.content_base64 ||
+        payload?.base64 ||
+        dataNode?.content_base64 ||
+        dataNode?.base64 ||
+        null;
       const mimeType = payload?.mime_type || payload?.mimeType || result.contentType || 'application/octet-stream';
 
       if (directUrl) {
@@ -2650,7 +2687,10 @@ const setupRequestDetailsView = () => {
         for (let index = 0; index < binary.length; index += 1) {
           bytes[index] = binary.charCodeAt(index);
         }
-        openBlobResult(new Blob([bytes], { type: mimeType }), payload?.file_name || payload?.name || fallbackName);
+        await openBlobResult(
+          new Blob([bytes], { type: mimeType }),
+          payload?.file_name || payload?.name || dataNode?.file_name || dataNode?.name || fallbackName
+        );
         return;
       }
     }
@@ -2675,9 +2715,15 @@ const setupRequestDetailsView = () => {
         attachment_md5: buttonElement.dataset.attachmentMd5 || null,
         attachment_name: attachmentName
       }, user, tg);
-      handleAttachmentResponse(result, attachmentName);
+      await handleAttachmentResponse(result, attachmentName);
     } catch (error) {
-      showPlatformPopup('Ошибка файла', `Не удалось открыть файл: ${attachmentName}`);
+      if (error?.message === 'unsupported attachment response') {
+        showPlatformPopup('Ошибка файла', `Файл получен, но формат ответа не поддержан для открытия: ${attachmentName}`);
+      } else if (error?.message === 'empty attachment response') {
+        showPlatformPopup('Ошибка файла', `Хук files не вернул файл: ${attachmentName}`);
+      } else {
+        showPlatformPopup('Ошибка файла', `Не удалось открыть файл: ${attachmentName}`);
+      }
     } finally {
       buttonElement.classList.remove('is-loading');
       setDialogRequestInFlight(false);
