@@ -2434,6 +2434,15 @@ body.hide-main-logo #requests.page {
   box-shadow: 0 16px 44px rgba(0, 0, 0, 0.35);
 }
 
+.file-viewer-video {
+  width: 100%;
+  max-width: 980px;
+  max-height: 78vh;
+  border-radius: 18px;
+  background: #000000;
+  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.35);
+}
+
 .file-viewer-pdf {
   width: 100%;
   min-height: 78vh;

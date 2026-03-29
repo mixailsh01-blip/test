@@ -2591,8 +2591,9 @@ const setupRequestDetailsView = () => {
               handleAttachmentOpen(chipElement);
             };
             chipElement.onclick = openAttachment;
-            chipElement.onpointerup = openAttachment;
-            chipElement.ontouchend = openAttachment;
+            chipElement.onpointerdown = openAttachment;
+            chipElement.ontouchstart = openAttachment;
+            chipElement.onmousedown = openAttachment;
           });
         } else {
           bodyElement.innerHTML = `<div class="request-msg-text">${escapeHtml(message.text)}</div>`;
@@ -2685,6 +2686,7 @@ const setupRequestDetailsView = () => {
   const fileViewerTitle = document.getElementById('file-viewer-title');
   const fileViewerClose = document.getElementById('file-viewer-close');
   let currentFileViewerUrl = '';
+  let lastAttachmentOpenAt = 0;
 
   const closeFileViewer = () => {
     if (!fileViewerModal || !fileViewerBody || !fileViewerTitle) return;
@@ -2752,11 +2754,20 @@ const setupRequestDetailsView = () => {
       const isImageFile =
         blobType.startsWith('image/') ||
         /\.(png|jpe?g|gif|webp|bmp|svg|heic|heif|avif)$/i.test(normalizedFileName);
+      const isVideoFile =
+        blobType.startsWith('video/') ||
+        /\.(mp4|mov|webm|m4v|ogv)$/i.test(normalizedFileName);
       const isPdfFile = blobType === 'application/pdf' || /\.pdf$/i.test(normalizedFileName);
       fileViewerTitle.textContent = fileName;
 
       if (isImageFile) {
         fileViewerBody.innerHTML = `<img class="file-viewer-image" src="${currentFileViewerUrl}" alt="${escapeHtml(fileName)}" />`;
+      } else if (isVideoFile) {
+        fileViewerBody.innerHTML = `
+          <video class="file-viewer-video" src="${currentFileViewerUrl}" controls playsinline preload="metadata">
+            Ваше устройство не поддерживает встроенное воспроизведение видео.
+          </video>
+        `;
       } else if (isPdfFile) {
         fileViewerBody.innerHTML = `<iframe class="file-viewer-pdf" src="${currentFileViewerUrl}" title="${escapeHtml(fileName)}"></iframe>`;
       } else {
@@ -2798,6 +2809,9 @@ const setupRequestDetailsView = () => {
   };
 
   const handleAttachmentOpen = async (buttonElement) => {
+    const now = Date.now();
+    if (now - lastAttachmentOpenAt < 700) return;
+    lastAttachmentOpenAt = now;
     if (isDialogRequestInFlight) return;
     const attachmentId = String(buttonElement.dataset.attachmentId || '').trim();
     const attachmentName = String(buttonElement.dataset.attachmentName || 'Файл');
