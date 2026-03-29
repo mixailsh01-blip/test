@@ -2506,11 +2506,13 @@ const setupRequestDetailsView = () => {
   const sendBtn = document.getElementById('request-dialog-send');
   const attachBtn = document.getElementById('request-dialog-attach');
   const fileInput = document.getElementById('request-dialog-file');
+  const filePreview = document.getElementById('request-dialog-file-preview');
   const composer = dialogModal?.querySelector('.request-dialog-composer');
   const closedBanner = document.getElementById('request-dialog-closed');
 
-  if (!requestsList || !dialogModal || !dialogChat || !input || !sendBtn || !attachBtn || !fileInput || !composer || !closedBanner) return;
+  if (!requestsList || !dialogModal || !dialogChat || !input || !sendBtn || !attachBtn || !fileInput || !filePreview || !composer || !closedBanner) return;
   let isDialogRequestInFlight = false;
+  let selectedDialogFile = null;
 
   const getCurrentTimeLabel = () => {
     const now = new Date();
@@ -2547,6 +2549,8 @@ const setupRequestDetailsView = () => {
   const closeDialog = () => {
     stopOpenChatPolling();
     dialogModal.classList.add('hidden');
+    input.value = '';
+    clearSelectedDialogFile();
 
     const bridgeBackButton = tg?.BackButton;
     if (bridgeBackButton) {
@@ -2728,7 +2732,37 @@ const setupRequestDetailsView = () => {
     if (isClosed) {
       input.value = '';
       fileInput.value = '';
+      selectedDialogFile = null;
+      renderSelectedDialogFile();
     }
+  };
+
+  const renderSelectedDialogFile = () => {
+    if (!selectedDialogFile) {
+      filePreview.innerHTML = '';
+      filePreview.classList.add('hidden');
+      return;
+    }
+
+    filePreview.classList.remove('hidden');
+    filePreview.innerHTML = `
+      <div class="request-composer-file-preview-icon">
+        <i class="fas fa-file" aria-hidden="true"></i>
+      </div>
+      <div class="request-composer-file-preview-meta">
+        <div class="request-composer-file-preview-name">${escapeHtml(selectedDialogFile.name || 'Файл')}</div>
+        <div class="request-composer-file-preview-size">${escapeHtml(formatFileSize(selectedDialogFile.size))}</div>
+      </div>
+      <button type="button" class="request-composer-file-preview-remove" aria-label="Убрать файл">
+        <i class="fas fa-times" aria-hidden="true"></i>
+      </button>
+    `;
+  };
+
+  const clearSelectedDialogFile = () => {
+    selectedDialogFile = null;
+    fileInput.value = '';
+    renderSelectedDialogFile();
   };
 
   const openDialog = (taskId) => {
@@ -2737,6 +2771,8 @@ const setupRequestDetailsView = () => {
     requestsState.activeTaskId = task.taskId;
     markTaskAsRead(task.taskId);
     renderRequestsList();
+    input.value = '';
+    clearSelectedDialogFile();
 
     const dialogNumber = document.getElementById('request-dialog-number');
     const dialogStatus = document.getElementById('request-dialog-status');
@@ -3039,7 +3075,11 @@ const setupRequestDetailsView = () => {
 
   const sendCurrentMessage = async () => {
     const text = input.value.trim();
-    if (!text || isDialogRequestInFlight) return;
+    const file = selectedDialogFile;
+    const messageType = file ? 'file' : 'text';
+    const outgoingText = file ? `Файл: ${file.name}` : text;
+    const fileName = file?.name || null;
+    if ((!text && !file) || isDialogRequestInFlight) return;
     const activeTask = requestsState.tasks.find((item) => item.taskId === requestsState.activeTaskId);
     if (!activeTask || isTaskClosed(activeTask)) return;
 
@@ -3047,9 +3087,10 @@ const setupRequestDetailsView = () => {
       task_id: activeTask.taskId,
       comment_id: `${Date.now()}`,
       author: user?.first_name || user?.username || 'Вы',
-      text,
+      text: outgoingText,
       date: new Date().toISOString(),
-      channel_type: `${platformName}_webapp`
+      channel_type: `${platformName}_webapp`,
+      message_type: messageType
     });
     registerPendingOutgoingMessage(activeTask.taskId, pendingMessage);
     activeTask.chat.push(pendingMessage);
@@ -3057,15 +3098,26 @@ const setupRequestDetailsView = () => {
     renderRequestsList();
     renderDialogChat(activeTask);
     input.value = '';
+    clearSelectedDialogFile();
     setDialogRequestInFlight(true);
     try {
-      await sendMessageToMiniappWebhook(activeTask, { text, message_type: 'text' });
+      await sendMessageToMiniappWebhook(activeTask, {
+        text: outgoingText,
+        message_type: messageType,
+        file_name: fileName
+      }, file ? [file] : []);
     } catch (error) {
       removeTaskMessage(activeTask, pendingMessage.commentId);
       renderRequestsList();
       renderDialogChat(activeTask);
       input.value = text;
-      showPlatformPopup('Ошибка отправки', 'Сообщение не удалось отправить. Попробуйте еще раз.');
+      if (file) {
+        selectedDialogFile = file;
+        renderSelectedDialogFile();
+        showPlatformPopup('Ошибка отправки файла', `Не удалось отправить файл: ${file.name}`);
+      } else {
+        showPlatformPopup('Ошибка отправки', 'Сообщение не удалось отправить. Попробуйте еще раз.');
+      }
     } finally {
       setDialogRequestInFlight(false);
     }
@@ -3093,6 +3145,10 @@ const setupRequestDetailsView = () => {
     if (event.target.closest('.request-composer-attach, .request-composer-send')) return;
     focusComposerInput();
   });
+  filePreview.addEventListener('click', (event) => {
+    if (!event.target.closest('.request-composer-file-preview-remove')) return;
+    clearSelectedDialogFile();
+  });
   input.addEventListener('keydown', (event) => {
     if (event.key === 'Enter') {
       event.preventDefault();
@@ -3102,47 +3158,15 @@ const setupRequestDetailsView = () => {
   attachBtn.addEventListener('click', () => fileInput.click());
   window.visualViewport?.addEventListener('resize', syncKeyboardOffset);
   window.visualViewport?.addEventListener('scroll', syncKeyboardOffset);
-  fileInput.addEventListener('change', async () => {
+  fileInput.addEventListener('change', () => {
     const files = Array.from(fileInput.files || []);
     const activeTask = requestsState.tasks.find((item) => item.taskId === requestsState.activeTaskId);
     if (!files.length || !activeTask || isTaskClosed(activeTask) || isDialogRequestInFlight) {
       fileInput.value = '';
       return;
     }
-    setDialogRequestInFlight(true);
-    try {
-      for (const file of files) {
-        const pendingMessage = normalizeTaskComment({
-          task_id: activeTask.taskId,
-          comment_id: `${Date.now()}-${file.name}`,
-          author: user?.first_name || user?.username || 'Вы',
-          text: `Файл: ${file.name}`,
-          date: new Date().toISOString(),
-          channel_type: `${platformName}_webapp`
-        });
-        registerPendingOutgoingMessage(activeTask.taskId, pendingMessage);
-        activeTask.chat.push(pendingMessage);
-        renderRequestsList();
-        renderDialogChat(activeTask);
-
-        try {
-          await sendMessageToMiniappWebhook(activeTask, {
-            text: `Файл: ${file.name}`,
-            message_type: 'file',
-            file_name: file.name
-          }, [file]);
-        } catch (error) {
-          removeTaskMessage(activeTask, pendingMessage.commentId);
-          renderRequestsList();
-          renderDialogChat(activeTask);
-          showPlatformPopup('Ошибка отправки файла', `Не удалось отправить файл: ${file.name}`);
-          break;
-        }
-      }
-    } finally {
-      setDialogRequestInFlight(false);
-      fileInput.value = '';
-    }
+    selectedDialogFile = files[0] || null;
+    renderSelectedDialogFile();
   });
   dialogModal.addEventListener('click', (event) => {
     if (event.target === dialogModal) {

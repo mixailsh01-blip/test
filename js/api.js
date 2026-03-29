@@ -1,6 +1,8 @@
 /* ==================== API MODULE ==================== */
 /* Отвечает за все HTTP-запросы к внешним системам */
 
+const API_BASE_URL = 'https://edbudepir.beget.app';
+
 const getBridgeUserWithoutPhoto = (userData) => Object.fromEntries(
   Object.entries(userData || {}).filter(
     ([key]) => !['photo_url', 'photo', 'avatar', 'avatar_url'].includes(key)
@@ -33,7 +35,7 @@ const API = {
    * @returns {Promise<Array|null>} Массив пользователей или null
    */
   async authorize(userData) {
-    const hookUrl = 'https://quumahienot.beget.app/webhook/lk-ps';
+    const hookUrl = `${API_BASE_URL}/webhook/lk-ps`;
     const payload = {
       date: "auth",
       user_id: userData?.id || null,
@@ -75,7 +77,7 @@ const API = {
    * @returns {Promise<any|null>} Ответ вебхука или null
    */
   async sendQrData(qrData, userData) {
-    const hookUrl = 'https://quumahienot.beget.app/webhook/lk-ps';
+    const hookUrl = `${API_BASE_URL}/webhook/lk-ps`;
     const userDataWithoutPhoto = getBridgeUserWithoutPhoto(userData);
 
     const payload = {
@@ -123,7 +125,7 @@ const API = {
    * @returns {Promise<any|null>} Ответ вебхука или null
    */
   async sendTaskSupport(establishmentsPayload, userData = null) {
-    const hookUrl = 'https://quumahienot.beget.app/webhook/task_support';
+    const hookUrl = `${API_BASE_URL}/webhook/task_support`;
     const basePayload = Array.isArray(establishmentsPayload)
       ? establishmentsPayload
       : (establishmentsPayload ? [establishmentsPayload] : []);
@@ -184,7 +186,7 @@ const API = {
    * @returns {Promise<any|null>} Ответ вебхука или null
    */
   async sendOpenTask(establishmentsPayload, userData = null) {
-    const hookUrl = 'https://quumahienot.beget.app/webhook/open_task';
+    const hookUrl = `${API_BASE_URL}/webhook/open_task`;
     const basePayload = Array.isArray(establishmentsPayload)
       ? establishmentsPayload
       : (establishmentsPayload ? [establishmentsPayload] : []);
@@ -243,7 +245,7 @@ const API = {
    * @returns {Promise<any|null>} Ответ вебхука или null
    */
   async sendOpenChat(chatPayload = {}, userData = null, webApp = null) {
-    const hookUrl = 'https://quumahienot.beget.app/webhook/open_chat';
+    const hookUrl = `${API_BASE_URL}/webhook/open_chat`;
     const payload = {
       task_id: chatPayload?.task_id ?? chatPayload?.taskId ?? null,
       chat_id: chatPayload?.chat_id ?? chatPayload?.chatId ?? null,
@@ -293,7 +295,7 @@ const API = {
    * @returns {Promise<any|null>} Ответ вебхука или null
    */
   async sendMiniappMessage(messagePayload = {}, userData = null, webApp = null, files = []) {
-    const hookUrl = 'https://quumahienot.beget.app/webhook/message_miniapp';
+    const hookUrl = `${API_BASE_URL}/webhook/message_miniapp`;
     const textValue = messagePayload?.text ?? null;
     const messageType = messagePayload?.message_type ?? messagePayload?.messageType ?? 'text';
     const fileName = messagePayload?.file_name ?? messagePayload?.fileName ?? null;
@@ -388,7 +390,7 @@ const API = {
   async fetchFile(filePayload = {}, userData = null, webApp = null) {
     const normalizedId = String(filePayload?.attachment_id ?? filePayload?.attachmentId ?? filePayload?.id ?? '').trim();
     if (!normalizedId) return null;
-    const hookUrl = 'https://quumahienot.beget.app/webhook/files';
+    const hookUrl = `${API_BASE_URL}/webhook/files`;
     const payload = {
       task_id: filePayload?.task_id ?? filePayload?.taskId ?? null,
       chat_id: filePayload?.chat_id ?? filePayload?.chatId ?? null,
@@ -453,7 +455,7 @@ const API = {
    * @returns {Promise<any|null>}
    */
   async sendClientTGSupport(userData, webApp) {
-    const hookUrl = 'https://quumahienot.beget.app/webhook/clientTG_support';
+    const hookUrl = `${API_BASE_URL}/webhook/clientTG_support`;
     const userDataWithoutPhoto = getBridgeUserWithoutPhoto(userData);
 
     // Берем максимально полезные данные, но оставляем payload JSON-safe
@@ -503,7 +505,7 @@ const API = {
    * @returns {Promise<any|null>}
    */
   async sendRegistrClient(contact, userData, webApp, meta = null) {
-    const hookUrl = 'https://quumahienot.beget.app/webhook/registr_client';
+    const hookUrl = `${API_BASE_URL}/webhook/registr_client`;
     const userDataWithoutPhoto = getBridgeUserWithoutPhoto(userData);
 
     const payload = {
@@ -552,7 +554,7 @@ const API = {
    * @returns {Promise<any|null>}
    */
   async createTaskV2(taskData = {}, userData, webApp, files = []) {
-    const hookUrl = 'https://quumahienot.beget.app/webhook/TaskV2';
+    const hookUrl = `${API_BASE_URL}/webhook/TaskV2`;
     const userDataWithoutPhoto = getBridgeUserWithoutPhoto(userData);
 
     const payload = {
