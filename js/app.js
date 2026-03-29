@@ -1814,6 +1814,38 @@ const getRequestMessagePreview = (message, fallback = 'Без описания')
   return message.text || fallback;
 };
 
+const normalizeAttachmentExtension = (name = '') => {
+  const normalizedName = String(name || '').trim();
+  const dotIndex = normalizedName.lastIndexOf('.');
+  if (dotIndex < 0) return null;
+  let extension = normalizedName.slice(dotIndex + 1).toLowerCase();
+  if (extension === 'jpeg') extension = 'jpg';
+  if (extension === 'tif') extension = 'tiff';
+  if (extension === 'heif') extension = 'heic';
+  return extension || null;
+};
+
+const PHOTO_EXTENSIONS = new Set(['jpg', 'png', 'webp', 'heic', 'bmp']);
+const VIDEO_MP4_EXTENSIONS = new Set(['mp4']);
+const VIDEO_OTHER_EXTENSIONS = new Set(['mov', 'mkv', 'avi', 'wmv', 'flv', 'webm', 'm4v']);
+const OFFICE_TEXT_EXTENSIONS = new Set(['pdf', 'doc', 'docx', 'xls', 'xlsx', 'csv', 'ppt', 'pptx', 'txt', 'rtf', 'odt', 'ods', 'odp', 'epub']);
+const ARCHIVE_EXTENSIONS = new Set(['zip', 'rar', '7z', 'tar', 'gz', 'bz2']);
+const AUDIO_EXTENSIONS = new Set(['mp3', 'm4a', 'aac', 'flac', 'wav', 'ogg', 'opus']);
+const RAW_VECTOR_SOURCE_EXTENSIONS = new Set(['raw', 'cr2', 'cr3', 'nef', 'arw', 'dng', 'raf', 'orf', 'srw', 'svg', 'ai', 'psd', 'eps', 'indd', 'sketch', 'fig']);
+
+const classifyAttachmentKind = (attachment = {}) => {
+  const extension = normalizeAttachmentExtension(attachment?.name || '');
+  if (!extension) return 'doc';
+  if (PHOTO_EXTENSIONS.has(extension)) return 'photo';
+  if (VIDEO_MP4_EXTENSIONS.has(extension)) return 'video';
+  if (VIDEO_OTHER_EXTENSIONS.has(extension)) return 'doc';
+  if (OFFICE_TEXT_EXTENSIONS.has(extension)) return 'doc';
+  if (ARCHIVE_EXTENSIONS.has(extension)) return 'doc';
+  if (AUDIO_EXTENSIONS.has(extension)) return 'doc';
+  if (RAW_VECTOR_SOURCE_EXTENSIONS.has(extension)) return 'doc';
+  return 'doc';
+};
+
 const renderFileChipHtml = (attachment) => `
   <button
     type="button"
@@ -1825,7 +1857,7 @@ const renderFileChipHtml = (attachment) => `
     <span class="request-file-chip__icon"><i class="fas fa-paperclip" aria-hidden="true"></i></span>
     <span class="request-file-chip__meta">
       <span class="request-file-chip__name">${escapeHtml(attachment?.name || 'Файл')}</span>
-      <span class="request-file-chip__action">Открыть файл</span>
+      <span class="request-file-chip__action">${classifyAttachmentKind(attachment) === 'video' ? 'Открыть видео' : (classifyAttachmentKind(attachment) === 'photo' ? 'Открыть фото' : 'Открыть файл')}</span>
     </span>
   </button>
 `;
@@ -2750,14 +2782,10 @@ const setupRequestDetailsView = () => {
       closeFileViewer();
       currentFileViewerUrl = URL.createObjectURL(blob);
       const blobType = String(blob.type || '').toLowerCase();
-      const normalizedFileName = String(fileName || '').toLowerCase();
-      const isImageFile =
-        blobType.startsWith('image/') ||
-        /\.(png|jpe?g|gif|webp|bmp|svg|heic|heif|avif)$/i.test(normalizedFileName);
-      const isVideoFile =
-        blobType.startsWith('video/') ||
-        /\.(mp4|mov|webm|m4v|ogv)$/i.test(normalizedFileName);
-      const isPdfFile = blobType === 'application/pdf' || /\.pdf$/i.test(normalizedFileName);
+      const attachmentKind = classifyAttachmentKind({ name: fileName });
+      const isImageFile = blobType.startsWith('image/') || attachmentKind === 'photo';
+      const isVideoFile = blobType.startsWith('video/') || attachmentKind === 'video';
+      const isPdfFile = blobType === 'application/pdf' || normalizeAttachmentExtension(fileName) === 'pdf';
       fileViewerTitle.textContent = fileName;
 
       if (isImageFile) {
