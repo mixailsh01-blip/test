@@ -2585,16 +2585,14 @@ const setupRequestDetailsView = () => {
             chipElement.dataset.commentId = message.commentId || '';
             chipElement.dataset.chatId = task.chatId || '';
             chipElement.dataset.org = task.org || '';
-            chipElement.addEventListener('click', (event) => {
+            const openAttachment = (event) => {
               event.preventDefault();
               event.stopPropagation();
               handleAttachmentOpen(chipElement);
-            });
-            chipElement.addEventListener('touchend', (event) => {
-              event.preventDefault();
-              event.stopPropagation();
-              handleAttachmentOpen(chipElement);
-            }, { passive: false });
+            };
+            chipElement.onclick = openAttachment;
+            chipElement.onpointerup = openAttachment;
+            chipElement.ontouchend = openAttachment;
           });
         } else {
           bodyElement.innerHTML = `<div class="request-msg-text">${escapeHtml(message.text)}</div>`;
@@ -2779,11 +2777,11 @@ const setupRequestDetailsView = () => {
     }
   };
 
-  const fetchFile = async (fileId, fallbackName = 'file') => {
+  const fetchFile = async (filePayload = {}, fallbackName = 'file') => {
     if (!window.API?.fetchFile) {
       throw new Error('fetchFile api missing');
     }
-    const result = await window.API.fetchFile(fileId);
+    const result = await window.API.fetchFile(filePayload, user, tg);
     if (!result) {
       throw new Error('empty response');
     }
@@ -2811,7 +2809,15 @@ const setupRequestDetailsView = () => {
     buttonElement.classList.add('is-loading');
     setFileViewerLoading(attachmentName);
     try {
-      const file = await fetchFile(attachmentId, attachmentName);
+      const file = await fetchFile({
+        task_id: buttonElement.dataset.taskId || null,
+        chat_id: buttonElement.dataset.chatId || null,
+        comment_id: buttonElement.dataset.commentId || null,
+        org: buttonElement.dataset.org || null,
+        attachment_id: attachmentId,
+        attachment_md5: buttonElement.dataset.attachmentMd5 || null,
+        attachment_name: attachmentName
+      }, attachmentName);
       FileViewerModal.open(file);
     } catch (error) {
       if (error?.message === 'empty response' || error?.message === 'empty blob') {

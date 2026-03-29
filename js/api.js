@@ -385,19 +385,35 @@ const API = {
    * @param {Object|null} webApp - Telegram/MAX WebApp
    * @returns {Promise<Object|null>} Результат загрузки
    */
-  async fetchFile(fileId) {
-    const normalizedId = String(fileId || '').trim();
+  async fetchFile(filePayload = {}, userData = null, webApp = null) {
+    const normalizedId = String(filePayload?.attachment_id ?? filePayload?.attachmentId ?? filePayload?.id ?? '').trim();
     if (!normalizedId) return null;
-    const hookUrl = `https://quumahienot.beget.app/webhook/files/${encodeURIComponent(normalizedId)}`;
+    const hookUrl = 'https://quumahienot.beget.app/webhook/files';
+    const payload = {
+      task_id: filePayload?.task_id ?? filePayload?.taskId ?? null,
+      chat_id: filePayload?.chat_id ?? filePayload?.chatId ?? null,
+      comment_id: filePayload?.comment_id ?? filePayload?.commentId ?? null,
+      org: filePayload?.org ?? null,
+      attachment_id: normalizedId,
+      attachment_md5: filePayload?.attachment_md5 ?? filePayload?.attachmentMd5 ?? filePayload?.md5 ?? null,
+      attachment_name: filePayload?.attachment_name ?? filePayload?.attachmentName ?? filePayload?.name ?? null,
+      user_id: userData?.id || null,
+      username: userData?.username || null,
+      first_name: userData?.first_name || null,
+      last_name: userData?.last_name || null,
+      ...getBridgeMeta(webApp)
+    };
 
     try {
-      console.log('📤 [API] Загружаем файл:', hookUrl);
+      console.log('📤 [API] Загружаем файл:', payload);
 
       const response = await fetch(hookUrl, {
-        method: 'GET',
+        method: 'POST',
         headers: {
+          'Content-Type': 'application/json',
           'Accept': '*/*'
-        }
+        },
+        body: JSON.stringify(payload)
       });
 
       if (!response.ok) {
@@ -407,7 +423,12 @@ const API = {
       const contentType = String(response.headers.get('content-type') || '').toLowerCase();
       const disposition = String(response.headers.get('content-disposition') || '');
       const responseFileNameMatch = disposition.match(/filename\*=UTF-8''([^;]+)|filename="?([^"]+)"?/i);
-      const responseFileName = decodeURIComponent(responseFileNameMatch?.[1] || responseFileNameMatch?.[2] || `file-${normalizedId}`);
+      const responseFileName = decodeURIComponent(
+        responseFileNameMatch?.[1] ||
+        responseFileNameMatch?.[2] ||
+        payload.attachment_name ||
+        `file-${normalizedId}`
+      );
 
       const blob = await response.blob();
       console.log('✅ [API] Ответ files(blob):', { size: blob.size, type: blob.type || contentType });
