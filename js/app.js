@@ -1767,6 +1767,11 @@ const getTaskOrganizationName = (item = {}) => {
   return resolved || 'Без организации';
 };
 
+const hasResolvedOrganizationName = (value = '') => {
+  const normalized = String(value ?? '').trim();
+  return Boolean(normalized) && normalized !== 'Без организации';
+};
+
 const normalizeTaskFromWebhook = (item) => {
   if (!item || (!item.task_id && !item.taskId)) return null;
   const taskId = String(item.task_id ?? item.taskId);
@@ -1845,7 +1850,7 @@ const upsertRequestTask = (task, options = {}) => {
     requestsState.tasks[existingIndex] = {
       ...existingTask,
       ...task,
-      org: task.org || existingTask.org,
+      org: hasResolvedOrganizationName(task.org) ? task.org : existingTask.org,
       description: task.description || existingTask.description,
       status: task.status || existingTask.status,
       chatId: task.chatId || existingTask.chatId,
@@ -2736,7 +2741,7 @@ const setupRequestDetailsView = () => {
 
     if (dialogNumber) dialogNumber.textContent = `№${task.taskId} от ${formatRequestDate(task.createdAt)}`;
     if (dialogStatus) dialogStatus.textContent = task.status;
-    if (dialogTopic) dialogTopic.textContent = 'Описание';
+    if (dialogTopic) dialogTopic.textContent = task.description || 'Без описания';
     if (dialogCompany) dialogCompany.textContent = task.org;
 
     renderDialogChat(task);
