@@ -1734,6 +1734,39 @@ const isTaskClosed = (task) => {
   return Boolean(task?.isClosed) || ['решена', 'закрыта', 'закрыт', 'closed'].includes(normalizedStatus);
 };
 
+const getTaskOrganizationName = (item = {}) => {
+  const candidates = [
+    item?.org,
+    item?.Org,
+    item?.organization,
+    item?.Organization,
+    item?.org_name,
+    item?.orgName,
+    item?.company,
+    item?.Company,
+    item?.client,
+    item?.Client,
+    item?.client_name,
+    item?.clientName,
+    item?.restaurant,
+    item?.Restaurant,
+    item?.restaurant_name,
+    item?.restaurantName,
+    item?.establishment,
+    item?.establishment_name,
+    item?.establishmentName,
+    item?.data?.org,
+    item?.data?.organization,
+    item?.data?.Client
+  ];
+
+  const resolved = candidates
+    .map((value) => String(value ?? '').trim())
+    .find(Boolean);
+
+  return resolved || 'Без организации';
+};
+
 const normalizeTaskFromWebhook = (item) => {
   if (!item || (!item.task_id && !item.taskId)) return null;
   const taskId = String(item.task_id ?? item.taskId);
@@ -1753,7 +1786,7 @@ const normalizeTaskFromWebhook = (item) => {
 
   return {
     taskId,
-    org: String(item.org ?? item.organization ?? item.Client ?? 'Без организации'),
+    org: getTaskOrganizationName(item),
     description,
     status: hasStatus ? String(item.status ?? '') : '',
     chatId: String(item.chat_id ?? item.chatId ?? ''),
