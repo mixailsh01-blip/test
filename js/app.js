@@ -2690,6 +2690,37 @@ const setupRequestDetailsView = () => {
     }
   };
 
+  const openFileViewerShell = (title = 'Файл') => {
+    if (!fileViewerModal || !fileViewerBody || !fileViewerTitle) return;
+    fileViewerTitle.textContent = title;
+    fileViewerModal.classList.remove('hidden');
+    fileViewerModal.setAttribute('aria-hidden', 'false');
+  };
+
+  const setFileViewerLoading = (title = 'Файл') => {
+    if (!fileViewerBody) return;
+    openFileViewerShell(title);
+    fileViewerBody.innerHTML = `
+      <div class="file-viewer-state">
+        <div class="file-viewer-spinner" aria-hidden="true"></div>
+        <div class="file-viewer-state-title">Загружаем файл</div>
+        <div class="file-viewer-state-text">Подготавливаем просмотр внутри mini app.</div>
+      </div>
+    `;
+  };
+
+  const setFileViewerError = (title, message) => {
+    if (!fileViewerBody) return;
+    openFileViewerShell(title);
+    fileViewerBody.innerHTML = `
+      <div class="file-viewer-state">
+        <div class="file-viewer-fallback-icon"><i class="fas fa-triangle-exclamation" aria-hidden="true"></i></div>
+        <div class="file-viewer-state-title">Не удалось открыть файл</div>
+        <div class="file-viewer-state-text">${escapeHtml(message)}</div>
+      </div>
+    `;
+  };
+
   const downloadBlobFile = (blobUrl, fileName) => {
     const anchor = document.createElement('a');
     anchor.href = blobUrl;
@@ -2734,8 +2765,7 @@ const setupRequestDetailsView = () => {
         });
       }
 
-      fileViewerModal.classList.remove('hidden');
-      fileViewerModal.setAttribute('aria-hidden', 'false');
+      openFileViewerShell(fileName);
     }
   };
 
@@ -2769,17 +2799,22 @@ const setupRequestDetailsView = () => {
     }
     setDialogRequestInFlight(true);
     buttonElement.classList.add('is-loading');
+    setFileViewerLoading(attachmentName);
     try {
       const file = await fetchFile(attachmentId, attachmentName);
       FileViewerModal.open(file);
     } catch (error) {
       if (error?.message === 'empty response' || error?.message === 'empty blob') {
+        setFileViewerError(attachmentName, 'Хук files вернул пустой ответ или пустой файл.');
         showPlatformPopup('Ошибка файла', `Файл пустой или не был получен: ${attachmentName}`);
       } else if (error?.message === 'invalid blob') {
+        setFileViewerError(attachmentName, 'В ответе пришел некорректный blob. Проверь Content-Type и тело ответа.');
         showPlatformPopup('Ошибка файла', `Получен некорректный файл: ${attachmentName}`);
       } else if (error?.message === 'fetchFile api missing') {
+        setFileViewerError(attachmentName, 'Метод API.fetchFile не найден.');
         showPlatformPopup('Ошибка файла', 'Метод API.fetchFile не найден.');
       } else {
+        setFileViewerError(attachmentName, 'Запрос к файлу не завершился. Возможны CORS, сеть или ошибка webhook/files/{id}.');
         showPlatformPopup('Ошибка файла', `Не удалось открыть файл: ${attachmentName}`);
       }
     } finally {

@@ -2388,6 +2388,40 @@ body.hide-main-logo #requests.page {
   padding: 18px 16px calc(24px + env(safe-area-inset-bottom));
 }
 
+.file-viewer-state {
+  width: min(100%, 420px);
+  padding: 22px 18px;
+  border-radius: 22px;
+  background: #1f222b;
+  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.32);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+}
+
+.file-viewer-spinner {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 3px solid rgba(255, 255, 255, 0.12);
+  border-top-color: #0c86ff;
+  animation: file-viewer-spin 0.9s linear infinite;
+}
+
+.file-viewer-state-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.file-viewer-state-text {
+  font-size: 14px;
+  color: #98a0b3;
+  line-height: 1.35;
+}
+
 .file-viewer-image {
   width: 100%;
   max-width: 980px;
@@ -2451,6 +2485,12 @@ body.hide-main-logo #requests.page {
   font-family: 'PT Root UI', sans-serif;
   font-size: 16px;
   font-weight: 700;
+}
+
+@keyframes file-viewer-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .request-msg-time {
