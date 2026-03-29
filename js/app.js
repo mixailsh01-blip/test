@@ -1764,7 +1764,11 @@ const getTaskOrganizationName = (item = {}) => {
     .map((value) => String(value ?? '').trim())
     .find(Boolean);
 
-  return resolved || 'Без организации';
+  const cleaned = String(resolved || '')
+    .replace(/^Карточка\s+ресторана:\s*/i, '')
+    .trim();
+
+  return cleaned || 'Без организации';
 };
 
 const hasResolvedOrganizationName = (value = '') => {
