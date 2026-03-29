@@ -2709,11 +2709,16 @@ const setupRequestDetailsView = () => {
       closeFileViewer();
       currentFileViewerUrl = URL.createObjectURL(blob);
       const blobType = String(blob.type || '').toLowerCase();
+      const normalizedFileName = String(fileName || '').toLowerCase();
+      const isImageFile =
+        blobType.startsWith('image/') ||
+        /\.(png|jpe?g|gif|webp|bmp|svg|heic|heif|avif)$/i.test(normalizedFileName);
+      const isPdfFile = blobType === 'application/pdf' || /\.pdf$/i.test(normalizedFileName);
       fileViewerTitle.textContent = fileName;
 
-      if (blobType.startsWith('image/')) {
+      if (isImageFile) {
         fileViewerBody.innerHTML = `<img class="file-viewer-image" src="${currentFileViewerUrl}" alt="${escapeHtml(fileName)}" />`;
-      } else if (blobType === 'application/pdf') {
+      } else if (isPdfFile) {
         fileViewerBody.innerHTML = `<iframe class="file-viewer-pdf" src="${currentFileViewerUrl}" title="${escapeHtml(fileName)}"></iframe>`;
       } else {
         fileViewerBody.innerHTML = `
