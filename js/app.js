@@ -1760,6 +1760,21 @@ const isImageAttachment = (attachment) => {
   return /\.(png|jpe?g|gif|webp|bmp|svg|heic|heif|avif)(\?|#|$)/i.test(source);
 };
 
+const renderFileChipHtml = (attachment) => `
+  <a
+    class="request-file-chip"
+    href="${escapeHtml(attachment?.url || '#')}"
+    target="_blank"
+    rel="noopener noreferrer"
+  >
+    <span class="request-file-chip__icon"><i class="fas fa-paperclip" aria-hidden="true"></i></span>
+    <span class="request-file-chip__meta">
+      <span class="request-file-chip__name">${escapeHtml(attachment?.name || 'Файл')}</span>
+      <span class="request-file-chip__action">${attachment?.url ? 'Открыть файл' : 'Файл недоступен'}</span>
+    </span>
+  </a>
+`;
+
 const renderRequestsList = () => {
   const list = document.getElementById('requests-list');
   if (!list) return;
@@ -2520,25 +2535,20 @@ const setupRequestDetailsView = () => {
                   <span class="request-image-chip__action">${attachment.url ? 'Открыть изображение' : 'Изображение недоступно'}</span>
                 </span>
               </a>
-            ` : `
-              <a
-                class="request-file-chip"
-                href="${escapeHtml(attachment.url || '#')}"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <span class="request-file-chip__icon"><i class="fas fa-paperclip" aria-hidden="true"></i></span>
-                <span class="request-file-chip__meta">
-                  <span class="request-file-chip__name">${escapeHtml(attachment.name || 'Файл')}</span>
-                  <span class="request-file-chip__action">${attachment.url ? 'Открыть файл' : 'Файл недоступен'}</span>
-                </span>
-              </a>
-            `}
+            ` : renderFileChipHtml(attachment)}
           `).join('');
           bodyElement.innerHTML = `
             ${message.text ? `<div class="request-msg-text">${escapeHtml(message.text)}</div>` : ''}
             <div class="request-file-list">${attachmentsHtml}</div>
           `;
+          bodyElement.querySelectorAll('.request-image-chip__preview').forEach((imageElement, index) => {
+            imageElement.addEventListener('error', () => {
+              const attachment = message.attachments[index];
+              const imageChip = imageElement.closest('.request-image-chip');
+              if (!attachment || !imageChip) return;
+              imageChip.outerHTML = renderFileChipHtml(attachment);
+            }, { once: true });
+          });
         } else {
           bodyElement.innerHTML = `<div class="request-msg-text">${escapeHtml(message.text)}</div>`;
         }
