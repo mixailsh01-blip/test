@@ -1541,15 +1541,43 @@ const normalizeCommentIsOutgoing = (comment, author, taskId = '') => {
 const normalizeTaskComment = (comment, fallbackText = '', taskId = '') => {
   const author = normalizeCommentAuthor(comment);
   const normalizedTaskId = String(comment?.task_id ?? taskId ?? '');
+  const messageType = String(comment?.message_type ?? comment?.messageType ?? 'TEXT').trim().toUpperCase();
+  const legacyAttachmentNames = Array.isArray(comment?.attachmentsName) ? comment.attachmentsName : [];
+  const legacyAttachmentUrls = Array.isArray(comment?.attachmentsURL) ? comment.attachmentsURL : [];
+  const legacyAttachmentIds = Array.isArray(comment?.attachmentsID) ? comment.attachmentsID : [];
+  const legacyAttachmentMd5 = Array.isArray(comment?.attachmentsMD5) ? comment.attachmentsMD5 : [];
+  const objectAttachments = Array.isArray(comment?.attachments) ? comment.attachments : [];
+  const attachments = objectAttachments.length > 0
+    ? objectAttachments
+      .map((item, index) => ({
+        id: String(item?.id ?? item?.attachment_id ?? item?.ID ?? index),
+        name: String(item?.name ?? item?.file_name ?? item?.title ?? `Файл ${index + 1}`),
+        url: String(item?.url ?? item?.file_url ?? item?.href ?? ''),
+        md5: String(item?.md5 ?? item?.hash ?? '')
+      }))
+      .filter((item) => item.name || item.url)
+    : legacyAttachmentNames.map((name, index) => ({
+      id: String(legacyAttachmentIds[index] ?? index),
+      name: String(name ?? `Файл ${index + 1}`),
+      url: String(legacyAttachmentUrls[index] ?? ''),
+      md5: String(legacyAttachmentMd5[index] ?? '')
+    }))
+      .filter((item) => item.name || item.url);
+  const fallbackFileText = attachments.length > 0
+    ? attachments.map((item) => item.name).filter(Boolean).join(', ')
+    : fallbackText;
+  const normalizedText = String(comment?.text ?? (messageType === 'FILES' ? fallbackFileText : fallbackText) ?? '');
 
   return {
     taskId: normalizedTaskId,
     commentId: String(comment?.comment_id ?? `${Date.now()}`),
     author,
-    text: String(comment?.text ?? fallbackText ?? ''),
+    text: normalizedText,
     date: comment?.date || new Date().toISOString(),
     channelType: String(comment?.channel_type ?? comment?.channelType ?? 'custom'),
-    isOutgoing: normalizeCommentIsOutgoing(comment, author, normalizedTaskId)
+    isOutgoing: normalizeCommentIsOutgoing(comment, author, normalizedTaskId),
+    messageType,
+    attachments
   };
 };
 
@@ -1620,7 +1648,7 @@ const normalizeTaskFromWebhook = (item) => {
       ...comment,
       IDUser: comment?.IDUser ?? comment?.UserID ?? item?.IDUser ?? item?.UserID ?? null
     }, item.description, taskId))
-    .filter((comment) => comment.text);
+    .filter((comment) => comment.text || (Array.isArray(comment.attachments) && comment.attachments.length > 0));
   const lastMessage = normalizedChat[normalizedChat.length - 1];
   const description = item.description == null ? '' : String(item.description ?? item.text ?? '');
   const hasStatus = Object.prototype.hasOwnProperty.call(item, 'status');
@@ -1708,6 +1736,17 @@ const upsertRequestTask = (task, options = {}) => {
   saveUnreadCountsToStorage();
 };
 
+const getRequestMessagePreview = (message, fallback = 'Без описания') => {
+  if (!message) return fallback;
+  if (Array.isArray(message.attachments) && message.attachments.length > 0) {
+    if (message.attachments.length === 1) {
+      return `Файл: ${message.attachments[0].name || 'без названия'}`;
+    }
+    return `Файлы: ${message.attachments.length}`;
+  }
+  return message.text || fallback;
+};
+
 const renderRequestsList = () => {
   const list = document.getElementById('requests-list');
   if (!list) return;
@@ -1741,7 +1780,7 @@ const renderRequestsList = () => {
 
   list.innerHTML = filteredTasks
     .map((task) => {
-      const previewText = task.chat[task.chat.length - 1]?.text || task.description || 'Без описания';
+      const previewText = getRequestMessagePreview(task.chat[task.chat.length - 1], task.description || 'Без описания');
       return `
         <div class="request-card" data-task-id="${escapeHtml(task.taskId)}">
           <div class="request-card-top">
@@ -2283,6 +2322,7 @@ const setupRequestDetailsView = () => {
   const closedBanner = document.getElementById('request-dialog-closed');
 
   if (!requestsList || !dialogModal || !dialogChat || !input || !sendBtn || !attachBtn || !fileInput || !composer || !closedBanner) return;
+  let isDialogRequestInFlight = false;
 
   const getCurrentTimeLabel = () => {
     const now = new Date();
@@ -2435,16 +2475,41 @@ const setupRequestDetailsView = () => {
       const isOutgoing = Boolean(message.isOutgoing);
       const msg = document.createElement('div');
       msg.className = `request-msg ${isOutgoing ? 'request-msg-right request-msg-outgoing' : 'request-msg-left'}`;
+      const hasAttachments = Array.isArray(message.attachments) && message.attachments.length > 0;
       msg.innerHTML = `
         ${isOutgoing ? '' : '<div class="request-msg-author"></div>'}
-        <div class="request-msg-text"></div>
+        <div class="request-msg-body"></div>
         <div class="request-msg-time"></div>
       `;
       const authorElement = msg.querySelector('.request-msg-author');
       if (authorElement) {
         authorElement.textContent = message.author;
       }
-      msg.querySelector('.request-msg-text').textContent = message.text;
+      const bodyElement = msg.querySelector('.request-msg-body');
+      if (bodyElement) {
+        if (hasAttachments) {
+          const attachmentsHtml = message.attachments.map((attachment) => `
+            <a
+              class="request-file-chip"
+              href="${escapeHtml(attachment.url || '#')}"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <span class="request-file-chip__icon"><i class="fas fa-paperclip" aria-hidden="true"></i></span>
+              <span class="request-file-chip__meta">
+                <span class="request-file-chip__name">${escapeHtml(attachment.name || 'Файл')}</span>
+                <span class="request-file-chip__action">${attachment.url ? 'Открыть файл' : 'Файл недоступен'}</span>
+              </span>
+            </a>
+          `).join('');
+          bodyElement.innerHTML = `
+            ${message.text ? `<div class="request-msg-text">${escapeHtml(message.text)}</div>` : ''}
+            <div class="request-file-list">${attachmentsHtml}</div>
+          `;
+        } else {
+          bodyElement.innerHTML = `<div class="request-msg-text">${escapeHtml(message.text)}</div>`;
+        }
+      }
       msg.querySelector('.request-msg-time').textContent = formatRequestDate(message.date) || getCurrentTimeLabel();
       dialogChat.appendChild(msg);
     });
@@ -2456,9 +2521,9 @@ const setupRequestDetailsView = () => {
     const isClosed = isTaskClosed(task);
     composer.classList.toggle('hidden', isClosed);
     closedBanner.classList.toggle('hidden', !isClosed);
-    input.disabled = isClosed;
-    sendBtn.disabled = isClosed;
-    attachBtn.disabled = isClosed;
+    input.disabled = isClosed || isDialogRequestInFlight;
+    sendBtn.disabled = isClosed || isDialogRequestInFlight;
+    attachBtn.disabled = isClosed || isDialogRequestInFlight;
     if (isClosed) {
       input.value = '';
       fileInput.value = '';
@@ -2504,7 +2569,7 @@ const setupRequestDetailsView = () => {
   const sendMessageToMiniappWebhook = async (activeTask, payload, files = []) => {
     if (!window.API?.sendMiniappMessage || !activeTask) return;
 
-    await window.API.sendMiniappMessage({
+    const result = await window.API.sendMiniappMessage({
       task_id: activeTask.taskId,
       chat_id: activeTask.chatId,
       org: activeTask.org,
@@ -2512,6 +2577,25 @@ const setupRequestDetailsView = () => {
       message_type: payload?.message_type ?? 'text',
       file_name: payload?.file_name ?? null
     }, user, tg, files);
+
+    if (!result) {
+      throw new Error('message_miniapp returned empty response');
+    }
+
+    return result;
+  };
+
+  const setDialogRequestInFlight = (nextState) => {
+    isDialogRequestInFlight = Boolean(nextState);
+    const activeTask = requestsState.tasks.find((item) => item.taskId === requestsState.activeTaskId);
+    if (activeTask) {
+      updateDialogComposerState(activeTask);
+    }
+  };
+
+  const removeTaskMessage = (task, commentId) => {
+    if (!task || !commentId) return;
+    task.chat = (task.chat || []).filter((message) => message.commentId !== commentId);
   };
 
   const syncKeyboardOffset = () => {
@@ -2542,7 +2626,7 @@ const setupRequestDetailsView = () => {
 
   const sendCurrentMessage = async () => {
     const text = input.value.trim();
-    if (!text) return;
+    if (!text || isDialogRequestInFlight) return;
     const activeTask = requestsState.tasks.find((item) => item.taskId === requestsState.activeTaskId);
     if (!activeTask || isTaskClosed(activeTask)) return;
 
@@ -2560,7 +2644,18 @@ const setupRequestDetailsView = () => {
     renderRequestsList();
     renderDialogChat(activeTask);
     input.value = '';
-    await sendMessageToMiniappWebhook(activeTask, { text, message_type: 'text' });
+    setDialogRequestInFlight(true);
+    try {
+      await sendMessageToMiniappWebhook(activeTask, { text, message_type: 'text' });
+    } catch (error) {
+      removeTaskMessage(activeTask, pendingMessage.commentId);
+      renderRequestsList();
+      renderDialogChat(activeTask);
+      input.value = text;
+      showPlatformPopup('Ошибка отправки', 'Сообщение не удалось отправить. Попробуйте еще раз.');
+    } finally {
+      setDialogRequestInFlight(false);
+    }
   };
 
   requestsList.addEventListener('click', (event) => {
@@ -2591,35 +2686,44 @@ const setupRequestDetailsView = () => {
   fileInput.addEventListener('change', async () => {
     const files = Array.from(fileInput.files || []);
     const activeTask = requestsState.tasks.find((item) => item.taskId === requestsState.activeTaskId);
-    if (!activeTask || isTaskClosed(activeTask)) {
+    if (!files.length || !activeTask || isTaskClosed(activeTask) || isDialogRequestInFlight) {
       fileInput.value = '';
       return;
     }
+    setDialogRequestInFlight(true);
+    try {
+      for (const file of files) {
+        const pendingMessage = normalizeTaskComment({
+          task_id: activeTask.taskId,
+          comment_id: `${Date.now()}-${file.name}`,
+          author: user?.first_name || user?.username || 'Вы',
+          text: `Файл: ${file.name}`,
+          date: new Date().toISOString(),
+          channel_type: `${platformName}_webapp`
+        });
+        registerPendingOutgoingMessage(activeTask.taskId, pendingMessage);
+        activeTask.chat.push(pendingMessage);
+        renderRequestsList();
+        renderDialogChat(activeTask);
 
-    files.forEach((file) => {
-      const pendingMessage = normalizeTaskComment({
-        task_id: activeTask.taskId,
-        comment_id: `${Date.now()}-${file.name}`,
-        author: user?.first_name || user?.username || 'Вы',
-        text: `Файл: ${file.name}`,
-        date: new Date().toISOString(),
-        channel_type: `${platformName}_webapp`
-      });
-      registerPendingOutgoingMessage(activeTask.taskId, pendingMessage);
-      activeTask.chat.push(pendingMessage);
-      renderRequestsList();
-      renderDialogChat(activeTask);
-    });
-
-    for (const file of files) {
-      await sendMessageToMiniappWebhook(activeTask, {
-        text: `Файл: ${file.name}`,
-        message_type: 'file',
-        file_name: file.name
-      }, [file]);
+        try {
+          await sendMessageToMiniappWebhook(activeTask, {
+            text: `Файл: ${file.name}`,
+            message_type: 'file',
+            file_name: file.name
+          }, [file]);
+        } catch (error) {
+          removeTaskMessage(activeTask, pendingMessage.commentId);
+          renderRequestsList();
+          renderDialogChat(activeTask);
+          showPlatformPopup('Ошибка отправки файла', `Не удалось отправить файл: ${file.name}`);
+          break;
+        }
+      }
+    } finally {
+      setDialogRequestInFlight(false);
+      fileInput.value = '';
     }
-
-    fileInput.value = '';
   });
   dialogModal.addEventListener('click', (event) => {
     if (event.target === dialogModal) {
