@@ -1350,6 +1350,12 @@ const requestsOpenChatPollState = {
   attempt: 0,
   inFlight: false
 };
+const requestDeepLinkState = {
+  chatId: '',
+  handled: false,
+  attempt: 0,
+  timerId: null
+};
 const pendingOutgoingMessagesByTask = new Map();
 const UNREAD_STORAGE_KEY = 'miniapp_unread_counts_v1';
 const OPEN_CHAT_POLL_DELAYS_MS = [8000, 16000, 32000, 60000];
@@ -1651,6 +1657,28 @@ const normalizeTaskComment = (comment, fallbackText = '', taskId = '') => {
 const getCommentIdentity = (comment) => `${comment.commentId}|${comment.date}|${comment.author}|${comment.text}`;
 const getTaskStorageKey = (task) => String(task?.chatId || task?.taskId || '');
 
+const normalizeDeepLinkChatId = (value = '') => String(value || '')
+  .trim()
+  .replace(/^['"]+|['"]+$/g, '');
+
+const getMiniAppStartParam = () => {
+  const candidates = [
+    tg?.initDataUnsafe?.start_param,
+    tg?.initDataUnsafe?.startapp,
+    window.WebApp?.initDataUnsafe?.start_param,
+    window.WebApp?.initDataUnsafe?.startapp,
+    new URLSearchParams(window.location.search).get('startapp'),
+    new URLSearchParams(window.location.search).get('start_param'),
+    new URLSearchParams(window.location.search).get('WebAppStartParam')
+  ];
+
+  const resolved = candidates
+    .map(normalizeDeepLinkChatId)
+    .find(Boolean);
+
+  return resolved || '';
+};
+
 const loadUnreadCountsFromStorage = () => {
   try {
     const raw = localStorage.getItem(UNREAD_STORAGE_KEY);
@@ -1921,6 +1949,7 @@ const syncCreatedTasksFromResult = (result) => {
     .filter(Boolean)
     .forEach((task) => upsertRequestTask(task));
   renderRequestsList();
+  window.tryOpenDeepLinkedRequest?.();
   return requestsState.tasks[0] || null;
 };
 
@@ -1931,6 +1960,7 @@ const syncOpenedChatFromResult = (result, fallbackTaskId = null) => {
     upsertRequestTask(task, { markRead: requestsState.activeTaskId === task.taskId });
   });
   renderRequestsList();
+  window.tryOpenDeepLinkedRequest?.();
 
   if (!fallbackTaskId) return normalizedTasks[0] || null;
   return requestsState.tasks.find((item) => item.taskId === String(fallbackTaskId)) || normalizedTasks[0] || null;
@@ -1993,6 +2023,7 @@ const seedLocalPreviewData = () => {
     });
 
   renderRequestsList();
+  window.tryOpenDeepLinkedRequest?.();
 
   const mainDropdown = document.getElementById('main-dropdown');
   if (mainDropdown && Array.from(mainDropdown.options).some((option) => option.value === LOCAL_PREVIEW_ESTABLISHMENTS[0].id)) {
@@ -2464,6 +2495,13 @@ const setupRequestDetailsView = () => {
     requestsOpenChatPollState.inFlight = false;
   };
 
+  const stopDeepLinkOpenPolling = () => {
+    if (requestDeepLinkState.timerId) {
+      clearTimeout(requestDeepLinkState.timerId);
+    }
+    requestDeepLinkState.timerId = null;
+  };
+
   const closeDialog = () => {
     stopOpenChatPolling();
     dialogModal.classList.add('hidden');
@@ -2686,6 +2724,43 @@ const setupRequestDetailsView = () => {
     requestOpenChat(task);
     scheduleOpenChatPolling(task.taskId);
   };
+
+  const openDeepLinkedRequest = () => {
+    const deepLinkedChatId = requestDeepLinkState.chatId;
+    if (!deepLinkedChatId || requestDeepLinkState.handled) return false;
+
+    const task = requestsState.tasks.find((item) => String(item.chatId || '').trim() === deepLinkedChatId);
+    if (!task?.taskId) return false;
+
+    stopDeepLinkOpenPolling();
+    requestDeepLinkState.handled = true;
+
+    const requestsNavBtn = document.querySelector('.nav-btn[data-page="requests"]');
+    if (!document.getElementById('requests')?.classList.contains('active')) {
+      requestsNavBtn?.click();
+    }
+
+    openDialog(task.taskId);
+    return true;
+  };
+
+  const scheduleDeepLinkOpen = () => {
+    if (!requestDeepLinkState.chatId || requestDeepLinkState.handled) return;
+    if (openDeepLinkedRequest()) return;
+
+    stopDeepLinkOpenPolling();
+    if (requestDeepLinkState.attempt >= 20) return;
+
+    const delay = requestDeepLinkState.attempt < 5 ? 400 : 1200;
+    requestDeepLinkState.attempt += 1;
+    requestDeepLinkState.timerId = window.setTimeout(() => {
+      scheduleDeepLinkOpen();
+    }, delay);
+  };
+
+  requestDeepLinkState.chatId = getMiniAppStartParam();
+  window.tryOpenDeepLinkedRequest = scheduleDeepLinkOpen;
+  scheduleDeepLinkOpen();
 
   const sendMessageToMiniappWebhook = async (activeTask, payload, files = []) => {
     if (!window.API?.sendMiniappMessage || !activeTask) return;
