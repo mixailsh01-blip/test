@@ -1377,7 +1377,67 @@ const LOCAL_PREVIEW_DESCRIPTIONS = [
   'Сбой оплаты по QR',
   'Не грузится меню'
 ];
-const LOCAL_PREVIEW_TASKS = Array.from({ length: 20 }, (_, index) => {
+const LOCAL_PREVIEW_TASKS = [
+  {
+    task_id: 345999748,
+    chat_id: '5457100_1774806154883_evec',
+    Client: 'ресторан «Я семья»',
+    status: 'В работе',
+    description: 'Тест диалога с файлом',
+    chat: [
+      {
+        task_id: 345999748,
+        comment_id: 2954941360,
+        author: 'Михаил',
+        text: 'Темт',
+        date: '2026-03-29T17:43:40Z',
+        channel_type: 'custom',
+        IDUser: '5457100',
+        message_type: 'TEXT',
+        attachmentsID: [],
+        attachmentsName: [],
+        attachmentsURL: [],
+        attachmentsMD5: []
+      },
+      {
+        task_id: 345999748,
+        comment_id: 2954946959,
+        author: 'Михаил',
+        text: 'Файл: IMG_4849.png',
+        date: '2026-03-29T17:49:08Z',
+        channel_type: 'custom',
+        IDUser: '5457100',
+        message_type: 'TEXT',
+        attachmentsID: [],
+        attachmentsName: [],
+        attachmentsURL: [],
+        attachmentsMD5: []
+      },
+      {
+        task_id: 345999748,
+        comment_id: 2954971338,
+        author: 'Михаил',
+        text: '',
+        date: '2026-03-29T18:13:48Z',
+        channel_type: 'custom',
+        IDUser: '5457100',
+        message_type: 'FILES',
+        attachmentsID: [
+          424060439
+        ],
+        attachmentsName: [
+          'IMG_4849.png'
+        ],
+        attachmentsURL: [
+          'https://pyrus.com/services/attachment?id=424060439'
+        ],
+        attachmentsMD5: [
+          '78C67420A38B2326A4FB91766FC6575A'
+        ]
+      }
+    ]
+  },
+  ...Array.from({ length: 20 }, (_, index) => {
   const establishment = LOCAL_PREVIEW_ESTABLISHMENTS[index % LOCAL_PREVIEW_ESTABLISHMENTS.length];
   const description = LOCAL_PREVIEW_DESCRIPTIONS[index % LOCAL_PREVIEW_DESCRIPTIONS.length];
   const taskId = String(345246422 + index);
@@ -1409,7 +1469,8 @@ const LOCAL_PREVIEW_TASKS = Array.from({ length: 20 }, (_, index) => {
       }
     ]
   };
-});
+})
+];
 
 const escapeHtml = (value) => String(value ?? '')
   .replace(/&/g, '&amp;')
@@ -2611,116 +2672,108 @@ const setupRequestDetailsView = () => {
     if (size < 1024 * 1024) return `${Math.round(size / 1024)} KB`;
     return `${(size / (1024 * 1024)).toFixed(1)} MB`;
   };
+  const fileViewerModal = document.getElementById('file-viewer-modal');
+  const fileViewerBody = document.getElementById('file-viewer-body');
+  const fileViewerTitle = document.getElementById('file-viewer-title');
+  const fileViewerClose = document.getElementById('file-viewer-close');
+  let currentFileViewerUrl = '';
 
-  const openBlobResult = async (blob, fileName = 'file') => {
-    const objectUrl = URL.createObjectURL(blob);
-    const popup = window.open(objectUrl, '_blank', 'noopener,noreferrer');
-
-    if (!popup) {
-      const anchor = document.createElement('a');
-      anchor.href = objectUrl;
-      anchor.download = fileName;
-      anchor.target = '_blank';
-      anchor.rel = 'noopener noreferrer';
-      document.body.appendChild(anchor);
-      anchor.click();
-      anchor.remove();
+  const closeFileViewer = () => {
+    if (!fileViewerModal || !fileViewerBody || !fileViewerTitle) return;
+    fileViewerModal.classList.add('hidden');
+    fileViewerModal.setAttribute('aria-hidden', 'true');
+    fileViewerBody.innerHTML = '';
+    fileViewerTitle.textContent = 'Файл';
+    if (currentFileViewerUrl) {
+      URL.revokeObjectURL(currentFileViewerUrl);
+      currentFileViewerUrl = '';
     }
-
-    if (navigator.share && typeof File === 'function') {
-      try {
-        const file = new File([blob], fileName, { type: blob.type || 'application/octet-stream' });
-        if (!navigator.canShare || navigator.canShare({ files: [file] })) {
-          await navigator.share({ files: [file], title: fileName });
-        }
-      } catch (error) {
-        // Игнорируем: share здесь только как дополнительный fallback.
-      }
-    }
-
-    setTimeout(() => {
-      URL.revokeObjectURL(objectUrl);
-    }, 60 * 1000);
   };
 
-  const handleAttachmentResponse = async (result, fallbackName = 'file') => {
+  const downloadBlobFile = (blobUrl, fileName) => {
+    const anchor = document.createElement('a');
+    anchor.href = blobUrl;
+    anchor.download = fileName;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+  };
+
+  const FileViewerModal = {
+    open({ blob, fileName = 'file' }) {
+      if (!fileViewerModal || !fileViewerBody || !fileViewerTitle) return;
+      if (!(blob instanceof Blob) || blob.size <= 0) {
+        throw new Error('invalid blob');
+      }
+
+      closeFileViewer();
+      currentFileViewerUrl = URL.createObjectURL(blob);
+      const blobType = String(blob.type || '').toLowerCase();
+      fileViewerTitle.textContent = fileName;
+
+      if (blobType.startsWith('image/')) {
+        fileViewerBody.innerHTML = `<img class="file-viewer-image" src="${currentFileViewerUrl}" alt="${escapeHtml(fileName)}" />`;
+      } else if (blobType === 'application/pdf') {
+        fileViewerBody.innerHTML = `<iframe class="file-viewer-pdf" src="${currentFileViewerUrl}" title="${escapeHtml(fileName)}"></iframe>`;
+      } else {
+        fileViewerBody.innerHTML = `
+          <div class="file-viewer-fallback">
+            <div class="file-viewer-fallback-icon"><i class="fas fa-file-alt" aria-hidden="true"></i></div>
+            <div class="file-viewer-fallback-name">${escapeHtml(fileName)}</div>
+            <div class="file-viewer-fallback-size">${formatFileSize(blob.size)}</div>
+            <button id="file-viewer-download" class="file-viewer-download" type="button">Скачать файл</button>
+          </div>
+        `;
+        fileViewerBody.querySelector('#file-viewer-download')?.addEventListener('click', () => {
+          downloadBlobFile(currentFileViewerUrl, fileName);
+        });
+      }
+
+      fileViewerModal.classList.remove('hidden');
+      fileViewerModal.setAttribute('aria-hidden', 'false');
+    }
+  };
+
+  const fetchFile = async (fileId, fallbackName = 'file') => {
+    if (!window.API?.fetchFile) {
+      throw new Error('fetchFile api missing');
+    }
+    const result = await window.API.fetchFile(fileId);
     if (!result) {
-      throw new Error('empty attachment response');
+      throw new Error('empty response');
     }
-
-    if (result.kind === 'blob' && result.blob) {
-      await openBlobResult(result.blob, result.fileName || fallbackName);
-      return;
+    if (result.kind !== 'blob' || !(result.blob instanceof Blob)) {
+      throw new Error('invalid blob');
     }
-
-    if (result.kind === 'json' && result.data) {
-      const payload = result.data;
-      const dataNode = payload?.data && typeof payload.data === 'object' ? payload.data : null;
-      const directUrl =
-        payload?.url ||
-        payload?.file_url ||
-        payload?.href ||
-        dataNode?.url ||
-        dataNode?.file_url ||
-        dataNode?.href ||
-        null;
-      const base64Value =
-        payload?.content_base64 ||
-        payload?.base64 ||
-        dataNode?.content_base64 ||
-        dataNode?.base64 ||
-        null;
-      const mimeType = payload?.mime_type || payload?.mimeType || result.contentType || 'application/octet-stream';
-
-      if (directUrl) {
-        if (typeof tg?.openLink === 'function') {
-          tg.openLink(directUrl);
-        } else {
-          window.open(directUrl, '_blank', 'noopener,noreferrer');
-        }
-        return;
-      }
-
-      if (base64Value) {
-        const binary = atob(String(base64Value));
-        const bytes = new Uint8Array(binary.length);
-        for (let index = 0; index < binary.length; index += 1) {
-          bytes[index] = binary.charCodeAt(index);
-        }
-        await openBlobResult(
-          new Blob([bytes], { type: mimeType }),
-          payload?.file_name || payload?.name || dataNode?.file_name || dataNode?.name || fallbackName
-        );
-        return;
-      }
+    if (result.blob.size <= 0) {
+      throw new Error('empty blob');
     }
-
-    throw new Error('unsupported attachment response');
+    return {
+      blob: result.blob,
+      fileName: result.fileName || fallbackName
+    };
   };
 
   const handleAttachmentOpen = async (buttonElement) => {
-    const activeTask = requestsState.tasks.find((item) => item.taskId === requestsState.activeTaskId);
-    if (!activeTask || !window.API?.downloadChatAttachment || isDialogRequestInFlight) return;
-
+    if (isDialogRequestInFlight) return;
+    const attachmentId = String(buttonElement.dataset.attachmentId || '').trim();
     const attachmentName = String(buttonElement.dataset.attachmentName || 'Файл');
+    if (!attachmentId) {
+      showPlatformPopup('Ошибка файла', `У файла нет ID: ${attachmentName}`);
+      return;
+    }
     setDialogRequestInFlight(true);
     buttonElement.classList.add('is-loading');
     try {
-      const result = await window.API.downloadChatAttachment({
-        task_id: buttonElement.dataset.taskId || activeTask.taskId,
-        chat_id: buttonElement.dataset.chatId || activeTask.chatId,
-        comment_id: buttonElement.dataset.commentId || null,
-        org: buttonElement.dataset.org || activeTask.org,
-        attachment_id: buttonElement.dataset.attachmentId || null,
-        attachment_md5: buttonElement.dataset.attachmentMd5 || null,
-        attachment_name: attachmentName
-      }, user, tg);
-      await handleAttachmentResponse(result, attachmentName);
+      const file = await fetchFile(attachmentId, attachmentName);
+      FileViewerModal.open(file);
     } catch (error) {
-      if (error?.message === 'unsupported attachment response') {
-        showPlatformPopup('Ошибка файла', `Файл получен, но формат ответа не поддержан для открытия: ${attachmentName}`);
-      } else if (error?.message === 'empty attachment response') {
-        showPlatformPopup('Ошибка файла', `Хук files не вернул файл: ${attachmentName}`);
+      if (error?.message === 'empty response' || error?.message === 'empty blob') {
+        showPlatformPopup('Ошибка файла', `Файл пустой или не был получен: ${attachmentName}`);
+      } else if (error?.message === 'invalid blob') {
+        showPlatformPopup('Ошибка файла', `Получен некорректный файл: ${attachmentName}`);
+      } else if (error?.message === 'fetchFile api missing') {
+        showPlatformPopup('Ошибка файла', 'Метод API.fetchFile не найден.');
       } else {
         showPlatformPopup('Ошибка файла', `Не удалось открыть файл: ${attachmentName}`);
       }
@@ -2812,6 +2865,12 @@ const setupRequestDetailsView = () => {
     const fileChip = event.target.closest('.request-file-chip');
     if (!fileChip) return;
     handleAttachmentOpen(fileChip);
+  });
+  fileViewerClose?.addEventListener('click', closeFileViewer);
+  fileViewerModal?.addEventListener('click', (event) => {
+    if (event.target === fileViewerModal) {
+      closeFileViewer();
+    }
   });
   sendBtn.addEventListener('click', sendCurrentMessage);
   input.addEventListener('focus', keepComposerVisible);
