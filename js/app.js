@@ -2585,6 +2585,16 @@ const setupRequestDetailsView = () => {
             chipElement.dataset.commentId = message.commentId || '';
             chipElement.dataset.chatId = task.chatId || '';
             chipElement.dataset.org = task.org || '';
+            chipElement.addEventListener('click', (event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              handleAttachmentOpen(chipElement);
+            });
+            chipElement.addEventListener('touchend', (event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              handleAttachmentOpen(chipElement);
+            }, { passive: false });
           });
         } else {
           bodyElement.innerHTML = `<div class="request-msg-text">${escapeHtml(message.text)}</div>`;
@@ -2900,11 +2910,6 @@ const setupRequestDetailsView = () => {
     const card = event.target.closest('.request-card');
     if (!card?.dataset?.taskId) return;
     openDialog(card.dataset.taskId);
-  });
-  dialogChat.addEventListener('click', (event) => {
-    const fileChip = event.target.closest('.request-file-chip');
-    if (!fileChip) return;
-    handleAttachmentOpen(fileChip);
   });
   fileViewerClose?.addEventListener('click', closeFileViewer);
   fileViewerModal?.addEventListener('click', (event) => {
