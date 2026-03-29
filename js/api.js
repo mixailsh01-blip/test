@@ -379,6 +379,73 @@ const API = {
   ,
 
   /**
+   * Загрузка файла по вложению из диалога заявки
+   * @param {Object} attachmentPayload - Данные вложения/сообщения
+   * @param {Object|null} userData - Данные пользователя
+   * @param {Object|null} webApp - Telegram/MAX WebApp
+   * @returns {Promise<Object|null>} Результат загрузки
+   */
+  async downloadChatAttachment(attachmentPayload = {}, userData = null, webApp = null) {
+    const hookUrl = 'https://quumahienot.beget.app/webhook/files';
+    const payload = {
+      task_id: attachmentPayload?.task_id ?? attachmentPayload?.taskId ?? null,
+      chat_id: attachmentPayload?.chat_id ?? attachmentPayload?.chatId ?? null,
+      comment_id: attachmentPayload?.comment_id ?? attachmentPayload?.commentId ?? null,
+      org: attachmentPayload?.org ?? null,
+      attachment_id: attachmentPayload?.attachment_id ?? attachmentPayload?.attachmentId ?? attachmentPayload?.id ?? null,
+      attachment_md5: attachmentPayload?.attachment_md5 ?? attachmentPayload?.attachmentMd5 ?? attachmentPayload?.md5 ?? null,
+      attachment_name: attachmentPayload?.attachment_name ?? attachmentPayload?.attachmentName ?? attachmentPayload?.name ?? null,
+      user_id: userData?.id || null,
+      username: userData?.username || null,
+      first_name: userData?.first_name || null,
+      last_name: userData?.last_name || null,
+      ...getBridgeMeta(webApp)
+    };
+
+    try {
+      console.log('📤 [API] Отправляем files:', payload);
+
+      const response = await fetch(hookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': '*/*'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const contentType = String(response.headers.get('content-type') || '').toLowerCase();
+      const disposition = String(response.headers.get('content-disposition') || '');
+      const responseFileNameMatch = disposition.match(/filename\*=UTF-8''([^;]+)|filename="?([^"]+)"?/i);
+      const responseFileName = decodeURIComponent(responseFileNameMatch?.[1] || responseFileNameMatch?.[2] || payload.attachment_name || 'file');
+
+      if (contentType.includes('application/json')) {
+        const result = await response.json().catch(() => null);
+        console.log('✅ [API] Ответ files(json):', result);
+        return { kind: 'json', data: result, fileName: responseFileName, contentType };
+      }
+
+      const blob = await response.blob();
+      console.log('✅ [API] Ответ files(blob):', { size: blob.size, type: blob.type || contentType });
+      return {
+        kind: 'blob',
+        blob,
+        fileName: responseFileName,
+        contentType: blob.type || contentType || 'application/octet-stream'
+      };
+    } catch (error) {
+      console.error('❌ [API] Ошибка files:', error);
+      return null;
+    }
+  }
+
+  ,
+
+  /**
    * При открытии страницы отправляем данные пользователя в вебхук
    * @param {Object} userData - Bridge user object
    * @param {Object} webApp - window.WebApp / window.Telegram.WebApp

@@ -1753,26 +1753,20 @@ const getRequestMessagePreview = (message, fallback = 'Без описания')
   return message.text || fallback;
 };
 
-const isImageAttachment = (attachment) => {
-  const mimeType = String(attachment?.mimeType || '').toLowerCase();
-  if (mimeType.startsWith('image/')) return true;
-  const source = String(attachment?.name || attachment?.url || attachment?.previewUrl || '').toLowerCase();
-  return /\.(png|jpe?g|gif|webp|bmp|svg|heic|heif|avif)(\?|#|$)/i.test(source);
-};
-
 const renderFileChipHtml = (attachment) => `
-  <a
+  <button
+    type="button"
     class="request-file-chip"
-    href="${escapeHtml(attachment?.url || '#')}"
-    target="_blank"
-    rel="noopener noreferrer"
+    data-attachment-id="${escapeHtml(attachment?.id || '')}"
+    data-attachment-md5="${escapeHtml(attachment?.md5 || '')}"
+    data-attachment-name="${escapeHtml(attachment?.name || 'Файл')}"
   >
     <span class="request-file-chip__icon"><i class="fas fa-paperclip" aria-hidden="true"></i></span>
     <span class="request-file-chip__meta">
       <span class="request-file-chip__name">${escapeHtml(attachment?.name || 'Файл')}</span>
-      <span class="request-file-chip__action">${attachment?.url ? 'Открыть файл' : 'Файл недоступен'}</span>
+      <span class="request-file-chip__action">Открыть файл</span>
     </span>
-  </a>
+  </button>
 `;
 
 const renderRequestsList = () => {
@@ -2516,38 +2510,20 @@ const setupRequestDetailsView = () => {
       const bodyElement = msg.querySelector('.request-msg-body');
       if (bodyElement) {
         if (hasAttachments) {
-          const attachmentsHtml = message.attachments.map((attachment) => `
-            ${isImageAttachment(attachment) ? `
-              <a
-                class="request-image-chip"
-                href="${escapeHtml(attachment.url || attachment.previewUrl || '#')}"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <img
-                  class="request-image-chip__preview"
-                  src="${escapeHtml(attachment.previewUrl || attachment.url || '')}"
-                  alt="${escapeHtml(attachment.name || 'Изображение')}"
-                  loading="lazy"
-                />
-                <span class="request-image-chip__footer">
-                  <span class="request-image-chip__name">${escapeHtml(attachment.name || 'Изображение')}</span>
-                  <span class="request-image-chip__action">${attachment.url ? 'Открыть изображение' : 'Изображение недоступно'}</span>
-                </span>
-              </a>
-            ` : renderFileChipHtml(attachment)}
-          `).join('');
+          const attachmentsHtml = message.attachments
+            .map((attachment) => renderFileChipHtml(attachment))
+            .join('');
           bodyElement.innerHTML = `
             ${message.text ? `<div class="request-msg-text">${escapeHtml(message.text)}</div>` : ''}
             <div class="request-file-list">${attachmentsHtml}</div>
           `;
-          bodyElement.querySelectorAll('.request-image-chip__preview').forEach((imageElement, index) => {
-            imageElement.addEventListener('error', () => {
-              const attachment = message.attachments[index];
-              const imageChip = imageElement.closest('.request-image-chip');
-              if (!attachment || !imageChip) return;
-              imageChip.outerHTML = renderFileChipHtml(attachment);
-            }, { once: true });
+          bodyElement.querySelectorAll('.request-file-chip').forEach((chipElement, index) => {
+            const attachment = message.attachments[index];
+            if (!attachment) return;
+            chipElement.dataset.taskId = message.taskId || task.taskId || '';
+            chipElement.dataset.commentId = message.commentId || '';
+            chipElement.dataset.chatId = task.chatId || '';
+            chipElement.dataset.org = task.org || '';
           });
         } else {
           bodyElement.innerHTML = `<div class="request-msg-text">${escapeHtml(message.text)}</div>`;
@@ -2628,6 +2604,86 @@ const setupRequestDetailsView = () => {
     return result;
   };
 
+  const openBlobResult = (blob, fileName = 'file') => {
+    const objectUrl = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = objectUrl;
+    anchor.download = fileName;
+    anchor.target = '_blank';
+    anchor.rel = 'noopener noreferrer';
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    setTimeout(() => {
+      URL.revokeObjectURL(objectUrl);
+    }, 60 * 1000);
+  };
+
+  const handleAttachmentResponse = (result, fallbackName = 'file') => {
+    if (!result) {
+      throw new Error('empty attachment response');
+    }
+
+    if (result.kind === 'blob' && result.blob) {
+      openBlobResult(result.blob, result.fileName || fallbackName);
+      return;
+    }
+
+    if (result.kind === 'json' && result.data) {
+      const payload = result.data;
+      const directUrl = payload?.url || payload?.file_url || payload?.href || null;
+      const base64Value = payload?.content_base64 || payload?.base64 || null;
+      const mimeType = payload?.mime_type || payload?.mimeType || result.contentType || 'application/octet-stream';
+
+      if (directUrl) {
+        if (typeof tg?.openLink === 'function') {
+          tg.openLink(directUrl);
+        } else {
+          window.open(directUrl, '_blank', 'noopener,noreferrer');
+        }
+        return;
+      }
+
+      if (base64Value) {
+        const binary = atob(String(base64Value));
+        const bytes = new Uint8Array(binary.length);
+        for (let index = 0; index < binary.length; index += 1) {
+          bytes[index] = binary.charCodeAt(index);
+        }
+        openBlobResult(new Blob([bytes], { type: mimeType }), payload?.file_name || payload?.name || fallbackName);
+        return;
+      }
+    }
+
+    throw new Error('unsupported attachment response');
+  };
+
+  const handleAttachmentOpen = async (buttonElement) => {
+    const activeTask = requestsState.tasks.find((item) => item.taskId === requestsState.activeTaskId);
+    if (!activeTask || !window.API?.downloadChatAttachment || isDialogRequestInFlight) return;
+
+    const attachmentName = String(buttonElement.dataset.attachmentName || 'Файл');
+    setDialogRequestInFlight(true);
+    buttonElement.classList.add('is-loading');
+    try {
+      const result = await window.API.downloadChatAttachment({
+        task_id: buttonElement.dataset.taskId || activeTask.taskId,
+        chat_id: buttonElement.dataset.chatId || activeTask.chatId,
+        comment_id: buttonElement.dataset.commentId || null,
+        org: buttonElement.dataset.org || activeTask.org,
+        attachment_id: buttonElement.dataset.attachmentId || null,
+        attachment_md5: buttonElement.dataset.attachmentMd5 || null,
+        attachment_name: attachmentName
+      }, user, tg);
+      handleAttachmentResponse(result, attachmentName);
+    } catch (error) {
+      showPlatformPopup('Ошибка файла', `Не удалось открыть файл: ${attachmentName}`);
+    } finally {
+      buttonElement.classList.remove('is-loading');
+      setDialogRequestInFlight(false);
+    }
+  };
+
   const setDialogRequestInFlight = (nextState) => {
     isDialogRequestInFlight = Boolean(nextState);
     const activeTask = requestsState.tasks.find((item) => item.taskId === requestsState.activeTaskId);
@@ -2705,6 +2761,11 @@ const setupRequestDetailsView = () => {
     const card = event.target.closest('.request-card');
     if (!card?.dataset?.taskId) return;
     openDialog(card.dataset.taskId);
+  });
+  dialogChat.addEventListener('click', (event) => {
+    const fileChip = event.target.closest('.request-file-chip');
+    if (!fileChip) return;
+    handleAttachmentOpen(fileChip);
   });
   sendBtn.addEventListener('click', sendCurrentMessage);
   input.addEventListener('focus', keepComposerVisible);
