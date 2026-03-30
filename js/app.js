@@ -3281,6 +3281,8 @@ const setupRequestDetailsView = () => {
     event?.preventDefault?.();
     event?.stopPropagation?.();
     if (attachBtn.disabled || fileInput.disabled) return;
+    input.blur();
+    syncKeyboardOffset();
     attachmentPickerModal.classList.remove('hidden');
     attachmentPickerModal.setAttribute('aria-hidden', 'false');
     requestAnimationFrame(() => attachmentPickerModal.classList.add('is-open'));
@@ -3290,6 +3292,8 @@ const setupRequestDetailsView = () => {
     if (attachBtn.disabled || fileInput.disabled) return;
     isOpeningFilePicker = true;
     closeAttachmentPicker();
+    input.blur();
+    syncKeyboardOffset();
 
     if (mode === 'library') {
       fileInput.setAttribute('accept', 'image/*,video/*');
@@ -3302,15 +3306,17 @@ const setupRequestDetailsView = () => {
       fileInput.removeAttribute('capture');
     }
 
-    try {
-      if (typeof fileInput.showPicker === 'function') {
-        fileInput.showPicker();
-      } else {
+    window.setTimeout(() => {
+      try {
+        if (typeof fileInput.showPicker === 'function') {
+          fileInput.showPicker();
+        } else {
+          fileInput.click();
+        }
+      } catch (error) {
         fileInput.click();
       }
-    } catch (error) {
-      fileInput.click();
-    }
+    }, 180);
 
     requestAnimationFrame(() => {
       input.focus({ preventScroll: true });
