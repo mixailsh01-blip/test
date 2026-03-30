@@ -2955,11 +2955,13 @@ const setupRequestDetailsView = () => {
     }
 
     if (!window.API?.sendQrData || requestDeepLinkState.inFlight) return false;
+    requestDeepLinkState.handled = true;
+    stopDeepLinkOpenPolling();
 
     const executeRestaurantDeepLink = async () => {
       requestDeepLinkState.inFlight = true;
       try {
-        const qrPayload = `restaurant_${restaurantId}`;
+        const qrPayload = `https://max.ru/id501305283158_bot?startapp=add_${restaurantId}`;
         const result = await window.API.sendQrData(qrPayload, user);
         const restaurants = normalizeRestaurantsFromQrResponse(result);
         if (restaurants.length === 0) return false;
@@ -3001,18 +3003,7 @@ const setupRequestDetailsView = () => {
     if (requestDeepLinkState.type === 'chat') {
       if (openDeepLinkedRequest()) return;
     } else if (requestDeepLinkState.type === 'add_restaurant') {
-      openDeepLinkedRestaurant().then((handled) => {
-        if (handled || requestDeepLinkState.handled) return;
-
-        stopDeepLinkOpenPolling();
-        if (requestDeepLinkState.attempt >= 20) return;
-
-        const delay = requestDeepLinkState.attempt < 5 ? 400 : 1200;
-        requestDeepLinkState.attempt += 1;
-        requestDeepLinkState.timerId = window.setTimeout(() => {
-          scheduleDeepLinkOpen();
-        }, delay);
-      });
+      openDeepLinkedRestaurant();
       return;
     } else {
       return;
