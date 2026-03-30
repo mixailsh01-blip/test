@@ -2621,15 +2621,10 @@ const setupRequestDetailsView = () => {
   const attachBtn = document.getElementById('request-dialog-attach');
   const fileInput = document.getElementById('request-dialog-file');
   const filePreview = document.getElementById('request-dialog-file-preview');
-  const attachmentPickerModal = document.getElementById('attachment-picker-modal');
-  const attachmentPickerClose = document.getElementById('attachment-picker-close');
-  const attachmentPickerLibrary = document.getElementById('attachment-picker-library');
-  const attachmentPickerCamera = document.getElementById('attachment-picker-camera');
-  const attachmentPickerFile = document.getElementById('attachment-picker-file');
   const composer = dialogModal?.querySelector('.request-dialog-composer');
   const closedBanner = document.getElementById('request-dialog-closed');
 
-  if (!requestsList || !dialogModal || !dialogChat || !input || !sendBtn || !attachBtn || !fileInput || !filePreview || !attachmentPickerModal || !attachmentPickerClose || !attachmentPickerLibrary || !attachmentPickerCamera || !attachmentPickerFile || !composer || !closedBanner) return;
+  if (!requestsList || !dialogModal || !dialogChat || !input || !sendBtn || !attachBtn || !fileInput || !filePreview || !composer || !closedBanner) return;
   let isDialogRequestInFlight = false;
   let selectedDialogFile = null;
   let isOpeningFilePicker = false;
@@ -3269,42 +3264,15 @@ const setupRequestDetailsView = () => {
     keepComposerVisible();
   };
 
-  const closeAttachmentPicker = () => {
-    attachmentPickerModal.classList.remove('is-open');
-    attachmentPickerModal.setAttribute('aria-hidden', 'true');
-    window.setTimeout(() => {
-      attachmentPickerModal.classList.add('hidden');
-    }, 220);
-  };
-
-  const openAttachmentPicker = (event) => {
+  const openFilePicker = (event) => {
     event?.preventDefault?.();
     event?.stopPropagation?.();
     if (attachBtn.disabled || fileInput.disabled) return;
-    input.blur();
-    syncKeyboardOffset();
-    attachmentPickerModal.classList.remove('hidden');
-    attachmentPickerModal.setAttribute('aria-hidden', 'false');
-    requestAnimationFrame(() => attachmentPickerModal.classList.add('is-open'));
-  };
-
-  const openFilePicker = (mode = 'file') => {
-    if (attachBtn.disabled || fileInput.disabled) return;
     isOpeningFilePicker = true;
-    closeAttachmentPicker();
     input.blur();
     syncKeyboardOffset();
-
-    if (mode === 'library') {
-      fileInput.setAttribute('accept', 'image/*,video/*');
-      fileInput.removeAttribute('capture');
-    } else if (mode === 'camera') {
-      fileInput.setAttribute('accept', 'image/*,video/*');
-      fileInput.setAttribute('capture', 'environment');
-    } else {
-      fileInput.removeAttribute('accept');
-      fileInput.removeAttribute('capture');
-    }
+    fileInput.removeAttribute('accept');
+    fileInput.removeAttribute('capture');
 
     window.setTimeout(() => {
       try {
@@ -3428,11 +3396,7 @@ const setupRequestDetailsView = () => {
       sendCurrentMessage();
     }
   });
-  attachBtn.addEventListener('click', openAttachmentPicker);
-  attachmentPickerClose.addEventListener('click', closeAttachmentPicker);
-  attachmentPickerLibrary.addEventListener('click', () => openFilePicker('library'));
-  attachmentPickerCamera.addEventListener('click', () => openFilePicker('camera'));
-  attachmentPickerFile.addEventListener('click', () => openFilePicker('file'));
+  attachBtn.addEventListener('click', openFilePicker);
   window.visualViewport?.addEventListener('resize', syncKeyboardOffset);
   window.visualViewport?.addEventListener('scroll', syncKeyboardOffset);
   fileInput.addEventListener('change', () => {
@@ -3460,11 +3424,6 @@ const setupRequestDetailsView = () => {
   dialogModal.addEventListener('click', (event) => {
     if (event.target === dialogModal) {
       closeDialog();
-    }
-  });
-  attachmentPickerModal.addEventListener('click', (event) => {
-    if (event.target === attachmentPickerModal) {
-      closeAttachmentPicker();
     }
   });
 
