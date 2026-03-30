@@ -1478,6 +1478,7 @@ const pendingAuthorizedActionState = {
 };
 const pendingOutgoingMessagesByTask = new Map();
 const UNREAD_STORAGE_KEY = 'miniapp_unread_counts_v1';
+const REQUESTS_CACHE_STORAGE_KEY = 'miniapp_requests_cache_v1';
 const OPEN_CHAT_POLL_DELAYS_MS = [8000, 16000, 32000, 60000];
 const LOCAL_PREVIEW_ESTABLISHMENTS = [
   { id: 'demo-1', name: 'ресторан «Я семья»' },
@@ -1871,6 +1872,76 @@ const loadUnreadCountsFromStorage = () => {
   }
 };
 
+const loadRequestsCacheFromStorage = () => {
+  try {
+    const raw = localStorage.getItem(REQUESTS_CACHE_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (error) {
+    console.warn('Не удалось загрузить requests cache из localStorage:', error);
+    return [];
+  }
+};
+
+const saveRequestsCacheToStorage = () => {
+  try {
+    const payload = requestsState.tasks.map((task) => ({
+      taskId: String(task.taskId || ''),
+      org: String(task.org || ''),
+      description: String(task.description || ''),
+      status: String(task.status || ''),
+      chatId: String(task.chatId || ''),
+      isClosed: Boolean(task.isClosed),
+      createdAt: task.createdAt || new Date().toISOString(),
+      unreadCount: Number(task.unreadCount || 0),
+      chat: Array.isArray(task.chat)
+        ? task.chat.slice(-20).map((message) => ({
+          taskId: String(message.taskId || task.taskId || ''),
+          commentId: String(message.commentId || ''),
+          author: String(message.author || ''),
+          text: String(message.text || ''),
+          date: message.date || '',
+          channelType: String(message.channelType || ''),
+          senderType: String(message.senderType || ''),
+          isOutgoing: Boolean(message.isOutgoing),
+          messageType: String(message.messageType || 'TEXT'),
+          attachments: Array.isArray(message.attachments)
+            ? message.attachments.map((attachment) => ({
+              id: String(attachment.id || ''),
+              name: String(attachment.name || ''),
+              url: String(attachment.url || ''),
+              md5: String(attachment.md5 || ''),
+              mimeType: String(attachment.mimeType || ''),
+              previewUrl: String(attachment.previewUrl || '')
+            }))
+            : []
+        }))
+        : []
+    }));
+    localStorage.setItem(REQUESTS_CACHE_STORAGE_KEY, JSON.stringify(payload));
+  } catch (error) {
+    console.warn('Не удалось сохранить requests cache в localStorage:', error);
+  }
+};
+
+const restoreRequestsCacheFromStorage = () => {
+  const cachedTasks = loadRequestsCacheFromStorage();
+  if (!cachedTasks.length) return false;
+
+  requestsState.tasks = cachedTasks
+    .map((task) => ({
+      ...task,
+      unreadCount: Number(task.unreadCount || 0),
+      chat: Array.isArray(task.chat) ? task.chat.map((comment) => normalizeTaskComment(comment, task.description, task.taskId)).filter(Boolean) : []
+    }))
+    .filter((task) => task?.taskId);
+
+  restoreUnreadCountsFromStorage();
+  renderRequestsList();
+  return requestsState.tasks.length > 0;
+};
+
 const saveUnreadCountsToStorage = () => {
   try {
     const payload = requestsState.tasks.reduce((acc, task) => {
@@ -2032,6 +2103,7 @@ const markTaskAsRead = (taskId) => {
   if (!task) return;
   task.unreadCount = 0;
   saveUnreadCountsToStorage();
+  saveRequestsCacheToStorage();
 };
 
 const upsertRequestTask = (task, options = {}) => {
@@ -2067,6 +2139,7 @@ const upsertRequestTask = (task, options = {}) => {
     }));
   }
   saveUnreadCountsToStorage();
+  saveRequestsCacheToStorage();
 };
 
 const getRequestMessagePreview = (message, fallback = 'Без описания') => {
@@ -3607,6 +3680,7 @@ const setupRequestDetailsView = () => {
 const initializeApp = () => {
   try {
     initializeUserData();
+    restoreRequestsCacheFromStorage();
 
     // При входе в WebApp отправляем данные пользователя в вебхук clientTG_support
     if (user?.id && window.API?.sendClientTGSupport) {
