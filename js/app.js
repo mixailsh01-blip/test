@@ -1761,7 +1761,7 @@ const normalizeTaskComment = (comment, fallbackText = '', taskId = '') => {
 
   return {
     taskId: normalizedTaskId,
-    commentId: String(comment?.comment_id ?? `${Date.now()}`),
+    commentId: String(comment?.comment_id ?? comment?.commentId ?? `${Date.now()}`),
     author,
     text: normalizedText,
     date: comment?.date || new Date().toISOString(),
