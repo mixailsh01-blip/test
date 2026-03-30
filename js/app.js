@@ -1642,6 +1642,7 @@ const normalizeTaskComment = (comment, fallbackText = '', taskId = '') => {
   const author = normalizeCommentAuthor(comment);
   const normalizedTaskId = String(comment?.task_id ?? taskId ?? '');
   const messageType = String(comment?.message_type ?? comment?.messageType ?? 'TEXT').trim().toUpperCase();
+  const senderType = String(comment?.sender_type ?? comment?.senderType ?? '').trim().toLowerCase();
   const legacyAttachmentNames = Array.isArray(comment?.attachmentsName) ? comment.attachmentsName : [];
   const legacyAttachmentUrls = Array.isArray(comment?.attachmentsURL) ? comment.attachmentsURL : [];
   const legacyAttachmentIds = Array.isArray(comment?.attachmentsID) ? comment.attachmentsID : [];
@@ -1681,6 +1682,7 @@ const normalizeTaskComment = (comment, fallbackText = '', taskId = '') => {
     text: normalizedText,
     date: comment?.date || new Date().toISOString(),
     channelType: String(comment?.channel_type ?? comment?.channelType ?? 'custom'),
+    senderType,
     isOutgoing: normalizeCommentIsOutgoing(comment, author, normalizedTaskId),
     messageType,
     attachments
@@ -2784,8 +2786,9 @@ const setupRequestDetailsView = () => {
 
     task.chat.forEach((message) => {
       const isOutgoing = Boolean(message.isOutgoing);
+      const isVenueStaffIncoming = !isOutgoing && message.senderType === 'сотрудник заведения';
       const msg = document.createElement('div');
-      msg.className = `request-msg ${isOutgoing ? 'request-msg-right request-msg-outgoing' : 'request-msg-left'}`;
+      msg.className = `request-msg ${isOutgoing ? 'request-msg-right request-msg-outgoing' : 'request-msg-left'}${isVenueStaffIncoming ? ' request-msg-staff' : ''}`;
       const hasAttachments = Array.isArray(message.attachments) && message.attachments.length > 0;
       msg.innerHTML = `
         ${isOutgoing ? '' : '<div class="request-msg-author"></div>'}

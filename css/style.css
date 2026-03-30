@@ -2221,7 +2221,16 @@ body.hide-main-logo #requests.page {
   color: #ffffff;
 }
 
+.request-msg-staff {
+  background: linear-gradient(180deg, #0c86ff 0%, #0560dc 100%);
+  color: #ffffff;
+}
+
 .request-msg-outgoing .request-msg-time {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.request-msg-staff .request-msg-time {
   color: rgba(255, 255, 255, 0.8);
 }
 
