@@ -615,7 +615,7 @@ const notifyRegistrClient = async (contact, meta = null) => {
   if (!window.API?.sendRegistrClient) {
     console.warn('⚠️ [registr_client] Не вызываем: API.sendRegistrClient не найден');
     showPlatformPopup('Ошибка', 'API.sendRegistrClient не найден (скрипты не обновились).');
-    return;
+    return null;
   }
 
   console.log('📨 [registr_client] Вызываем вебхук...', { phone_number: contact?.phone_number || null, meta });
@@ -625,6 +625,7 @@ const notifyRegistrClient = async (contact, meta = null) => {
     'Контакт',
     result ? 'Номер отправлен в систему.' : 'Не удалось отправить номер. Проверьте сеть или логи.'
   );
+  return result;
 };
 
 const clientSupportResponseHasId = (result) => {
@@ -853,7 +854,12 @@ const setupContactSharing = () => {
           if (normalized?.phone_number) {
             console.log('✅ Получен контакт через initDataUnsafe');
             updateContactInfo(normalized);
-            notifyRegistrClient(normalized, { stage: 'initDataUnsafe_user_phone_number' });
+            notifyRegistrClient(normalized, { stage: 'initDataUnsafe_user_phone_number' }).then((registrResult) => {
+              if (registrResult) {
+                requestDeepLinkState.awaitingAuthorization = false;
+                delayPendingAuthorizedAction(3000);
+              }
+            });
             hideContactShareModal();
             return;
           }
@@ -865,7 +871,6 @@ const setupContactSharing = () => {
               if (ok) {
                 hideContactShareModal();
                 showContactInfo('Номер получен. Доступ обновлён.');
-                delayPendingAuthorizedAction(2000);
               } else {
                 setContactShareLoading(false);
                 showContactInfo('Контакт отправлен в MAX. Если доступ не обновился, перезапустите приложение.');
@@ -890,13 +895,12 @@ const setupContactSharing = () => {
           return;
         }
         updateContactInfo(normalized);
-        notifyRegistrClient(normalized, { stage: 'requestContact_object' });
+        const registrResult = await notifyRegistrClient(normalized, { stage: 'requestContact_object' });
         hideContactShareModal();
-        pollClientSupportId().then((ok) => {
-          if (ok) {
-            delayPendingAuthorizedAction(2000);
-          }
-        });
+        if (registrResult) {
+          requestDeepLinkState.awaitingAuthorization = false;
+          delayPendingAuthorizedAction(3000);
+        }
         return;
       }
 
@@ -912,13 +916,12 @@ const setupContactSharing = () => {
               return;
             }
             updateContactInfo(normalized);
-            notifyRegistrClient(normalized, { stage: 'requestContact_string' });
+            const registrResult = await notifyRegistrClient(normalized, { stage: 'requestContact_string' });
             hideContactShareModal();
-            pollClientSupportId().then((ok) => {
-              if (ok) {
-                delayPendingAuthorizedAction(2000);
-              }
-            });
+            if (registrResult) {
+              requestDeepLinkState.awaitingAuthorization = false;
+              delayPendingAuthorizedAction(3000);
+            }
           } else {
             console.warn('⚠️ Не удалось распарсить строку контакта:', result);
           }
@@ -1380,7 +1383,8 @@ const requestDeepLinkState = {
   handled: false,
   attempt: 0,
   timerId: null,
-  inFlight: false
+  inFlight: false,
+  awaitingAuthorization: false
 };
 const pendingAuthorizedActionState = {
   callback: null,
@@ -1734,12 +1738,6 @@ const getMiniAppStartParam = () => {
 const getCurrentMiniAppDeepLinkUrl = (startParam = '') => {
   const normalizedParam = normalizeDeepLinkChatId(startParam);
   if (!normalizedParam) return '';
-
-  const currentUrl = String(window.location.href || '');
-  if (currentUrl.includes(`startapp=${normalizedParam}`) || currentUrl.includes(`WebAppStartParam=${normalizedParam}`)) {
-    return currentUrl;
-  }
-
   return `${MAX_BOT_DEEP_LINK_BASE}${encodeURIComponent(normalizedParam)}`;
 };
 
@@ -2994,16 +2992,19 @@ const setupRequestDetailsView = () => {
 
     const isAuthorized = await hasAuthorizedClientAccess();
     if (!isAuthorized) {
-      schedulePendingAuthorizedAction(executeRestaurantDeepLink, 2000);
+      requestDeepLinkState.awaitingAuthorization = true;
+      schedulePendingAuthorizedAction(executeRestaurantDeepLink, 3000);
+      setContactShareLoading(false);
       showContactShareModal();
       return false;
     }
 
+    requestDeepLinkState.awaitingAuthorization = false;
     return executeRestaurantDeepLink();
   };
 
   const scheduleDeepLinkOpen = () => {
-    if (!requestDeepLinkState.rawParam || requestDeepLinkState.handled) return;
+    if (!requestDeepLinkState.rawParam || requestDeepLinkState.handled || requestDeepLinkState.awaitingAuthorization) return;
 
     if (requestDeepLinkState.type === 'chat') {
       if (openDeepLinkedRequest()) return;
