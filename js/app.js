@@ -334,11 +334,33 @@ const normalizeRestaurantsFromQrResponse = (result) => {
     .filter(Boolean);
 };
 
+const mergeRestaurants = (...restaurantGroups) => {
+  const seen = new Set();
+
+  return restaurantGroups
+    .flat()
+    .map((restaurant) => {
+      const id = String(restaurant?.id ?? restaurant?.ID ?? restaurant?.Id ?? '').trim();
+      const name = String(restaurant?.name ?? restaurant?.Client ?? restaurant?.client ?? '').trim();
+      if (!id || !name) return null;
+      return { id, name };
+    })
+    .filter((restaurant) => {
+      if (!restaurant) return false;
+      const key = `${restaurant.id}::${restaurant.name}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+};
+
 const applyRestaurants = (restaurants) => {
   try {
+    const mergedRestaurants = mergeRestaurants(getKnownEstablishments(), restaurants);
+
     // Обновляем dropdown на главной (через существующую логику Auth)
     if (window.Auth?.updateRestaurants) {
-      window.Auth.updateRestaurants(restaurants);
+      window.Auth.updateRestaurants(mergedRestaurants);
     }
 
     // Обновляем фильтр "Заведение" на вкладке "Заявки"
@@ -347,7 +369,7 @@ const applyRestaurants = (restaurants) => {
       const previousValue = filterSelect.value;
       filterSelect.innerHTML = '<option value="">Все заведения</option>';
 
-      restaurants.forEach((restaurant) => {
+      mergedRestaurants.forEach((restaurant) => {
         const option = document.createElement('option');
         // В таблице "Заявки" заведение хранится текстом, поэтому value = name
         option.value = restaurant.name;
@@ -366,7 +388,7 @@ const applyRestaurants = (restaurants) => {
     const list = document.querySelector('#establishment-modal .establishment-list');
     if (list) {
       list.innerHTML = '';
-      restaurants.forEach((restaurant) => {
+      mergedRestaurants.forEach((restaurant) => {
         const button = document.createElement('button');
         button.className = 'establishment-item btn-RestModal w-full';
         button.textContent = restaurant.name;

@@ -151,9 +151,6 @@ const Auth = {
       
       if (!dropdown || !Array.isArray(restaurants)) return;
 
-      // Очищаем текущие опции (кроме placeholder)
-      dropdown.innerHTML = '<option value="">Выберите заведение</option>';
-
       const normalizedRestaurants = restaurants
         .map((restaurant) => {
           const id = restaurant?.id ?? restaurant?.ID ?? restaurant?.Id ?? null;
@@ -163,8 +160,26 @@ const Auth = {
         })
         .filter(Boolean);
 
+      const existingRestaurants = Array.from(dropdown.options)
+        .map((option) => ({
+          id: String(option.value || '').trim(),
+          name: String(option.textContent || '').trim()
+        }))
+        .filter((restaurant) => restaurant.id && restaurant.name && restaurant.name !== 'Выберите заведение');
+
+      const seenRestaurants = new Set();
+      const mergedRestaurants = [...existingRestaurants, ...normalizedRestaurants].filter((restaurant) => {
+        const key = `${restaurant.id}::${restaurant.name}`;
+        if (seenRestaurants.has(key)) return false;
+        seenRestaurants.add(key);
+        return true;
+      });
+
+      // Очищаем текущие опции (кроме placeholder)
+      dropdown.innerHTML = '<option value="">Выберите заведение</option>';
+
       // Добавляем рестораны в dropdown главной страницы
-      normalizedRestaurants.forEach((restaurant) => {
+      mergedRestaurants.forEach((restaurant) => {
         const option = document.createElement('option');
         option.value = restaurant.id;
         option.textContent = restaurant.name;
@@ -176,7 +191,7 @@ const Auth = {
       if (filterSelect) {
         const previousValue = filterSelect.value;
         filterSelect.innerHTML = '<option value="">Все заведения</option>';
-        normalizedRestaurants.forEach((restaurant) => {
+        mergedRestaurants.forEach((restaurant) => {
           const option = document.createElement('option');
           option.value = restaurant.name;
           option.textContent = restaurant.name;
@@ -192,7 +207,7 @@ const Auth = {
       const list = document.querySelector('#establishment-modal .establishment-list');
       if (list) {
         list.innerHTML = '';
-        normalizedRestaurants.forEach((restaurant) => {
+        mergedRestaurants.forEach((restaurant) => {
           const button = document.createElement('button');
           button.className = 'establishment-item btn-RestModal w-full';
           button.textContent = restaurant.name;
@@ -201,7 +216,7 @@ const Auth = {
         });
       }
 
-      console.log(`✅ [Auth] Загружено ${normalizedRestaurants.length} ресторанов`);
+      console.log(`✅ [Auth] Загружено ${mergedRestaurants.length} ресторанов`);
 
     } catch (error) {
       console.error('❌ [Auth] Ошибка парсинга ресторанов:', error);
