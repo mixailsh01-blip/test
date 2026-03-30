@@ -2627,6 +2627,7 @@ const setupRequestDetailsView = () => {
   if (!requestsList || !dialogModal || !dialogChat || !input || !sendBtn || !attachBtn || !fileInput || !filePreview || !composer || !closedBanner) return;
   let isDialogRequestInFlight = false;
   let selectedDialogFile = null;
+  let isOpeningFilePicker = false;
 
   const getCurrentTimeLabel = () => {
     const now = new Date();
@@ -3267,6 +3268,7 @@ const setupRequestDetailsView = () => {
     event?.preventDefault?.();
     event?.stopPropagation?.();
     if (attachBtn.disabled || fileInput.disabled) return;
+    isOpeningFilePicker = true;
 
     try {
       if (typeof fileInput.showPicker === 'function') {
@@ -3366,7 +3368,10 @@ const setupRequestDetailsView = () => {
   });
   sendBtn.addEventListener('click', sendCurrentMessage);
   input.addEventListener('focus', keepComposerVisible);
-  input.addEventListener('blur', syncKeyboardOffset);
+  input.addEventListener('blur', () => {
+    if (isOpeningFilePicker) return;
+    syncKeyboardOffset();
+  });
   composer.addEventListener('click', (event) => {
     if (event.target.closest('.request-composer-attach, .request-composer-send')) return;
     focusComposerInput();
@@ -3389,6 +3394,7 @@ const setupRequestDetailsView = () => {
   window.visualViewport?.addEventListener('resize', syncKeyboardOffset);
   window.visualViewport?.addEventListener('scroll', syncKeyboardOffset);
   fileInput.addEventListener('change', () => {
+    isOpeningFilePicker = false;
     const files = Array.from(fileInput.files || []);
     const activeTask = requestsState.tasks.find((item) => item.taskId === requestsState.activeTaskId);
     if (!files.length || !activeTask || isTaskClosed(activeTask) || isDialogRequestInFlight) {
@@ -3397,6 +3403,13 @@ const setupRequestDetailsView = () => {
     }
     selectedDialogFile = files[0] || null;
     renderSelectedDialogFile();
+    requestAnimationFrame(() => {
+      input.focus({ preventScroll: true });
+      keepComposerVisible();
+    });
+  });
+  fileInput.addEventListener('cancel', () => {
+    isOpeningFilePicker = false;
     requestAnimationFrame(() => {
       input.focus({ preventScroll: true });
       keepComposerVisible();
