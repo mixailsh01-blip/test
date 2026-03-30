@@ -3285,18 +3285,14 @@ const setupRequestDetailsView = () => {
         fileInput.click();
       }
     }, 180);
-
-    requestAnimationFrame(() => {
-      input.focus({ preventScroll: true });
-      keepComposerVisible();
-    });
   };
 
   const sendCurrentMessage = async () => {
     const text = input.value.trim();
     const file = selectedDialogFile;
     const messageType = file ? 'file' : 'text';
-    const outgoingText = file ? (text || `Файл: ${file.name}`) : text;
+    const outgoingText = file ? (text || '') : text;
+    const payloadText = file ? (text || null) : text;
     const fileName = file?.name || null;
     const hadInputFocus = document.activeElement === input;
     if ((!text && !file) || isDialogRequestInFlight) return;
@@ -3334,7 +3330,7 @@ const setupRequestDetailsView = () => {
     }
     try {
       await sendMessageToMiniappWebhook(activeTask, {
-        text: outgoingText,
+        text: payloadText,
         message_type: messageType,
         file_name: fileName
       }, file ? [file] : []);
