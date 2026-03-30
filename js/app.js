@@ -2961,7 +2961,7 @@ const setupRequestDetailsView = () => {
     const executeRestaurantDeepLink = async () => {
       requestDeepLinkState.inFlight = true;
       try {
-        const qrPayload = `https://max.ru/id501305283158_bot?startapp=add_${restaurantId}`;
+        const qrPayload = `https://max.ru/id501305283158_bot?startapp=add_restaurant_${restaurantId}`;
         const result = await window.API.sendQrData(qrPayload, user);
         const restaurants = normalizeRestaurantsFromQrResponse(result);
         if (restaurants.length === 0) return false;
