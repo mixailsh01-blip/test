@@ -2439,6 +2439,55 @@ body.hide-main-logo #requests.page {
   line-height: 1.35;
 }
 
+.attachment-picker-modal {
+  z-index: 1080;
+}
+
+.attachment-picker-sheet {
+  gap: 18px;
+}
+
+.attachment-picker-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.attachment-picker-btn {
+  width: 100%;
+  border: none;
+  border-radius: 18px;
+  padding: 16px 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #f7f8fc;
+  font-family: 'PT Root UI', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  text-align: left;
+}
+
+.attachment-picker-btn__icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(12, 134, 255, 0.14);
+  color: #66b4ff;
+  font-size: 20px;
+  flex: 0 0 auto;
+}
+
+.attachment-picker-btn__text {
+  display: block;
+  line-height: 1.15;
+}
+
 .file-viewer-image {
   width: 100%;
   max-width: 980px;
