@@ -1511,8 +1511,6 @@ const LOCAL_PREVIEW_TASKS = [
   };
 })
 ];
-const MAX_BOT_DEEP_LINK_BASE = 'https://max.ru/id501305283158_bot?startapp=';
-
 const escapeHtml = (value) => String(value ?? '')
   .replace(/&/g, '&amp;')
   .replace(/</g, '&lt;')
@@ -1733,12 +1731,6 @@ const getMiniAppStartParam = () => {
     .find(Boolean);
 
   return resolved || '';
-};
-
-const getCurrentMiniAppDeepLinkUrl = (startParam = '') => {
-  const normalizedParam = normalizeDeepLinkChatId(startParam);
-  if (!normalizedParam) return '';
-  return `${MAX_BOT_DEEP_LINK_BASE}${encodeURIComponent(normalizedParam)}`;
 };
 
 const normalizeRestaurantsFromTaskSupportResponse = (result) => {
@@ -2967,8 +2959,8 @@ const setupRequestDetailsView = () => {
     const executeRestaurantDeepLink = async () => {
       requestDeepLinkState.inFlight = true;
       try {
-        const deepLinkUrl = getCurrentMiniAppDeepLinkUrl(requestDeepLinkState.rawParam);
-        const result = await window.API.sendQrData(deepLinkUrl, user);
+        const qrPayload = `restaurant_${restaurantId}`;
+        const result = await window.API.sendQrData(qrPayload, user);
         const restaurants = normalizeRestaurantsFromQrResponse(result);
         if (restaurants.length === 0) return false;
 
