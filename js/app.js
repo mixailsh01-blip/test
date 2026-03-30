@@ -2156,7 +2156,6 @@ const upsertRequestTask = (task, options = {}) => {
     const nextChat = task.chat.length > 0 ? task.chat : existingTask.chat;
     const nextChatSignature = getTaskChatSignature(nextChat);
     const storedReadSignature = getStoredReadChatSignature(existingTask);
-    const chatChanged = task.chat.length > 0 && nextChatSignature !== getTaskChatSignature(existingTask.chat || []);
     const hasUnreadChanges = Boolean(nextChatSignature) && nextChatSignature !== storedReadSignature;
 
     requestsState.tasks[existingIndex] = {
@@ -2169,7 +2168,7 @@ const upsertRequestTask = (task, options = {}) => {
       isClosed: typeof task.isClosed === 'boolean' ? task.isClosed : existingTask.isClosed,
       chat: nextChat,
       createdAt: task.createdAt || existingTask.createdAt,
-      unreadCount: shouldMarkRead ? 0 : (chatChanged && hasUnreadChanges ? 1 : 0)
+      unreadCount: shouldMarkRead ? 0 : (hasUnreadChanges ? 1 : 0)
     };
     if (shouldMarkRead) {
       markTaskChatSignatureAsRead(requestsState.tasks[existingIndex]);
