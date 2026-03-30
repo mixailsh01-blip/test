@@ -857,7 +857,7 @@ const setupContactSharing = () => {
             notifyRegistrClient(normalized, { stage: 'initDataUnsafe_user_phone_number' }).then((registrResult) => {
               if (registrResult) {
                 requestDeepLinkState.awaitingAuthorization = false;
-                delayPendingAuthorizedAction(3000);
+                runPendingAuthorizedActionNow();
               }
             });
             hideContactShareModal();
@@ -899,7 +899,7 @@ const setupContactSharing = () => {
         hideContactShareModal();
         if (registrResult) {
           requestDeepLinkState.awaitingAuthorization = false;
-          delayPendingAuthorizedAction(3000);
+          await runPendingAuthorizedActionNow();
         }
         return;
       }
@@ -920,7 +920,7 @@ const setupContactSharing = () => {
             hideContactShareModal();
             if (registrResult) {
               requestDeepLinkState.awaitingAuthorization = false;
-              delayPendingAuthorizedAction(3000);
+              await runPendingAuthorizedActionNow();
             }
           } else {
             console.warn('⚠️ Не удалось распарсить строку контакта:', result);
@@ -2993,7 +2993,7 @@ const setupRequestDetailsView = () => {
     const isAuthorized = await hasAuthorizedClientAccess();
     if (!isAuthorized) {
       requestDeepLinkState.awaitingAuthorization = true;
-      schedulePendingAuthorizedAction(executeRestaurantDeepLink, 3000);
+      schedulePendingAuthorizedAction(executeRestaurantDeepLink, 0);
       setContactShareLoading(false);
       showContactShareModal();
       return false;
