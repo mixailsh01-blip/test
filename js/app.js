@@ -2940,6 +2940,7 @@ const setupRequestDetailsView = () => {
     stopOpenChatPolling();
     stopDialogRefreshReminder();
     dialogModal.classList.add('hidden');
+    requestsState.activeTaskId = null;
     input.value = '';
     clearSelectedDialogFile();
 
