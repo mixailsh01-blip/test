@@ -296,8 +296,10 @@ const API = {
    */
   async sendMiniappMessage(messagePayload = {}, userData = null, webApp = null, files = []) {
     const hookUrl = `${API_BASE_URL}/webhook/message_miniapp`;
-    const textValue = messagePayload?.text ?? null;
     const messageType = messagePayload?.message_type ?? messagePayload?.messageType ?? 'text';
+    const normalizedMessageType = String(messageType).trim().toLowerCase();
+    const rawTextValue = messagePayload?.text ?? null;
+    const textValue = normalizedMessageType === 'file' && (rawTextValue == null || rawTextValue === '') ? '' : rawTextValue;
     const fileName = messagePayload?.file_name ?? messagePayload?.fileName ?? null;
     const payload = {
       task_id: messagePayload?.task_id ?? messagePayload?.taskId ?? null,
