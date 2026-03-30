@@ -3533,7 +3533,13 @@ const initializeApp = () => {
         applyClientSupportResponse(result);
         syncOpenTasksForKnownEstablishments();
         // Если ID пришёл, то всё ок. Если ответ пустой — просим номер телефона.
-        if (clientSupportResponseHasId(result)) return;
+        if (clientSupportResponseHasId(result)) {
+          if (requestDeepLinkState.type === 'add_restaurant' && !requestDeepLinkState.handled) {
+            requestDeepLinkState.awaitingAuthorization = false;
+            window.tryOpenDeepLinkedRequest?.();
+          }
+          return;
+        }
         if (user?.phone_number || user?.phone) return;
         showContactShareModal();
       });
