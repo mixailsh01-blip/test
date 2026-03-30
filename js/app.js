@@ -3022,10 +3022,21 @@ const setupRequestDetailsView = () => {
       try {
         const qrPayload = `https://max.ru/id501305283158_bot?startapp=add_restaurant_${restaurantId}`;
         const result = await window.API.sendQrData(qrPayload, user);
-        const restaurants = normalizeRestaurantsFromQrResponse(result);
+        const qrRestaurants = normalizeRestaurantsFromQrResponse(result);
+        if (qrRestaurants.length > 0) {
+          applyRestaurants(qrRestaurants);
+        }
+
+        let refreshedRestaurants = [];
+        if (window.API?.sendClientTGSupport) {
+          const clientSupportResult = await window.API.sendClientTGSupport(user, tg);
+          applyClientSupportResponse(clientSupportResult);
+          refreshedRestaurants = normalizeRestaurantsFromClientSupportResponse(clientSupportResult);
+        }
+
+        const restaurants = mergeRestaurants(getKnownEstablishments(), qrRestaurants, refreshedRestaurants);
         if (restaurants.length === 0) return false;
 
-        applyRestaurants(restaurants);
         const dropdown = document.getElementById('main-dropdown');
         if (dropdown && restaurants.some((item) => item.id === restaurantId)) {
           dropdown.value = restaurantId;
