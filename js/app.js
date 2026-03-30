@@ -1982,7 +1982,10 @@ const getNextOpenChatPollDelay = (attempt) => {
 
 const isTaskClosed = (task) => {
   const normalizedStatus = String(task?.status || '').trim().toLowerCase();
-  return Boolean(task?.isClosed) || ['решена', 'закрыта', 'закрыт', 'closed'].includes(normalizedStatus);
+  return Boolean(task?.isClosed)
+    || ['решен', 'решена', 'решено', 'закрыта', 'закрыт', 'закрыто', 'closed'].includes(normalizedStatus)
+    || normalizedStatus.startsWith('реш')
+    || normalizedStatus.startsWith('закры');
 };
 
 const getTaskOrganizationName = (item = {}) => {
