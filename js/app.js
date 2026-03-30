@@ -764,12 +764,42 @@ const applyClientSupportResponse = (result) => {
   }
 };
 
+const clientSupportState = {
+  inFlightPromise: null,
+  lastResult: null,
+  lastFetchedAt: 0
+};
+
+const fetchClientSupport = async ({ force = false, cacheMs = 3000 } = {}) => {
+  if (!user?.id || !window.API?.sendClientTGSupport) return null;
+
+  const now = Date.now();
+  if (!force && clientSupportState.lastResult && (now - clientSupportState.lastFetchedAt) < cacheMs) {
+    return clientSupportState.lastResult;
+  }
+
+  if (clientSupportState.inFlightPromise) {
+    return clientSupportState.inFlightPromise;
+  }
+
+  clientSupportState.inFlightPromise = window.API.sendClientTGSupport(user, tg);
+
+  try {
+    const result = await clientSupportState.inFlightPromise;
+    clientSupportState.lastResult = result;
+    clientSupportState.lastFetchedAt = Date.now();
+    return result;
+  } finally {
+    clientSupportState.inFlightPromise = null;
+  }
+};
+
 const pollClientSupportId = async ({ maxTries = 12, intervalMs = 800 } = {}) => {
   if (!user?.id || !window.API?.sendClientTGSupport) return false;
 
   for (let attempt = 1; attempt <= maxTries; attempt += 1) {
     try {
-      const result = await window.API.sendClientTGSupport(user, tg);
+      const result = await fetchClientSupport({ force: true, cacheMs: 0 });
       applyClientSupportResponse(result);
       if (clientSupportResponseHasId(result)) return true;
     } catch (e) {
@@ -784,7 +814,7 @@ const pollClientSupportId = async ({ maxTries = 12, intervalMs = 800 } = {}) => 
 const hasAuthorizedClientAccess = async () => {
   if (!user?.id || !window.API?.sendClientTGSupport) return false;
   try {
-    const result = await window.API.sendClientTGSupport(user, tg);
+    const result = await fetchClientSupport();
     applyClientSupportResponse(result);
     return clientSupportResponseHasId(result);
   } catch (error) {
@@ -3031,7 +3061,7 @@ const setupRequestDetailsView = () => {
 
         let refreshedRestaurants = [];
         if (window.API?.sendClientTGSupport) {
-          const clientSupportResult = await window.API.sendClientTGSupport(user, tg);
+          const clientSupportResult = await fetchClientSupport({ force: true, cacheMs: 0 });
           applyClientSupportResponse(clientSupportResult);
           refreshedRestaurants = normalizeRestaurantsFromClientSupportResponse(clientSupportResult);
         }
@@ -3504,7 +3534,7 @@ const initializeApp = () => {
 
     // При входе в WebApp отправляем данные пользователя в вебхук clientTG_support
     if (user?.id && window.API?.sendClientTGSupport) {
-      window.API.sendClientTGSupport(user, tg).then((result) => {
+      fetchClientSupport({ force: true, cacheMs: 0 }).then((result) => {
         applyClientSupportResponse(result);
         syncOpenTasksForKnownEstablishments();
         // Если ID пришёл, то всё ок. Если ответ пустой — просим номер телефона.
