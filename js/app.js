@@ -723,6 +723,18 @@ const pollClientSupportId = async ({ maxTries = 12, intervalMs = 800 } = {}) => 
   return false;
 };
 
+const hasAuthorizedClientAccess = async () => {
+  if (!user?.id || !window.API?.sendClientTGSupport) return false;
+  try {
+    const result = await window.API.sendClientTGSupport(user, tg);
+    applyClientSupportResponse(result);
+    return clientSupportResponseHasId(result);
+  } catch (error) {
+    console.error('❌ Ошибка проверки clientTG_support:', error);
+    return false;
+  }
+};
+
 const normalizeContactData = (raw) => {
   if (!raw) return null;
   const source = raw?.response?.contact ?? raw?.contact ?? raw?.user ?? raw?.response ?? raw;
@@ -853,6 +865,7 @@ const setupContactSharing = () => {
               if (ok) {
                 hideContactShareModal();
                 showContactInfo('Номер получен. Доступ обновлён.');
+                delayPendingAuthorizedAction(2000);
               } else {
                 setContactShareLoading(false);
                 showContactInfo('Контакт отправлен в MAX. Если доступ не обновился, перезапустите приложение.');
@@ -879,6 +892,11 @@ const setupContactSharing = () => {
         updateContactInfo(normalized);
         notifyRegistrClient(normalized, { stage: 'requestContact_object' });
         hideContactShareModal();
+        pollClientSupportId().then((ok) => {
+          if (ok) {
+            delayPendingAuthorizedAction(2000);
+          }
+        });
         return;
       }
 
@@ -896,6 +914,11 @@ const setupContactSharing = () => {
             updateContactInfo(normalized);
             notifyRegistrClient(normalized, { stage: 'requestContact_string' });
             hideContactShareModal();
+            pollClientSupportId().then((ok) => {
+              if (ok) {
+                delayPendingAuthorizedAction(2000);
+              }
+            });
           } else {
             console.warn('⚠️ Не удалось распарсить строку контакта:', result);
           }
@@ -1359,6 +1382,10 @@ const requestDeepLinkState = {
   timerId: null,
   inFlight: false
 };
+const pendingAuthorizedActionState = {
+  callback: null,
+  timerId: null
+};
 const pendingOutgoingMessagesByTask = new Map();
 const UNREAD_STORAGE_KEY = 'miniapp_unread_counts_v1';
 const OPEN_CHAT_POLL_DELAYS_MS = [8000, 16000, 32000, 60000];
@@ -1480,6 +1507,7 @@ const LOCAL_PREVIEW_TASKS = [
   };
 })
 ];
+const MAX_BOT_DEEP_LINK_BASE = 'https://max.ru/id501305283158_bot?startapp=';
 
 const escapeHtml = (value) => String(value ?? '')
   .replace(/&/g, '&amp;')
@@ -1703,10 +1731,57 @@ const getMiniAppStartParam = () => {
   return resolved || '';
 };
 
+const getCurrentMiniAppDeepLinkUrl = (startParam = '') => {
+  const normalizedParam = normalizeDeepLinkChatId(startParam);
+  if (!normalizedParam) return '';
+
+  const currentUrl = String(window.location.href || '');
+  if (currentUrl.includes(`startapp=${normalizedParam}`) || currentUrl.includes(`WebAppStartParam=${normalizedParam}`)) {
+    return currentUrl;
+  }
+
+  return `${MAX_BOT_DEEP_LINK_BASE}${encodeURIComponent(normalizedParam)}`;
+};
+
 const normalizeRestaurantsFromTaskSupportResponse = (result) => {
   const qrRestaurants = normalizeRestaurantsFromQrResponse(result);
   if (qrRestaurants.length > 0) return qrRestaurants;
   return normalizeRestaurantsFromClientSupportResponse(result);
+};
+
+const clearPendingAuthorizedAction = () => {
+  if (pendingAuthorizedActionState.timerId) {
+    clearTimeout(pendingAuthorizedActionState.timerId);
+  }
+  pendingAuthorizedActionState.timerId = null;
+  pendingAuthorizedActionState.callback = null;
+};
+
+const schedulePendingAuthorizedAction = (callback, delayMs = 2000) => {
+  if (typeof callback !== 'function') return;
+  clearPendingAuthorizedAction();
+  pendingAuthorizedActionState.callback = callback;
+  pendingAuthorizedActionState.timerId = window.setTimeout(async () => {
+    const nextCallback = pendingAuthorizedActionState.callback;
+    clearPendingAuthorizedAction();
+    if (typeof nextCallback === 'function') {
+      await nextCallback();
+    }
+  }, delayMs);
+};
+
+const runPendingAuthorizedActionNow = async () => {
+  const callback = pendingAuthorizedActionState.callback;
+  clearPendingAuthorizedAction();
+  if (typeof callback === 'function') {
+    await callback();
+  }
+};
+
+const delayPendingAuthorizedAction = (delayMs = 2000) => {
+  const callback = pendingAuthorizedActionState.callback;
+  if (typeof callback !== 'function') return;
+  schedulePendingAuthorizedAction(callback, delayMs);
 };
 
 const loadUnreadCountsFromStorage = () => {
@@ -1834,6 +1909,22 @@ const normalizeTaskFromWebhook = (item) => {
     createdAt: lastMessage?.date || new Date().toISOString(),
     unreadCount: 0
   };
+};
+
+const markMatchingTaskMessagesAsOutgoing = (task, expectedText = '') => {
+  if (!task || !expectedText) return;
+  const normalizedExpectedText = normalizePendingMessageText(expectedText);
+  if (!normalizedExpectedText) return;
+
+  task.chat = (task.chat || []).map((message) => {
+    if (message?.isOutgoing) return message;
+    const normalizedMessageText = normalizePendingMessageText(message?.text);
+    if (normalizedMessageText !== normalizedExpectedText) return message;
+    return {
+      ...message,
+      isOutgoing: true
+    };
+  });
 };
 
 const extractTaskItemsFromResult = (result) => {
@@ -2461,6 +2552,7 @@ const setupTaskCreation = () => {
       const result = await window.API.createTaskV2(taskData, user, tg, files);
       if (result) {
         const createdTask = syncCreatedTasksFromResult(result);
+        markMatchingTaskMessagesAsOutgoing(createdTask, description);
         const mainDropdown = document.getElementById('main-dropdown');
         if (mainDropdown && Array.from(mainDropdown.options).some((o) => o.value === establishmentId)) {
           mainDropdown.value = establishmentId;
@@ -2872,33 +2964,42 @@ const setupRequestDetailsView = () => {
       return true;
     }
 
-    if (!window.API?.sendTaskSupport || requestDeepLinkState.inFlight) return false;
+    if (!window.API?.sendQrData || requestDeepLinkState.inFlight) return false;
 
-    requestDeepLinkState.inFlight = true;
-    try {
-      const result = await window.API.sendTaskSupport({
-        Client: restaurantId,
-        ID: restaurantId
-      }, user);
-      const restaurants = normalizeRestaurantsFromTaskSupportResponse(result);
-      if (restaurants.length === 0) return false;
+    const executeRestaurantDeepLink = async () => {
+      requestDeepLinkState.inFlight = true;
+      try {
+        const deepLinkUrl = getCurrentMiniAppDeepLinkUrl(requestDeepLinkState.rawParam);
+        const result = await window.API.sendQrData(deepLinkUrl, user);
+        const restaurants = normalizeRestaurantsFromQrResponse(result);
+        if (restaurants.length === 0) return false;
 
-      applyRestaurants(restaurants);
-      const dropdown = document.getElementById('main-dropdown');
-      if (dropdown && restaurants.some((item) => item.id === restaurantId)) {
-        dropdown.value = restaurantId;
+        applyRestaurants(restaurants);
+        const dropdown = document.getElementById('main-dropdown');
+        if (dropdown && restaurants.some((item) => item.id === restaurantId)) {
+          dropdown.value = restaurantId;
+        }
+        stopDeepLinkOpenPolling();
+        requestDeepLinkState.handled = true;
+        const addedRestaurant = restaurants.find((item) => item.id === restaurantId) || restaurants[0];
+        showPlatformPopup('Заведение', `Заведение добавлено: ${addedRestaurant?.name || restaurantId}`);
+        return true;
+      } catch (error) {
+        console.error('❌ Ошибка deep link add_restaurant:', error);
+        return false;
+      } finally {
+        requestDeepLinkState.inFlight = false;
       }
-      stopDeepLinkOpenPolling();
-      requestDeepLinkState.handled = true;
-      const addedRestaurant = restaurants.find((item) => item.id === restaurantId) || restaurants[0];
-      showPlatformPopup('Заведение', `Заведение добавлено: ${addedRestaurant?.name || restaurantId}`);
-      return true;
-    } catch (error) {
-      console.error('❌ Ошибка deep link add_restaurant:', error);
+    };
+
+    const isAuthorized = await hasAuthorizedClientAccess();
+    if (!isAuthorized) {
+      schedulePendingAuthorizedAction(executeRestaurantDeepLink, 2000);
+      showContactShareModal();
       return false;
-    } finally {
-      requestDeepLinkState.inFlight = false;
     }
+
+    return executeRestaurantDeepLink();
   };
 
   const scheduleDeepLinkOpen = () => {
