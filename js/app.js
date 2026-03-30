@@ -1479,6 +1479,7 @@ const pendingAuthorizedActionState = {
 const pendingOutgoingMessagesByTask = new Map();
 const UNREAD_STORAGE_KEY = 'miniapp_unread_counts_v1';
 const REQUESTS_CACHE_STORAGE_KEY = 'miniapp_requests_cache_v1';
+const READ_CHAT_SIGNATURES_STORAGE_KEY = 'miniapp_read_chat_signatures_v1';
 const OPEN_CHAT_POLL_DELAYS_MS = [8000, 16000, 32000, 60000];
 const LOCAL_PREVIEW_ESTABLISHMENTS = [
   { id: 'demo-1', name: 'ресторан «Я семья»' },
@@ -1873,6 +1874,41 @@ const loadUnreadCountsFromStorage = () => {
   }
 };
 
+const loadReadChatSignaturesFromStorage = () => {
+  try {
+    const raw = localStorage.getItem(READ_CHAT_SIGNATURES_STORAGE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch (error) {
+    console.warn('Не удалось загрузить read chat signatures из localStorage:', error);
+    return {};
+  }
+};
+
+const saveReadChatSignaturesToStorage = (payload) => {
+  try {
+    localStorage.setItem(READ_CHAT_SIGNATURES_STORAGE_KEY, JSON.stringify(payload || {}));
+  } catch (error) {
+    console.warn('Не удалось сохранить read chat signatures в localStorage:', error);
+  }
+};
+
+const getStoredReadChatSignature = (task) => {
+  const key = getTaskStorageKey(task);
+  if (!key) return '';
+  const stored = loadReadChatSignaturesFromStorage();
+  return String(stored[key] || '');
+};
+
+const markTaskChatSignatureAsRead = (task) => {
+  const key = getTaskStorageKey(task);
+  if (!key) return;
+  const stored = loadReadChatSignaturesFromStorage();
+  stored[key] = getTaskChatSignature(task?.chat || []);
+  saveReadChatSignaturesToStorage(stored);
+};
+
 const loadRequestsCacheFromStorage = () => {
   try {
     const raw = localStorage.getItem(REQUESTS_CACHE_STORAGE_KEY);
@@ -2106,6 +2142,7 @@ const markTaskAsRead = (taskId) => {
   const task = requestsState.tasks.find((item) => item.taskId === String(taskId));
   if (!task) return;
   task.unreadCount = 0;
+  markTaskChatSignatureAsRead(task);
   saveUnreadCountsToStorage();
   saveRequestsCacheToStorage();
 };
@@ -2117,7 +2154,10 @@ const upsertRequestTask = (task, options = {}) => {
   if (existingIndex >= 0) {
     const existingTask = requestsState.tasks[existingIndex];
     const nextChat = task.chat.length > 0 ? task.chat : existingTask.chat;
-    const chatChanged = task.chat.length > 0 && getTaskChatSignature(existingTask.chat || []) !== getTaskChatSignature(nextChat);
+    const nextChatSignature = getTaskChatSignature(nextChat);
+    const storedReadSignature = getStoredReadChatSignature(existingTask);
+    const chatChanged = task.chat.length > 0 && nextChatSignature !== getTaskChatSignature(existingTask.chat || []);
+    const hasUnreadChanges = Boolean(nextChatSignature) && nextChatSignature !== storedReadSignature;
 
     requestsState.tasks[existingIndex] = {
       ...existingTask,
@@ -2129,14 +2169,26 @@ const upsertRequestTask = (task, options = {}) => {
       isClosed: typeof task.isClosed === 'boolean' ? task.isClosed : existingTask.isClosed,
       chat: nextChat,
       createdAt: task.createdAt || existingTask.createdAt,
-      unreadCount: shouldMarkRead ? 0 : (chatChanged ? 1 : Number(existingTask.unreadCount || 0))
+      unreadCount: shouldMarkRead ? 0 : (chatChanged && hasUnreadChanges ? 1 : 0)
     };
+    if (shouldMarkRead) {
+      markTaskChatSignatureAsRead(requestsState.tasks[existingIndex]);
+    }
   } else {
-    requestsState.tasks.unshift(applyStoredUnreadCountToTask({
+    const initialTask = applyStoredUnreadCountToTask({
       ...task,
       isClosed: Boolean(task.isClosed),
-      unreadCount: shouldMarkRead ? 0 : Number(task.unreadCount || 0)
-    }));
+      unreadCount: shouldMarkRead ? 0 : 0
+    });
+    const initialSignature = getTaskChatSignature(initialTask.chat || []);
+    const hasUnreadChanges = Boolean(initialSignature) && initialSignature !== getStoredReadChatSignature(initialTask);
+    requestsState.tasks.unshift({
+      ...initialTask,
+      unreadCount: shouldMarkRead ? 0 : (hasUnreadChanges ? 1 : 0)
+    });
+    if (shouldMarkRead) {
+      markTaskChatSignatureAsRead(requestsState.tasks[0]);
+    }
   }
   saveUnreadCountsToStorage();
   saveRequestsCacheToStorage();
