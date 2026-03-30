@@ -1774,6 +1774,7 @@ const normalizeTaskComment = (comment, fallbackText = '', taskId = '') => {
 };
 
 const getCommentIdentity = (comment) => `${comment.commentId}|${comment.date}|${comment.author}|${comment.text}`;
+const getTaskChatSignature = (chat = []) => (Array.isArray(chat) ? chat.map(getCommentIdentity).join('||') : '');
 const getTaskStorageKey = (task) => String(task?.chatId || task?.taskId || '');
 
 const normalizeDeepLinkChatId = (value = '') => String(value || '')
@@ -2115,12 +2116,8 @@ const upsertRequestTask = (task, options = {}) => {
   const existingIndex = requestsState.tasks.findIndex((item) => item.taskId === task.taskId);
   if (existingIndex >= 0) {
     const existingTask = requestsState.tasks[existingIndex];
-    const existingKeys = new Set((existingTask.chat || []).map(getCommentIdentity));
     const nextChat = task.chat.length > 0 ? task.chat : existingTask.chat;
-    const newIncomingCount = (task.chat || [])
-      .filter((message) => !existingKeys.has(getCommentIdentity(message)))
-      .filter((message) => !message.isOutgoing)
-      .length;
+    const chatChanged = task.chat.length > 0 && getTaskChatSignature(existingTask.chat || []) !== getTaskChatSignature(nextChat);
 
     requestsState.tasks[existingIndex] = {
       ...existingTask,
@@ -2132,13 +2129,13 @@ const upsertRequestTask = (task, options = {}) => {
       isClosed: typeof task.isClosed === 'boolean' ? task.isClosed : existingTask.isClosed,
       chat: nextChat,
       createdAt: task.createdAt || existingTask.createdAt,
-      unreadCount: shouldMarkRead ? 0 : (existingTask.unreadCount || 0) + newIncomingCount
+      unreadCount: shouldMarkRead ? 0 : (chatChanged ? 1 : Number(existingTask.unreadCount || 0))
     };
   } else {
     requestsState.tasks.unshift(applyStoredUnreadCountToTask({
       ...task,
       isClosed: Boolean(task.isClosed),
-      unreadCount: shouldMarkRead ? 0 : (task.unreadCount || 0)
+      unreadCount: shouldMarkRead ? 0 : Number(task.unreadCount || 0)
     }));
   }
   saveUnreadCountsToStorage();
@@ -2258,7 +2255,7 @@ const renderRequestsList = () => {
           <div class="request-topic">${escapeHtml(task.description || 'Новая заявка')}</div>
           <div class="request-meta-row">
             <div class="request-meta">${escapeHtml(task.org)}</div>
-            ${task.unreadCount > 0 ? `<span class="request-unread-badge">${escapeHtml(task.unreadCount)}</span>` : ''}
+            ${task.unreadCount > 0 ? '<span class="request-unread-badge" aria-label="Есть непрочитанные сообщения"></span>' : ''}
           </div>
           <div class="request-text">${escapeHtml(previewText)}</div>
         </div>
