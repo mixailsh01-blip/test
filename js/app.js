@@ -2220,6 +2220,13 @@ const renderRequestsList = () => {
       .some((value) => String(value).toLowerCase().includes(search));
     const matchesEstablishment = !establishment || String(task.org || '').trim() === establishment;
     return matchesSearch && matchesEstablishment;
+  }).sort((a, b) => {
+    const aClosed = isTaskClosed(a);
+    const bClosed = isTaskClosed(b);
+    if (aClosed !== bClosed) {
+      return aClosed ? 1 : -1;
+    }
+    return 0;
   });
 
   const filterBtn = document.querySelector('.requests-filter-btn');
