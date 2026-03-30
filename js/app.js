@@ -1670,10 +1670,7 @@ const normalizeTaskComment = (comment, fallbackText = '', taskId = '') => {
       previewUrl: String(legacyAttachmentPreviewUrls[index] ?? legacyAttachmentUrls[index] ?? '')
     }))
       .filter((item) => item.name || item.url);
-  const fallbackFileText = attachments.length > 0
-    ? attachments.map((item) => item.name).filter(Boolean).join(', ')
-    : fallbackText;
-  const normalizedText = String(comment?.text ?? (messageType === 'FILES' ? fallbackFileText : fallbackText) ?? '');
+  const normalizedText = String(comment?.text ?? fallbackText ?? '');
 
   return {
     taskId: normalizedTaskId,
