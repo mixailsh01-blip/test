@@ -2299,6 +2299,11 @@ body.hide-main-logo #requests.page {
   pointer-events: none;
 }
 
+.request-file-chip.is-pending {
+  cursor: default;
+  opacity: 0.92;
+}
+
 .request-file-chip__icon {
   width: 36px;
   height: 36px;

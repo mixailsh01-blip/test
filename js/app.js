@@ -2032,7 +2032,7 @@ const classifyAttachmentKind = (attachment = {}) => {
 const renderFileChipHtml = (attachment) => `
   <button
     type="button"
-    class="request-file-chip"
+    class="request-file-chip${attachment?.isPending ? ' is-pending' : ''}"
     data-attachment-id="${escapeHtml(attachment?.id || '')}"
     data-attachment-md5="${escapeHtml(attachment?.md5 || '')}"
     data-attachment-name="${escapeHtml(attachment?.name || 'Файл')}"
@@ -2812,6 +2812,7 @@ const setupRequestDetailsView = () => {
           bodyElement.querySelectorAll('.request-file-chip').forEach((chipElement, index) => {
             const attachment = message.attachments[index];
             if (!attachment) return;
+            if (attachment.isPending || (!attachment.id && !attachment.url)) return;
             chipElement.dataset.taskId = message.taskId || task.taskId || '';
             chipElement.dataset.commentId = message.commentId || '';
             chipElement.dataset.chatId = task.chatId || '';
@@ -2841,7 +2842,7 @@ const setupRequestDetailsView = () => {
     const isClosed = isTaskClosed(task);
     composer.classList.toggle('hidden', isClosed);
     closedBanner.classList.toggle('hidden', !isClosed);
-    input.disabled = isClosed || isDialogRequestInFlight;
+    input.disabled = isClosed;
     sendBtn.disabled = isClosed || isDialogRequestInFlight;
     attachBtn.disabled = isClosed || isDialogRequestInFlight;
     if (isClosed) {
@@ -3266,8 +3267,9 @@ const setupRequestDetailsView = () => {
     const text = input.value.trim();
     const file = selectedDialogFile;
     const messageType = file ? 'file' : 'text';
-    const outgoingText = file ? `Файл: ${file.name}` : text;
+    const outgoingText = file ? (text || `Файл: ${file.name}`) : text;
     const fileName = file?.name || null;
+    const hadInputFocus = document.activeElement === input;
     if ((!text && !file) || isDialogRequestInFlight) return;
     const activeTask = requestsState.tasks.find((item) => item.taskId === requestsState.activeTaskId);
     if (!activeTask || isTaskClosed(activeTask)) return;
@@ -3276,10 +3278,16 @@ const setupRequestDetailsView = () => {
       task_id: activeTask.taskId,
       comment_id: `${Date.now()}`,
       author: user?.first_name || user?.username || 'Вы',
-      text: outgoingText,
+      text: file ? text : outgoingText,
       date: new Date().toISOString(),
       channel_type: `${platformName}_webapp`,
-      message_type: messageType
+      message_type: file ? 'FILES' : messageType,
+      attachments: file ? [{
+        id: `pending-${Date.now()}`,
+        name: file.name,
+        mime_type: file.type || '',
+        isPending: true
+      }] : []
     });
     registerPendingOutgoingMessage(activeTask.taskId, pendingMessage);
     activeTask.chat.push(pendingMessage);
@@ -3289,6 +3297,12 @@ const setupRequestDetailsView = () => {
     input.value = '';
     clearSelectedDialogFile();
     setDialogRequestInFlight(true);
+    if (hadInputFocus || file) {
+      requestAnimationFrame(() => {
+        input.focus({ preventScroll: true });
+        keepComposerVisible();
+      });
+    }
     try {
       await sendMessageToMiniappWebhook(activeTask, {
         text: outgoingText,
@@ -3309,6 +3323,12 @@ const setupRequestDetailsView = () => {
       }
     } finally {
       setDialogRequestInFlight(false);
+      if (hadInputFocus || file) {
+        requestAnimationFrame(() => {
+          input.focus({ preventScroll: true });
+          keepComposerVisible();
+        });
+      }
     }
   };
 
