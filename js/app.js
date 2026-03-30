@@ -924,10 +924,12 @@ const setupContactSharing = () => {
           attemptsLeft -= 1;
           if (attemptsLeft <= 0) {
             console.warn('⚠️ Контакт запрошен, но phone_number не появился в initDataUnsafe');
-            pollClientSupportId().then((ok) => {
+            pollClientSupportId().then(async (ok) => {
               if (ok) {
+                requestDeepLinkState.awaitingAuthorization = false;
                 hideContactShareModal();
                 showContactInfo('Номер получен. Доступ обновлён.');
+                await runPendingAuthorizedActionNow();
               } else {
                 setContactShareLoading(false);
                 showContactInfo('Контакт отправлен в MAX. Если доступ не обновился, перезапустите приложение.');
