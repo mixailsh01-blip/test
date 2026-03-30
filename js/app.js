@@ -954,17 +954,12 @@ const setupContactSharing = () => {
           attemptsLeft -= 1;
           if (attemptsLeft <= 0) {
             console.warn('⚠️ Контакт запрошен, но phone_number не появился в initDataUnsafe');
-            pollClientSupportId().then(async (ok) => {
-              if (ok) {
-                requestDeepLinkState.awaitingAuthorization = false;
-                hideContactShareModal();
-                showContactInfo('Номер получен. Доступ обновлён.');
-                await runPendingAuthorizedActionNow();
-              } else {
-                setContactShareLoading(false);
-                showContactInfo('Контакт отправлен в MAX. Если доступ не обновился, перезапустите приложение.');
-              }
-            });
+            setContactShareLoading(false);
+            if (requestDeepLinkState.awaitingAuthorization && requestDeepLinkState.type === 'add_restaurant') {
+              showContactError('Не удалось получить номер телефона для регистрации. Нажмите еще раз.');
+            } else {
+              showContactInfo('Контакт отправлен в MAX. Если номер не обновился, попробуйте еще раз.');
+            }
             return;
           }
 
