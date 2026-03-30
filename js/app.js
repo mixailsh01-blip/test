@@ -1202,6 +1202,7 @@ const setupNavigation = () => {
 
       if (typeof window.startRequestsOpenChatPolling === 'function' && typeof window.stopRequestsOpenChatPolling === 'function') {
         if (pageId === 'requests') {
+          syncOpenTasksForKnownEstablishments();
           window.startRequestsOpenChatPolling();
         } else {
           window.stopRequestsOpenChatPolling();
@@ -1440,7 +1441,8 @@ const enhanceMobileUX = () => {
 let currentlySelectedEstablishmentButton = null;
 const requestsState = {
   tasks: [],
-  activeTaskId: null
+  activeTaskId: null,
+  isLoading: false
 };
 const requestsFiltersState = {
   search: '',
@@ -2153,6 +2155,10 @@ const renderRequestsList = () => {
   }
 
   if (filteredTasks.length === 0) {
+    if (requestsState.isLoading && !search && !establishment) {
+      list.innerHTML = '<div class="requests-empty">Загружаем заявки...</div>';
+      return;
+    }
     list.innerHTML = `<div class="requests-empty">${search || establishment ? 'По вашему фильтру ничего не найдено' : 'Заявок пока нет'}</div>`;
     return;
   }
@@ -2230,6 +2236,8 @@ const syncOpenTasksForKnownEstablishments = async () => {
   }
 
   openTaskSyncState.inFlight = true;
+  requestsState.isLoading = requestsState.tasks.length === 0;
+  renderRequestsList();
   try {
     const result = await window.API.sendOpenTask(establishments, user);
     if (result) {
@@ -2240,6 +2248,8 @@ const syncOpenTasksForKnownEstablishments = async () => {
     console.error('❌ Ошибка синхронизации open_task:', error);
   } finally {
     openTaskSyncState.inFlight = false;
+    requestsState.isLoading = false;
+    renderRequestsList();
   }
 };
 
