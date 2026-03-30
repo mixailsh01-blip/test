@@ -618,8 +618,43 @@ const notifyRegistrClient = async (contact, meta = null) => {
     return null;
   }
 
-  console.log('📨 [registr_client] Вызываем вебхук...', { phone_number: contact?.phone_number || null, meta });
-  const result = await window.API.sendRegistrClient(contact, user, tg, meta);
+  const phoneNumber = String(contact?.phone_number || '').trim();
+  if (!phoneNumber) {
+    console.warn('⚠️ [registr_client] Не вызываем: пустой phone_number');
+    return null;
+  }
+
+  window.__registrClientState = window.__registrClientState || {
+    inFlightPhone: '',
+    inFlightPromise: null,
+    completedPhones: new Set()
+  };
+
+  const registrClientState = window.__registrClientState;
+  if (registrClientState.completedPhones.has(phoneNumber)) {
+    console.log('⏭️ [registr_client] Повторный вызов пропущен: номер уже зарегистрирован в этой сессии', { phone_number: phoneNumber, meta });
+    return { skipped: true, phone_number: phoneNumber };
+  }
+
+  if (registrClientState.inFlightPromise && registrClientState.inFlightPhone === phoneNumber) {
+    console.log('⏳ [registr_client] Возвращаем текущий in-flight запрос для того же номера', { phone_number: phoneNumber, meta });
+    return registrClientState.inFlightPromise;
+  }
+
+  console.log('📨 [registr_client] Вызываем вебхук...', { phone_number: phoneNumber, meta });
+  registrClientState.inFlightPhone = phoneNumber;
+  registrClientState.inFlightPromise = window.API.sendRegistrClient(contact, user, tg, meta);
+
+  let result = null;
+  try {
+    result = await registrClientState.inFlightPromise;
+    if (result) {
+      registrClientState.completedPhones.add(phoneNumber);
+    }
+  } finally {
+    registrClientState.inFlightPhone = '';
+    registrClientState.inFlightPromise = null;
+  }
 
   showPlatformPopup(
     'Контакт',
