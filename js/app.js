@@ -3385,9 +3385,6 @@ const setupRequestDetailsView = () => {
       sendCurrentMessage();
     }
   });
-  attachBtn.addEventListener('pointerdown', (event) => event.preventDefault());
-  attachBtn.addEventListener('mousedown', (event) => event.preventDefault());
-  attachBtn.addEventListener('touchstart', (event) => event.preventDefault(), { passive: false });
   attachBtn.addEventListener('click', openFilePicker);
   window.visualViewport?.addEventListener('resize', syncKeyboardOffset);
   window.visualViewport?.addEventListener('scroll', syncKeyboardOffset);
