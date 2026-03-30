@@ -2712,6 +2712,8 @@ const setupRequestDetailsView = () => {
   let selectedDialogFile = null;
   let isOpeningFilePicker = false;
   let dialogRefreshReminderTimerId = null;
+  let dialogRefreshReminderWatcherId = null;
+  let dialogRefreshReminderDeadlineAt = 0;
 
   const hideDialogRefreshModal = () => {
     dialogRefreshModal.classList.add('hidden');
@@ -2727,18 +2729,38 @@ const setupRequestDetailsView = () => {
     if (dialogRefreshReminderTimerId) {
       clearTimeout(dialogRefreshReminderTimerId);
     }
+    if (dialogRefreshReminderWatcherId) {
+      clearInterval(dialogRefreshReminderWatcherId);
+    }
     dialogRefreshReminderTimerId = null;
+    dialogRefreshReminderWatcherId = null;
+    dialogRefreshReminderDeadlineAt = 0;
     hideDialogRefreshModal();
   };
 
   const scheduleDialogRefreshReminder = () => {
     stopDialogRefreshReminder();
     if (dialogModal.classList.contains('hidden') || !requestsState.activeTaskId) return;
-    dialogRefreshReminderTimerId = window.setTimeout(() => {
+    dialogRefreshReminderDeadlineAt = Date.now() + 120000;
+    const checkDialogRefreshReminder = () => {
       if (dialogModal.classList.contains('hidden') || !requestsState.activeTaskId) return;
+      if (Date.now() < dialogRefreshReminderDeadlineAt) return;
       stopOpenChatPolling();
+      hideDialogRefreshModal();
       showDialogRefreshModal();
+      if (dialogRefreshReminderTimerId) {
+        clearTimeout(dialogRefreshReminderTimerId);
+        dialogRefreshReminderTimerId = null;
+      }
+      if (dialogRefreshReminderWatcherId) {
+        clearInterval(dialogRefreshReminderWatcherId);
+        dialogRefreshReminderWatcherId = null;
+      }
+    };
+    dialogRefreshReminderTimerId = window.setTimeout(() => {
+      checkDialogRefreshReminder();
     }, 120000);
+    dialogRefreshReminderWatcherId = window.setInterval(checkDialogRefreshReminder, 5000);
   };
 
   const getCurrentTimeLabel = () => {
