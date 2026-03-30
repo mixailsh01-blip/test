@@ -3059,9 +3059,7 @@ const setupRequestDetailsView = () => {
       requestsOpenChatPollState.timerId = setTimeout(poll, delay);
     };
 
-    const initialDelay = getNextOpenChatPollDelay(requestsOpenChatPollState.attempt);
-    requestsOpenChatPollState.attempt += 1;
-    requestsOpenChatPollState.timerId = setTimeout(poll, initialDelay);
+    poll();
   };
 
   const renderDialogChat = (task) => {
