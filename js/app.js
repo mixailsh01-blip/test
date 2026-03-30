@@ -3263,6 +3263,27 @@ const setupRequestDetailsView = () => {
     keepComposerVisible();
   };
 
+  const openFilePicker = (event) => {
+    event?.preventDefault?.();
+    event?.stopPropagation?.();
+    if (attachBtn.disabled || fileInput.disabled) return;
+
+    try {
+      if (typeof fileInput.showPicker === 'function') {
+        fileInput.showPicker();
+      } else {
+        fileInput.click();
+      }
+    } catch (error) {
+      fileInput.click();
+    }
+
+    requestAnimationFrame(() => {
+      input.focus({ preventScroll: true });
+      keepComposerVisible();
+    });
+  };
+
   const sendCurrentMessage = async () => {
     const text = input.value.trim();
     const file = selectedDialogFile;
@@ -3364,7 +3385,10 @@ const setupRequestDetailsView = () => {
       sendCurrentMessage();
     }
   });
-  attachBtn.addEventListener('click', () => fileInput.click());
+  attachBtn.addEventListener('pointerdown', (event) => event.preventDefault());
+  attachBtn.addEventListener('mousedown', (event) => event.preventDefault());
+  attachBtn.addEventListener('touchstart', (event) => event.preventDefault(), { passive: false });
+  attachBtn.addEventListener('click', openFilePicker);
   window.visualViewport?.addEventListener('resize', syncKeyboardOffset);
   window.visualViewport?.addEventListener('scroll', syncKeyboardOffset);
   fileInput.addEventListener('change', () => {
@@ -3376,6 +3400,10 @@ const setupRequestDetailsView = () => {
     }
     selectedDialogFile = files[0] || null;
     renderSelectedDialogFile();
+    requestAnimationFrame(() => {
+      input.focus({ preventScroll: true });
+      keepComposerVisible();
+    });
   });
   dialogModal.addEventListener('click', (event) => {
     if (event.target === dialogModal) {
