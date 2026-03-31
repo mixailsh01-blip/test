@@ -785,6 +785,13 @@ body.hide-main-logo #requests.page {
   align-items: right;
 }
 
+.profile-establishments-card {
+  background: #1f2128;
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 18px;
+}
+
 /* ==================== МОДАЛЬНЫЕ ОКНА ==================== */
 /* РЕДАКТИРОВАНИЕ ПРОФИЛЯ */
 .modal {

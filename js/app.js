@@ -2631,18 +2631,22 @@ const setupRequestsFiltersModal = () => {
 
 const setupEstablishmentSelection = () => {
   const selectBtn = document.getElementById('select-establishment-btn');
+  const profileEstablishmentsBtn = document.getElementById('profile-establishments-btn');
   const selectedDisplay = document.getElementById('selected-establishment');
   const modal = document.getElementById('establishment-modal');
   const closeBtn = document.getElementById('close-establishment-modal-btn');
   const establishmentList = modal?.querySelector('.establishment-list');
 
-  if (!selectBtn || !selectedDisplay || !modal || !closeBtn || !establishmentList) return;
+  if ((!selectBtn && !profileEstablishmentsBtn) || !selectedDisplay || !modal || !closeBtn || !establishmentList) return;
 
-  // Открытие модального окна
-  selectBtn.addEventListener('click', (e) => {
+  const openModal = (e) => {
     e.preventDefault();
     modal.classList.remove('hidden');
-  });
+  };
+
+  // Открытие модального окна
+  selectBtn?.addEventListener('click', openModal);
+  profileEstablishmentsBtn?.addEventListener('click', openModal);
 
   // Закрытие по кнопке "Отмена"
   closeBtn.addEventListener('click', () => {
