@@ -1261,21 +1261,22 @@ body.hide-main-logo #requests.page {
 
 .task-create-actions .btn-Save.is-disabled,
 .task-create-actions .btn-Save:disabled {
-  background: #2f3037;
-  color: rgba(255, 255, 255, 0.72);
+  background: #2b2d34;
+  color: rgba(255, 255, 255, 0.58);
   cursor: default;
   box-shadow: none;
+  opacity: 1;
 }
 
 .task-create-actions .btn-Save.is-disabled:hover,
 .task-create-actions .btn-Save:disabled:hover {
-  background: #2f3037;
-  color: rgba(255, 255, 255, 0.72);
+  background: #2b2d34;
+  color: rgba(255, 255, 255, 0.58);
 }
 
 .task-create-actions .btn-Save.is-loading,
 .task-create-actions .btn-Save.is-loading:hover {
-  background: #3a3d46;
+  background: #343841;
   color: rgba(255, 255, 255, 0.86);
 }
 

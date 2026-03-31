@@ -2763,6 +2763,8 @@ const setupTaskCreation = () => {
     establishmentToggle.disabled = true;
     renderSelectedFiles();
     updateSendButtonState();
+    await new Promise((resolve) => requestAnimationFrame(() => resolve()));
+    await new Promise((resolve) => setTimeout(resolve, 0));
     try {
       const taskData = {
         title: 'Новая заявка',
