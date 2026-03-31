@@ -2632,19 +2632,68 @@ const setupRequestsFiltersModal = () => {
 const setupEstablishmentSelection = () => {
   const selectBtn = document.getElementById('select-establishment-btn');
   const profileEstablishmentsBtn = document.getElementById('profile-establishments-btn');
-  const profileRoleRequestBtn = document.getElementById('profile-role-request-btn');
   const selectedDisplay = document.getElementById('selected-establishment');
   const modal = document.getElementById('establishment-modal');
   const closeBtn = document.getElementById('close-establishment-modal-btn');
   const establishmentList = modal?.querySelector('.establishment-list');
+  const staffModal = document.getElementById('establishment-staff-modal');
+  const staffTitle = document.getElementById('establishment-staff-title');
+  const staffList = document.getElementById('establishment-staff-list');
+  const staffCloseBtn = document.getElementById('close-establishment-staff-btn');
+  let establishmentsMode = 'select';
 
   if ((!selectBtn && !profileEstablishmentsBtn) || !selectedDisplay || !modal || !closeBtn || !establishmentList) return;
 
+  const renderStaffList = (items = []) => {
+    if (!staffList) return;
+    if (!items.length) {
+      staffList.innerHTML = '<div class="establishment-staff-empty">Сотрудники не найдены</div>';
+      return;
+    }
+
+    staffList.innerHTML = items.map((item) => {
+      const firstName = String(item?.first_name || '').trim();
+      const lastName = String(item?.last_name || '').trim();
+      const fullName = [firstName, lastName].filter(Boolean).join(' ') || 'Без имени';
+      const phone = String(item?.Телефон ?? item?.phone ?? item?.phone_number ?? '').trim() || 'Без телефона';
+      const role = String(item?.POST ?? item?.post ?? '').trim() || 'Без должности';
+      const employeeId = String(item?.ID ?? '').trim();
+
+      return `
+        <div class="establishment-staff-card" data-personal-id="${escapeHtml(employeeId)}">
+          <div class="establishment-staff-name">${escapeHtml(fullName)}</div>
+          <div class="establishment-staff-meta">
+            <div>${escapeHtml(phone)}</div>
+            <div>${escapeHtml(role)}</div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  };
+
+  const closeStaffModal = () => {
+    if (!staffModal) return;
+    staffModal.classList.add('hidden');
+    modal.classList.remove('hidden');
+    if (tg?.BackButton) {
+      if (typeof tg.BackButton.offClick === 'function') {
+        tg.BackButton.offClick(closeStaffModal);
+      }
+      if (typeof tg.BackButton.onClick === 'function') {
+        tg.BackButton.onClick(closeModal);
+      }
+    }
+  };
+
   const closeModal = () => {
     modal.classList.add('hidden');
+    if (staffModal) {
+      staffModal.classList.add('hidden');
+    }
     if (tg?.BackButton) {
       if (typeof tg.BackButton.offClick === 'function') {
         tg.BackButton.offClick(closeModal);
+        tg.BackButton.offClick(closeStaffModal);
       }
       if (typeof tg.BackButton.hide === 'function') {
         tg.BackButton.hide();
@@ -2652,12 +2701,17 @@ const setupEstablishmentSelection = () => {
     }
   };
 
-  const openModal = (e) => {
+  const openModal = (e, mode = 'select') => {
     e.preventDefault();
+    establishmentsMode = mode;
     modal.classList.remove('hidden');
+    if (staffModal) {
+      staffModal.classList.add('hidden');
+    }
     if (tg?.BackButton) {
       if (typeof tg.BackButton.offClick === 'function') {
         tg.BackButton.offClick(closeModal);
+        tg.BackButton.offClick(closeStaffModal);
       }
       if (typeof tg.BackButton.onClick === 'function') {
         tg.BackButton.onClick(closeModal);
@@ -2669,19 +2723,20 @@ const setupEstablishmentSelection = () => {
   };
 
   // Открытие модального окна
-  selectBtn?.addEventListener('click', openModal);
-  profileEstablishmentsBtn?.addEventListener('click', openModal);
-  profileRoleRequestBtn?.addEventListener('click', openModal);
+  selectBtn?.addEventListener('click', (e) => openModal(e, 'select'));
+  profileEstablishmentsBtn?.addEventListener('click', (e) => openModal(e, 'employees'));
 
   // Закрытие по кнопке "Отмена"
   closeBtn.addEventListener('click', closeModal);
+  staffCloseBtn?.addEventListener('click', closeStaffModal);
 
   // Выбор заведения (делаем делегирование, т.к. список обновляется динамически)
-  establishmentList.addEventListener('click', (e) => {
+  establishmentList.addEventListener('click', async (e) => {
     const item = e.target.closest('.establishment-item');
     if (!item) return;
 
     const establishmentName = item.textContent.trim();
+    const establishmentId = String(item.dataset.establishmentId || '').trim();
 
     // Сбрасываем предыдущую выбранную кнопку
     if (currentlySelectedEstablishmentButton) {
@@ -2697,7 +2752,40 @@ const setupEstablishmentSelection = () => {
     selectedDisplay.classList.remove('text-gray-400');
     selectedDisplay.classList.add('text-white');
 
-    // Закрываем модалку
+    if (establishmentsMode === 'employees') {
+      if (!staffModal || !staffList) return;
+      modal.classList.add('hidden');
+      staffModal.classList.remove('hidden');
+      if (staffTitle) {
+        staffTitle.textContent = establishmentName || 'Сотрудники';
+      }
+      staffList.innerHTML = '<div class="establishment-staff-empty">Загружаем сотрудников...</div>';
+      if (tg?.BackButton) {
+        if (typeof tg.BackButton.offClick === 'function') {
+          tg.BackButton.offClick(closeModal);
+          tg.BackButton.offClick(closeStaffModal);
+        }
+        if (typeof tg.BackButton.onClick === 'function') {
+          tg.BackButton.onClick(closeStaffModal);
+        }
+        if (typeof tg.BackButton.show === 'function') {
+          tg.BackButton.show();
+        }
+      }
+
+      const result = await window.API?.sendPersonal?.({
+        IDREST: establishmentId,
+        ID: establishmentId,
+        KК: establishmentName,
+        KK: establishmentName,
+        Client: establishmentName,
+        name: establishmentName
+      }, user, tg);
+      const items = Array.isArray(result) ? result : (result ? [result] : []);
+      renderStaffList(items);
+      return;
+    }
+
     closeModal();
   });
 };

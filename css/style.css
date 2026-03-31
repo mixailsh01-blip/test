@@ -1397,6 +1397,46 @@ body.hide-main-logo #requests.page {
   min-height: 0;
 }
 
+.establishment-staff-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.establishment-staff-card {
+  border-radius: 18px;
+  padding: 16px 18px;
+  background: linear-gradient(180deg, rgba(48, 52, 64, 0.98) 0%, rgba(37, 40, 49, 0.98) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.24);
+}
+
+.establishment-staff-name {
+  font-size: 17px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.establishment-staff-meta {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 14px;
+}
+
+.establishment-staff-empty {
+  padding: 18px 12px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 16px;
+}
+
 .establishment-list::-webkit-scrollbar {
   width: 6px;
 }
