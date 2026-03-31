@@ -1413,6 +1413,18 @@ body.hide-main-logo #requests.page {
   transform: none;
   max-width: none;
   margin-top: 0;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  min-height: 56px;
+  padding: 16px 18px;
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(48, 52, 64, 0.98) 0%, rgba(37, 40, 49, 0.98) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.24);
+  color: #ffffff;
+  text-align: left;
 }
 
 .establishment-item:active {
