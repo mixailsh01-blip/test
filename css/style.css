@@ -826,6 +826,22 @@ body.hide-main-logo #requests.page {
   position: relative;
 }
 
+.establishment-modal-content {
+  width: 100vw;
+  max-width: none;
+  height: 100vh;
+  max-height: none;
+  border-radius: 0;
+  padding: 28px 16px 20px;
+  display: flex;
+  flex-direction: column;
+  background-color: #17191f;
+}
+
+.establishment-modal-content h3 {
+  margin-bottom: 16px;
+}
+
 .modal-content input {
   font-weight: 500;
   border: none;
@@ -1363,6 +1379,12 @@ body.hide-main-logo #requests.page {
   max-height: 60vh;
   overflow-y: auto;
   padding-right: 4px;
+}
+
+.establishment-modal-content .establishment-list {
+  flex: 1 1 auto;
+  max-height: none;
+  min-height: 0;
 }
 
 .establishment-list::-webkit-scrollbar {

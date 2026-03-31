@@ -2640,9 +2640,32 @@ const setupEstablishmentSelection = () => {
 
   if ((!selectBtn && !profileEstablishmentsBtn) || !selectedDisplay || !modal || !closeBtn || !establishmentList) return;
 
+  const closeModal = () => {
+    modal.classList.add('hidden');
+    if (tg?.BackButton) {
+      if (typeof tg.BackButton.offClick === 'function') {
+        tg.BackButton.offClick(closeModal);
+      }
+      if (typeof tg.BackButton.hide === 'function') {
+        tg.BackButton.hide();
+      }
+    }
+  };
+
   const openModal = (e) => {
     e.preventDefault();
     modal.classList.remove('hidden');
+    if (tg?.BackButton) {
+      if (typeof tg.BackButton.offClick === 'function') {
+        tg.BackButton.offClick(closeModal);
+      }
+      if (typeof tg.BackButton.onClick === 'function') {
+        tg.BackButton.onClick(closeModal);
+      }
+      if (typeof tg.BackButton.show === 'function') {
+        tg.BackButton.show();
+      }
+    }
   };
 
   // Открытие модального окна
@@ -2651,9 +2674,7 @@ const setupEstablishmentSelection = () => {
   profileRoleRequestBtn?.addEventListener('click', openModal);
 
   // Закрытие по кнопке "Отмена"
-  closeBtn.addEventListener('click', () => {
-    modal.classList.add('hidden');
-  });
+  closeBtn.addEventListener('click', closeModal);
 
   // Выбор заведения (делаем делегирование, т.к. список обновляется динамически)
   establishmentList.addEventListener('click', (e) => {
@@ -2677,7 +2698,7 @@ const setupEstablishmentSelection = () => {
     selectedDisplay.classList.add('text-white');
 
     // Закрываем модалку
-    modal.classList.add('hidden');
+    closeModal();
   });
 };
 
