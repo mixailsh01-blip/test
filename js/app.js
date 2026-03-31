@@ -2686,10 +2686,15 @@ const setupEstablishmentSelection = () => {
       const fullName = [firstName, lastName].filter(Boolean).join(' ') || 'Без имени';
       const phone = String(item?.Телефон ?? item?.phone ?? item?.phone_number ?? '').trim() || 'Без телефона';
       const role = String(item?.POST ?? item?.post ?? '').trim() || 'Без должности';
-      const employeeId = String(item?.ID ?? '').trim();
+      const employeeId = String(item?.ID1 ?? item?.ID ?? '').trim();
+      const roleItemId = String(item?.ITEM_ID ?? '').trim();
       const roleSelectHtml = roleOptions.length > 0
         ? `
-          <select class="establishment-staff-role-select" data-personal-id="${escapeHtml(employeeId)}">
+          <select
+            class="establishment-staff-role-select"
+            data-personal-id="${escapeHtml(employeeId)}"
+            data-item-id="${escapeHtml(roleItemId)}"
+          >
             ${roleOptions.map((option) => `
               <option value="${escapeHtml(option.role_id)}" ${option.role_name === role ? 'selected' : ''}>
                 ${escapeHtml(option.role_name)}
@@ -2697,10 +2702,10 @@ const setupEstablishmentSelection = () => {
             `).join('')}
           </select>
         `
-        : `<div class="establishment-staff-role-select">${escapeHtml(role)}</div>`;
+        : `<div class="establishment-staff-role-select" data-personal-id="${escapeHtml(employeeId)}" data-item-id="${escapeHtml(roleItemId)}">${escapeHtml(role)}</div>`;
 
       return `
-        <div class="establishment-staff-card" data-personal-id="${escapeHtml(employeeId)}">
+        <div class="establishment-staff-card" data-personal-id="${escapeHtml(employeeId)}" data-item-id="${escapeHtml(roleItemId)}">
           <div class="establishment-staff-head">
             <div class="establishment-staff-main">
               <div class="establishment-staff-name">${escapeHtml(fullName)}</div>
