@@ -1225,7 +1225,9 @@ const setupNavigation = () => {
       document.body.classList.toggle('hide-main-logo', pageId === 'requests');
 
       if (pageId === 'requests') {
-        syncOpenTasksForKnownEstablishments({ force: true });
+        syncOpenTasksForKnownEstablishments({ force: true }).then(() => {
+          window.hydrateRequestsListChatsOnce?.();
+        });
       }
 
       const allButtons = newPage.querySelectorAll('[class^="btn-"]');
@@ -1480,6 +1482,10 @@ const requestsOpenChatPollState = {
   timerId: null,
   attempt: 0,
   inFlight: false
+};
+const requestsListOpenChatHydrationState = {
+  inFlight: false,
+  taskIds: new Set()
 };
 const requestDeepLinkState = {
   rawParam: '',
@@ -2439,6 +2445,9 @@ const syncCreatedTasksFromResult = (result, options = {}) => {
   if (options.reconcile === true) {
     const incomingTaskIds = new Set(normalizedTasks.map((task) => String(task.taskId)));
     requestsState.tasks = requestsState.tasks.filter((task) => incomingTaskIds.has(String(task.taskId)));
+    requestsListOpenChatHydrationState.taskIds = new Set(
+      Array.from(requestsListOpenChatHydrationState.taskIds).filter((taskId) => incomingTaskIds.has(String(taskId)))
+    );
     if (requestsState.activeTaskId && !incomingTaskIds.has(String(requestsState.activeTaskId))) {
       requestsState.activeTaskId = null;
     }
@@ -3112,7 +3121,9 @@ const setupRequestDetailsView = () => {
     }
 
     if (document.getElementById('requests')?.classList.contains('active')) {
-      syncOpenTasksForKnownEstablishments({ force: true });
+      syncOpenTasksForKnownEstablishments({ force: true }).then(() => {
+        window.hydrateRequestsListChatsOnce?.();
+      });
     }
   };
 
@@ -3136,6 +3147,32 @@ const setupRequestDetailsView = () => {
     } catch (error) {
       console.error('❌ Ошибка загрузки open_chat:', error);
       return null;
+    }
+  };
+
+  const hydrateRequestsListChatsOnce = async () => {
+    if (requestsListOpenChatHydrationState.inFlight || !window.API?.sendOpenChat) return;
+    if (!document.getElementById('requests')?.classList.contains('active')) return;
+    if (!dialogModal.classList.contains('hidden')) return;
+
+    const tasksToHydrate = requestsState.tasks.filter((task) => (
+      task?.taskId
+      && !isTaskClosed(task)
+      && !requestsListOpenChatHydrationState.taskIds.has(String(task.taskId))
+    ));
+
+    if (!tasksToHydrate.length) return;
+
+    requestsListOpenChatHydrationState.inFlight = true;
+    try {
+      for (const task of tasksToHydrate) {
+        if (!document.getElementById('requests')?.classList.contains('active')) break;
+        if (!dialogModal.classList.contains('hidden')) break;
+        await requestOpenChat(task);
+        requestsListOpenChatHydrationState.taskIds.add(String(task.taskId));
+      }
+    } finally {
+      requestsListOpenChatHydrationState.inFlight = false;
     }
   };
 
@@ -3184,6 +3221,7 @@ const setupRequestDetailsView = () => {
     hideDialogRefreshModal();
     if (dialogRefreshContext === 'requests') {
       await syncOpenTasksForKnownEstablishments({ force: true });
+      await hydrateRequestsListChatsOnce();
       return;
     }
     const activeTask = requestsState.tasks.find((item) => item.taskId === requestsState.activeTaskId);
@@ -3856,6 +3894,8 @@ const setupRequestDetailsView = () => {
       closeDialog();
     }
   });
+
+  window.hydrateRequestsListChatsOnce = hydrateRequestsListChatsOnce;
 
   renderRequestsList();
 };
