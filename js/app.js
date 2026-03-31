@@ -1224,13 +1224,8 @@ const setupNavigation = () => {
       btn.classList.add('active');
       document.body.classList.toggle('hide-main-logo', pageId === 'requests');
 
-      if (typeof window.startRequestsOpenChatPolling === 'function' && typeof window.stopRequestsOpenChatPolling === 'function') {
-        if (pageId === 'requests') {
-          syncOpenTasksForKnownEstablishments({ force: true });
-          window.startRequestsOpenChatPolling();
-        } else {
-          window.stopRequestsOpenChatPolling();
-        }
+      if (pageId === 'requests') {
+        syncOpenTasksForKnownEstablishments({ force: true });
       }
 
       const allButtons = newPage.querySelectorAll('[class^="btn-"]');
@@ -3091,15 +3086,6 @@ const setupRequestDetailsView = () => {
     openChatPollState.attempt = 0;
   };
 
-  const stopRequestsOpenChatPolling = () => {
-    if (requestsOpenChatPollState.timerId) {
-      clearTimeout(requestsOpenChatPollState.timerId);
-    }
-    requestsOpenChatPollState.timerId = null;
-    requestsOpenChatPollState.attempt = 0;
-    requestsOpenChatPollState.inFlight = false;
-  };
-
   const stopDeepLinkOpenPolling = () => {
     if (requestDeepLinkState.timerId) {
       clearTimeout(requestDeepLinkState.timerId);
@@ -3126,7 +3112,7 @@ const setupRequestDetailsView = () => {
     }
 
     if (document.getElementById('requests')?.classList.contains('active')) {
-      scheduleRequestsOpenChatPolling();
+      syncOpenTasksForKnownEstablishments({ force: true });
     }
   };
 
@@ -3198,54 +3184,12 @@ const setupRequestDetailsView = () => {
     hideDialogRefreshModal();
     if (dialogRefreshContext === 'requests') {
       await syncOpenTasksForKnownEstablishments({ force: true });
-      scheduleRequestsOpenChatPolling();
       return;
     }
     const activeTask = requestsState.tasks.find((item) => item.taskId === requestsState.activeTaskId);
     if (!activeTask || isDialogRequestInFlight) return;
     await requestOpenChat(activeTask);
     scheduleOpenChatPolling(activeTask.taskId);
-  };
-
-  const pollRequestsListChats = async () => {
-    if (
-      requestsOpenChatPollState.inFlight ||
-      !document.getElementById('requests')?.classList.contains('active') ||
-      !dialogModal.classList.contains('hidden')
-    ) {
-      return;
-    }
-
-    requestsOpenChatPollState.inFlight = true;
-    try {
-      await syncOpenTasksForKnownEstablishments({ force: true });
-    } finally {
-      requestsOpenChatPollState.inFlight = false;
-    }
-  };
-
-  const scheduleRequestsOpenChatPolling = () => {
-    stopRequestsOpenChatPolling();
-
-    const poll = async () => {
-      if (!document.getElementById('requests')?.classList.contains('active') || !dialogModal.classList.contains('hidden')) {
-        stopRequestsOpenChatPolling();
-        return;
-      }
-
-      await pollRequestsListChats();
-
-      const delay = getNextOpenChatPollDelay(requestsOpenChatPollState.attempt);
-      if (delay == null) {
-        stopRequestsOpenChatPolling();
-        showDialogRefreshModal('requests');
-        return;
-      }
-      requestsOpenChatPollState.attempt += 1;
-      requestsOpenChatPollState.timerId = setTimeout(poll, delay);
-    };
-
-    poll();
   };
 
   const renderDialogChat = (task) => {
@@ -3388,7 +3332,6 @@ const setupRequestDetailsView = () => {
         tg.BackButton.show();
       }
     }
-    stopRequestsOpenChatPolling();
     requestOpenChat(task);
     scheduleOpenChatPolling(task.taskId);
   };
@@ -3913,9 +3856,6 @@ const setupRequestDetailsView = () => {
       closeDialog();
     }
   });
-
-  window.startRequestsOpenChatPolling = scheduleRequestsOpenChatPolling;
-  window.stopRequestsOpenChatPolling = stopRequestsOpenChatPolling;
 
   renderRequestsList();
 };
