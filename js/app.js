@@ -2641,8 +2641,36 @@ const setupEstablishmentSelection = () => {
   const staffList = document.getElementById('establishment-staff-list');
   const staffCloseBtn = document.getElementById('close-establishment-staff-btn');
   let establishmentsMode = 'select';
+  const rolesCatalogState = {
+    loaded: false,
+    roles: []
+  };
 
   if ((!selectBtn && !profileEstablishmentsBtn) || !selectedDisplay || !modal || !closeBtn || !establishmentList) return;
+
+  const normalizeRolesFromCatalogResponse = (result) => {
+    const items = Array.isArray(result) ? result : [result];
+    return items
+      .flatMap((item) => Array.isArray(item?.items) ? item.items : [])
+      .map((item) => {
+        const roleName = String(item?.values?.[0] ?? '').trim();
+        const roleId = String(item?.item_id ?? '').trim();
+        if (!roleName || !roleId) return null;
+        return {
+          role_id: roleId,
+          role_name: roleName
+        };
+      })
+      .filter(Boolean);
+  };
+
+  const loadRolesCatalog = async () => {
+    if (rolesCatalogState.loaded) return rolesCatalogState.roles;
+    const result = await window.API?.sendRolesCatalog?.();
+    rolesCatalogState.roles = normalizeRolesFromCatalogResponse(result);
+    rolesCatalogState.loaded = true;
+    return rolesCatalogState.roles;
+  };
 
   const renderStaffList = (items = []) => {
     if (!staffList) return;
@@ -2651,6 +2679,7 @@ const setupEstablishmentSelection = () => {
       return;
     }
 
+    const roleOptions = rolesCatalogState.roles;
     staffList.innerHTML = items.map((item) => {
       const firstName = String(item?.first_name || '').trim();
       const lastName = String(item?.last_name || '').trim();
@@ -2658,13 +2687,30 @@ const setupEstablishmentSelection = () => {
       const phone = String(item?.Телефон ?? item?.phone ?? item?.phone_number ?? '').trim() || 'Без телефона';
       const role = String(item?.POST ?? item?.post ?? '').trim() || 'Без должности';
       const employeeId = String(item?.ID ?? '').trim();
+      const roleSelectHtml = roleOptions.length > 0
+        ? `
+          <select class="establishment-staff-role-select" data-personal-id="${escapeHtml(employeeId)}">
+            ${roleOptions.map((option) => `
+              <option value="${escapeHtml(option.role_id)}" ${option.role_name === role ? 'selected' : ''}>
+                ${escapeHtml(option.role_name)}
+              </option>
+            `).join('')}
+          </select>
+        `
+        : `<div class="establishment-staff-role-select">${escapeHtml(role)}</div>`;
 
       return `
         <div class="establishment-staff-card" data-personal-id="${escapeHtml(employeeId)}">
-          <div class="establishment-staff-name">${escapeHtml(fullName)}</div>
-          <div class="establishment-staff-meta">
-            <div>${escapeHtml(phone)}</div>
-            <div>${escapeHtml(role)}</div>
+          <div class="establishment-staff-head">
+            <div class="establishment-staff-main">
+              <div class="establishment-staff-name">${escapeHtml(fullName)}</div>
+              <div class="establishment-staff-meta">
+                <div>${escapeHtml(phone)}</div>
+              </div>
+            </div>
+            <div class="establishment-staff-role">
+              ${roleSelectHtml}
+            </div>
           </div>
         </div>
       `;
@@ -2760,6 +2806,7 @@ const setupEstablishmentSelection = () => {
         staffTitle.textContent = establishmentName || 'Сотрудники';
       }
       staffList.innerHTML = '<div class="establishment-staff-empty">Загружаем сотрудников...</div>';
+      await loadRolesCatalog();
       if (tg?.BackButton) {
         if (typeof tg.BackButton.offClick === 'function') {
           tg.BackButton.offClick(closeModal);

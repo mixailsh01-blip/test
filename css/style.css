@@ -1414,6 +1414,18 @@ body.hide-main-logo #requests.page {
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.24);
 }
 
+.establishment-staff-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.establishment-staff-main {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
 .establishment-staff-name {
   font-size: 17px;
   font-weight: 700;
@@ -1427,6 +1439,33 @@ body.hide-main-logo #requests.page {
   gap: 4px;
   color: rgba(255, 255, 255, 0.78);
   font-size: 14px;
+}
+
+.establishment-staff-role {
+  min-width: 132px;
+  max-width: 46%;
+  flex: 0 0 auto;
+  text-align: right;
+}
+
+.establishment-staff-role-select {
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  background: rgba(20, 23, 31, 0.9);
+  color: #ffffff;
+  padding: 10px 12px;
+  font-family: 'PT Root UI', sans-serif;
+  font-size: 13px;
+  text-align: right;
+  outline: none;
+}
+
+div.establishment-staff-role-select {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-height: 42px;
 }
 
 .establishment-staff-empty {

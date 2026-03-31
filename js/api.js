@@ -327,6 +327,34 @@ const API = {
 
   ,
 
+  async sendRolesCatalog() {
+    const hookUrl = `${API_BASE_URL}/webhook/post`;
+
+    try {
+      console.log('📤 [API] Отправляем roles post');
+
+      const response = await fetch(hookUrl, {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json().catch(() => null);
+      console.log('✅ [API] Ответ roles post:', result);
+      return result;
+    } catch (error) {
+      console.error('❌ [API] Ошибка roles post:', error);
+      return null;
+    }
+  }
+
+  ,
+
   /**
    * Отправка сообщения из миниаппа в диалог заявки
    * @param {Object} messagePayload - Данные сообщения/задачи
