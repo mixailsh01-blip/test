@@ -2581,6 +2581,8 @@ const setupTaskCreation = () => {
     !filesList
   ) return;
   let isTaskCreateSubmitting = false;
+  let isTaskCreatePreparingFiles = false;
+  let taskCreateFilesPrepareToken = 0;
 
   const getEstablishmentsFromMainDropdown = () => {
     const dropdown = document.getElementById('main-dropdown');
@@ -2613,7 +2615,7 @@ const setupTaskCreation = () => {
         <div class="task-create-file-meta">
           <div class="task-create-file-title">Файлов: ${files.length}</div>
           <div class="task-create-file-size">${totalSizeLabel}</div>
-          ${isTaskCreateSubmitting ? '<div class="task-create-file-uploading">Загружаем файлы...</div>' : ''}
+          ${isTaskCreatePreparingFiles ? '<div class="task-create-file-uploading">Подготавливаем файлы...</div>' : (isTaskCreateSubmitting ? '<div class="task-create-file-uploading">Отправляем заявку...</div>' : '')}
         </div>
       </div>
     `;
@@ -2623,11 +2625,13 @@ const setupTaskCreation = () => {
     const hasEstablishment = Boolean((establishmentSelect.value || '').trim());
     const hasDescription = Boolean((descriptionInput.value || '').trim());
     const hasFiles = Array.from(filesInput.files || []).length > 0;
-    const isReady = hasEstablishment && hasDescription && !isTaskCreateSubmitting;
+    const isReady = hasEstablishment && hasDescription && !isTaskCreateSubmitting && !isTaskCreatePreparingFiles;
 
     sendBtn.disabled = !isReady;
-    if (isTaskCreateSubmitting) {
-      sendBtn.textContent = hasFiles ? 'Загрузка файлов...' : 'Создаем...';
+    if (isTaskCreatePreparingFiles) {
+      sendBtn.textContent = hasFiles ? 'Подготавливаем файлы...' : 'Подготавливаем...';
+    } else if (isTaskCreateSubmitting) {
+      sendBtn.textContent = 'Создаем...';
     } else if (!hasEstablishment) {
       sendBtn.textContent = 'Выберите заведение';
     } else if (!hasDescription) {
@@ -2636,7 +2640,7 @@ const setupTaskCreation = () => {
       sendBtn.textContent = 'Создать';
     }
     sendBtn.classList.toggle('is-disabled', !isReady);
-    sendBtn.classList.toggle('is-loading', isTaskCreateSubmitting);
+    sendBtn.classList.toggle('is-loading', isTaskCreateSubmitting || isTaskCreatePreparingFiles);
   };
 
   const setEstablishmentValue = (value = '') => {
@@ -2723,11 +2727,18 @@ const setupTaskCreation = () => {
     toggleEstablishmentMenu(false);
     syncPlatformBackButton(false);
     isTaskCreateSubmitting = false;
+    isTaskCreatePreparingFiles = false;
+    taskCreateFilesPrepareToken += 1;
+    attachBtn.disabled = false;
+    filesInput.disabled = false;
+    descriptionInput.disabled = false;
+    establishmentToggle.disabled = false;
     updateSendButtonState();
   };
 
   const openModal = () => {
     isTaskCreateSubmitting = false;
+    isTaskCreatePreparingFiles = false;
     renderEstablishmentPicker();
     descriptionInput.value = '';
     filesInput.value = '';
@@ -2753,6 +2764,10 @@ const setupTaskCreation = () => {
 
     if (!window.API?.createTaskV2) {
       showPlatformPopup('Ошибка', 'Метод API.createTaskV2 не найден.');
+      return;
+    }
+
+    if (isTaskCreatePreparingFiles) {
       return;
     }
 
@@ -2836,11 +2851,39 @@ const setupTaskCreation = () => {
     renderEstablishmentPicker(preferredId);
   });
   attachBtn.addEventListener('click', () => filesInput.click());
-  filesInput.addEventListener('change', renderSelectedFiles);
+  filesInput.addEventListener('change', () => {
+    const currentToken = ++taskCreateFilesPrepareToken;
+    const files = Array.from(filesInput.files || []);
+    isTaskCreatePreparingFiles = files.length > 0;
+    attachBtn.disabled = isTaskCreatePreparingFiles;
+    renderSelectedFiles();
+    updateSendButtonState();
+
+    if (!files.length) {
+      isTaskCreatePreparingFiles = false;
+      attachBtn.disabled = false;
+      renderSelectedFiles();
+      updateSendButtonState();
+      return;
+    }
+
+    Promise.all(files.map((file) => file.arrayBuffer().catch(() => null)))
+      .finally(() => {
+        if (currentToken !== taskCreateFilesPrepareToken) return;
+        isTaskCreatePreparingFiles = false;
+        attachBtn.disabled = false;
+        renderSelectedFiles();
+        updateSendButtonState();
+      });
+  });
   filesList.addEventListener('click', (event) => {
     if (!event.target.closest('.task-create-file-remove')) return;
+    taskCreateFilesPrepareToken += 1;
+    isTaskCreatePreparingFiles = false;
+    attachBtn.disabled = false;
     filesInput.value = '';
     renderSelectedFiles();
+    updateSendButtonState();
   });
   descriptionInput.addEventListener('input', updateSendButtonState);
   sendBtn.addEventListener('click', sendTaskHandler);
