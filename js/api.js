@@ -499,6 +499,34 @@ const API = {
 
   ,
 
+  async sendRolesCatalog() {
+    const hookUrl = `${API_BASE_URL}/webhook/post`;
+
+    try {
+      console.log('📤 [API] Отправляем roles post');
+
+      const response = await fetch(hookUrl, {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json().catch(() => null);
+      console.log('✅ [API] Ответ roles post:', result);
+      return result;
+    } catch (error) {
+      console.error('❌ [API] Ошибка roles post:', error);
+      return null;
+    }
+  }
+
+  ,
+
   /**
    * Регистрация клиента после предоставления номера телефона
    * @param {Object} contact - объект контакта (ожидается phone_number)
@@ -513,6 +541,8 @@ const API = {
     const payload = {
       date: 'registr_client',
       phone_number: contact?.phone_number || null,
+      role_id: meta?.role_id ?? null,
+      role_name: meta?.role_name ?? null,
       meta: meta || null,
       user_id: userData?.id || null,
       username: userData?.username || null,
