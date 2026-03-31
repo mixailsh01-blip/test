@@ -1628,6 +1628,12 @@ const normalizeCommentAuthor = (comment) => String(
 
 const normalizePendingMessageText = (value) => String(value ?? '').trim();
 
+const isHiddenSystemTaskComment = (comment) => {
+  const author = normalizeCommentAuthor(comment).trim().toLowerCase();
+  const text = String(comment?.text ?? '').trim();
+  return author === 'pyrus' && /^id:\s*\d+\s+name:\s*/i.test(text);
+};
+
 const registerPendingOutgoingMessage = (taskId, message) => {
   const normalizedTaskId = String(taskId || '').trim();
   const normalizedText = normalizePendingMessageText(message?.text);
@@ -2088,6 +2094,7 @@ const normalizeTaskFromWebhook = (item) => {
   const taskId = String(item.task_id ?? item.taskId);
   const chatItems = Array.isArray(item.chat) ? item.chat : [];
   const normalizedChat = chatItems
+    .filter((comment) => !isHiddenSystemTaskComment(comment))
     .map((comment) => normalizeTaskComment({
       ...comment,
       IDUser: comment?.IDUser ?? comment?.UserID ?? item?.IDUser ?? item?.UserID ?? null
