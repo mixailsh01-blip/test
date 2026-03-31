@@ -1480,7 +1480,7 @@ const pendingOutgoingMessagesByTask = new Map();
 const UNREAD_STORAGE_KEY = 'miniapp_unread_counts_v1';
 const REQUESTS_CACHE_STORAGE_KEY = 'miniapp_requests_cache_v1';
 const READ_CHAT_SIGNATURES_STORAGE_KEY = 'miniapp_read_chat_signatures_v1';
-const OPEN_CHAT_POLL_DELAYS_MS = [8000, 16000, 32000, 60000];
+const OPEN_CHAT_POLL_DELAYS_MS = [4000, 4000, 4000, 8000, 8000, 8000, 16000, 16000, 16000, 24000, 24000, 24000, 48000, 48000, 48000];
 const LOCAL_PREVIEW_ESTABLISHMENTS = [
   { id: 'demo-1', name: 'ресторан «Я семья»' },
   { id: 'demo-2', name: 'кофейня «Атлас»' },
@@ -2012,10 +2012,7 @@ const applyStoredUnreadCountToTask = (task) => {
   };
 };
 
-const getNextOpenChatPollDelay = (attempt) => {
-  const index = Math.min(Math.max(attempt, 0), OPEN_CHAT_POLL_DELAYS_MS.length - 1);
-  return OPEN_CHAT_POLL_DELAYS_MS[index];
-};
+const getNextOpenChatPollDelay = (attempt) => OPEN_CHAT_POLL_DELAYS_MS[Math.max(attempt, 0)] ?? null;
 
 const isTaskClosed = (task) => {
   const normalizedStatus = String(task?.status || '').trim().toLowerCase();
@@ -2351,7 +2348,7 @@ const getKnownEstablishments = () => {
     .filter((item) => item.id && item.name && item.name !== 'Выберите заведение');
 };
 
-const syncOpenTasksForKnownEstablishments = async () => {
+const syncOpenTasksForKnownEstablishments = async ({ force = false } = {}) => {
   if (!window.API?.sendOpenTask) return;
 
   const establishments = getKnownEstablishments();
@@ -2362,7 +2359,7 @@ const syncOpenTasksForKnownEstablishments = async () => {
     .sort()
     .join('|');
 
-  if (!signature || openTaskSyncState.inFlight || openTaskSyncState.lastSignature === signature) {
+  if (!signature || openTaskSyncState.inFlight || (!force && openTaskSyncState.lastSignature === signature)) {
     return;
   }
 
@@ -2914,62 +2911,36 @@ const setupRequestDetailsView = () => {
   const composer = dialogModal?.querySelector('.request-dialog-composer');
   const closedBanner = document.getElementById('request-dialog-closed');
   const dialogRefreshModal = document.getElementById('dialog-refresh-modal');
+  const dialogRefreshTitle = document.getElementById('dialog-refresh-title');
+  const dialogRefreshText = document.getElementById('dialog-refresh-text');
   const dialogRefreshBtn = document.getElementById('dialog-refresh-btn');
 
-  if (!requestsList || !dialogModal || !dialogChat || !input || !sendBtn || !attachBtn || !fileInput || !filePreview || !composer || !closedBanner || !dialogRefreshModal || !dialogRefreshBtn) return;
+  if (!requestsList || !dialogModal || !dialogChat || !input || !sendBtn || !attachBtn || !fileInput || !filePreview || !composer || !closedBanner || !dialogRefreshModal || !dialogRefreshBtn || !dialogRefreshTitle || !dialogRefreshText) return;
   let isDialogRequestInFlight = false;
   let selectedDialogFile = null;
   let isOpeningFilePicker = false;
-  let dialogRefreshReminderTimerId = null;
-  let dialogRefreshReminderWatcherId = null;
-  let dialogRefreshReminderDeadlineAt = 0;
+  let dialogRefreshContext = 'dialog';
 
   const hideDialogRefreshModal = () => {
     dialogRefreshModal.classList.add('hidden');
     dialogRefreshModal.setAttribute('aria-hidden', 'true');
   };
 
-  const showDialogRefreshModal = () => {
+  const showDialogRefreshModal = (context = 'dialog') => {
+    dialogRefreshContext = context;
+    if (context === 'requests') {
+      dialogRefreshTitle.textContent = 'Обновить данные?';
+      dialogRefreshText.textContent = 'Автообновление заявок остановлено. Нажмите кнопку, чтобы заново получить данные.';
+    } else {
+      dialogRefreshTitle.textContent = 'Обновить диалог?';
+      dialogRefreshText.textContent = 'Автообновление диалога остановлено. Нажмите кнопку, чтобы заново подгрузить сообщения.';
+    }
     dialogRefreshModal.classList.remove('hidden');
     dialogRefreshModal.setAttribute('aria-hidden', 'false');
   };
 
   const stopDialogRefreshReminder = () => {
-    if (dialogRefreshReminderTimerId) {
-      clearTimeout(dialogRefreshReminderTimerId);
-    }
-    if (dialogRefreshReminderWatcherId) {
-      clearInterval(dialogRefreshReminderWatcherId);
-    }
-    dialogRefreshReminderTimerId = null;
-    dialogRefreshReminderWatcherId = null;
-    dialogRefreshReminderDeadlineAt = 0;
     hideDialogRefreshModal();
-  };
-
-  const scheduleDialogRefreshReminder = () => {
-    stopDialogRefreshReminder();
-    if (dialogModal.classList.contains('hidden') || !requestsState.activeTaskId) return;
-    dialogRefreshReminderDeadlineAt = Date.now() + 120000;
-    const checkDialogRefreshReminder = () => {
-      if (dialogModal.classList.contains('hidden') || !requestsState.activeTaskId) return;
-      if (Date.now() < dialogRefreshReminderDeadlineAt) return;
-      stopOpenChatPolling();
-      hideDialogRefreshModal();
-      showDialogRefreshModal();
-      if (dialogRefreshReminderTimerId) {
-        clearTimeout(dialogRefreshReminderTimerId);
-        dialogRefreshReminderTimerId = null;
-      }
-      if (dialogRefreshReminderWatcherId) {
-        clearInterval(dialogRefreshReminderWatcherId);
-        dialogRefreshReminderWatcherId = null;
-      }
-    };
-    dialogRefreshReminderTimerId = window.setTimeout(() => {
-      checkDialogRefreshReminder();
-    }, 120000);
-    dialogRefreshReminderWatcherId = window.setInterval(checkDialogRefreshReminder, 5000);
   };
 
   const getCurrentTimeLabel = () => {
@@ -3073,22 +3044,35 @@ const setupRequestDetailsView = () => {
       }
 
       const delay = getNextOpenChatPollDelay(openChatPollState.attempt);
+      if (delay == null) {
+        stopOpenChatPolling();
+        showDialogRefreshModal('dialog');
+        return;
+      }
       openChatPollState.attempt += 1;
       openChatPollState.timerId = setTimeout(poll, delay);
     };
 
     const initialDelay = getNextOpenChatPollDelay(openChatPollState.attempt);
+    if (initialDelay == null) {
+      showDialogRefreshModal('dialog');
+      return;
+    }
     openChatPollState.attempt += 1;
     openChatPollState.timerId = setTimeout(poll, initialDelay);
   };
 
   const restartDialogRefreshFlow = async () => {
+    hideDialogRefreshModal();
+    if (dialogRefreshContext === 'requests') {
+      await syncOpenTasksForKnownEstablishments({ force: true });
+      scheduleRequestsOpenChatPolling();
+      return;
+    }
     const activeTask = requestsState.tasks.find((item) => item.taskId === requestsState.activeTaskId);
     if (!activeTask || isDialogRequestInFlight) return;
-    hideDialogRefreshModal();
     await requestOpenChat(activeTask);
     scheduleOpenChatPolling(activeTask.taskId);
-    scheduleDialogRefreshReminder();
   };
 
   const pollRequestsListChats = async () => {
@@ -3102,10 +3086,7 @@ const setupRequestDetailsView = () => {
 
     requestsOpenChatPollState.inFlight = true;
     try {
-      for (const task of requestsState.tasks) {
-        if (!task?.chatId && !task?.taskId) continue;
-        await requestOpenChat(task);
-      }
+      await syncOpenTasksForKnownEstablishments({ force: true });
     } finally {
       requestsOpenChatPollState.inFlight = false;
     }
@@ -3123,6 +3104,11 @@ const setupRequestDetailsView = () => {
       await pollRequestsListChats();
 
       const delay = getNextOpenChatPollDelay(requestsOpenChatPollState.attempt);
+      if (delay == null) {
+        stopRequestsOpenChatPolling();
+        showDialogRefreshModal('requests');
+        return;
+      }
       requestsOpenChatPollState.attempt += 1;
       requestsOpenChatPollState.timerId = setTimeout(poll, delay);
     };
@@ -3270,7 +3256,6 @@ const setupRequestDetailsView = () => {
     stopRequestsOpenChatPolling();
     requestOpenChat(task);
     scheduleOpenChatPolling(task.taskId);
-    scheduleDialogRefreshReminder();
   };
 
   const openDeepLinkedRequest = () => {
@@ -3785,7 +3770,6 @@ const setupRequestDetailsView = () => {
   dialogRefreshModal.addEventListener('click', (event) => {
     if (event.target === dialogRefreshModal) {
       hideDialogRefreshModal();
-      scheduleDialogRefreshReminder();
     }
   });
   dialogModal.addEventListener('click', (event) => {
