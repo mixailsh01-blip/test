@@ -3180,6 +3180,7 @@ const setupRequestDetailsView = () => {
 
   const scheduleRequestsListOpenChatPolling = () => {
     stopRequestsListOpenChatPolling();
+    requestsOpenChatPollState.attempt = 0;
 
     const poll = async () => {
       if (!document.getElementById('requests')?.classList.contains('active') || !dialogModal.classList.contains('hidden')) {
@@ -3200,7 +3201,14 @@ const setupRequestDetailsView = () => {
       requestsOpenChatPollState.timerId = setTimeout(poll, delay);
     };
 
-    poll();
+    const initialDelay = getNextOpenChatPollDelay(requestsOpenChatPollState.attempt);
+    if (initialDelay == null) {
+      showDialogRefreshModal('requests');
+      return;
+    }
+
+    requestsOpenChatPollState.attempt += 1;
+    requestsOpenChatPollState.timerId = setTimeout(poll, initialDelay);
   };
 
   const scheduleOpenChatPolling = (taskId) => {
