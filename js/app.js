@@ -4050,6 +4050,7 @@ const initializeApp = () => {
   try {
     initializeUserData();
     restoreRequestsCacheFromStorage();
+    setupContactShareRoles();
 
     // При входе в WebApp отправляем данные пользователя в вебхук clientTG_support
     if (user?.id && window.API?.sendClientTGSupport) {
@@ -4072,7 +4073,6 @@ const initializeApp = () => {
 
     setupModal();
     setupContactSharing();
-    setupContactShareRoles();
     setupNavigation();
     setupAddRestaurantButton();
     setupMarketButton();
