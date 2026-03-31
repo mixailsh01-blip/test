@@ -1995,7 +1995,12 @@ const restoreRequestsCacheFromStorage = () => {
     .map((task) => ({
       ...task,
       unreadCount: Number(task.unreadCount || 0),
-      chat: Array.isArray(task.chat) ? task.chat.map((comment) => normalizeTaskComment(comment, task.description, task.taskId)).filter(Boolean) : []
+      chat: Array.isArray(task.chat)
+        ? task.chat
+          .filter((comment) => !isHiddenSystemTaskComment(comment))
+          .map((comment) => normalizeTaskComment(comment, task.description, task.taskId))
+          .filter(Boolean)
+        : []
     }))
     .filter((task) => task?.taskId);
 
@@ -3190,12 +3195,15 @@ const setupRequestDetailsView = () => {
 
   const renderDialogChat = (task) => {
     dialogChat.innerHTML = '';
-    if (!task || task.chat.length === 0) {
+    const visibleMessages = Array.isArray(task?.chat)
+      ? task.chat.filter((message) => !isHiddenSystemTaskComment(message))
+      : [];
+    if (!task || visibleMessages.length === 0) {
       dialogChat.innerHTML = '<div class="request-chat-empty">Сообщений пока нет</div>';
       return;
     }
 
-    task.chat.forEach((message) => {
+    visibleMessages.forEach((message) => {
       const isOutgoing = Boolean(message.isOutgoing);
       const isVenueStaffIncoming = !isOutgoing && message.senderType === 'сотрудник заведения';
       const msg = document.createElement('div');
