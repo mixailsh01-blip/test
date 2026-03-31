@@ -2686,7 +2686,7 @@ const setupEstablishmentSelection = () => {
       const fullName = [firstName, lastName].filter(Boolean).join(' ') || 'Без имени';
       const phone = String(item?.Телефон ?? item?.phone ?? item?.phone_number ?? '').trim() || 'Без телефона';
       const role = String(item?.POST ?? item?.post ?? '').trim() || 'Без должности';
-      const employeeId = String(item?.ID1 ?? item?.ID ?? '').trim();
+      const employeeId = String(item?.ID ?? '').trim();
       const roleItemId = String(item?.ITEM_ID ?? '').trim();
       const roleSelectHtml = roleOptions.length > 0
         ? `
