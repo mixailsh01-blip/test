@@ -617,18 +617,13 @@ const showContactShareModal = () => {
   const progress = document.getElementById('contact-share-progress');
   const progressText = document.getElementById('contact-share-progress-text');
   const modalBtn = document.getElementById('contact-share-btn');
-  const roleSelect = document.getElementById('contact-share-role-select');
   if (modal) modal.classList.remove('hidden');
   progress?.classList.add('hidden');
   if (progressText) {
     progressText.textContent = 'Секунду… разработчик уже регистрирует вас в Pos Bazar 🙂';
   }
-  if (roleSelect) {
-    roleSelect.disabled = false;
-  }
-  window.loadContactShareRoles?.();
   if (modalBtn) {
-    modalBtn.disabled = !window.__contactShareRoleState?.selectedRoleId;
+    modalBtn.disabled = false;
     modalBtn.textContent = 'Поделиться номером';
   }
 };
@@ -642,15 +637,11 @@ const setContactShareLoading = (enabled, message = '') => {
   const progress = document.getElementById('contact-share-progress');
   const progressText = document.getElementById('contact-share-progress-text');
   const modalBtn = document.getElementById('contact-share-btn');
-  const roleSelect = document.getElementById('contact-share-role-select');
 
   if (enabled) {
     progress?.classList.remove('hidden');
     if (progressText) {
       progressText.textContent = message || 'Секунду… разработчик уже регистрирует вас в Pos Bazar 🙂';
-    }
-    if (roleSelect) {
-      roleSelect.disabled = true;
     }
     if (modalBtn) {
       modalBtn.disabled = true;
@@ -660,90 +651,10 @@ const setContactShareLoading = (enabled, message = '') => {
   }
 
   progress?.classList.add('hidden');
-  if (roleSelect) {
-    roleSelect.disabled = false;
-  }
   if (modalBtn) {
-    modalBtn.disabled = !window.__contactShareRoleState?.selectedRoleId;
+    modalBtn.disabled = false;
     modalBtn.textContent = 'Поделиться номером';
   }
-};
-
-const normalizeRolesFromCatalogResponse = (result) => {
-  const items = Array.isArray(result) ? result : [result];
-  return items
-    .flatMap((item) => Array.isArray(item?.items) ? item.items : [])
-    .map((item) => {
-      const roleName = String(item?.values?.[0] ?? '').trim();
-      const roleId = item?.item_id ?? null;
-      if (!roleName || roleId == null) return null;
-      return {
-        role_id: String(roleId),
-        role_name: roleName
-      };
-    })
-    .filter((role) => role && role.role_name.toLowerCase() !== 'разработчик')
-    .filter(Boolean);
-};
-
-const setupContactShareRoles = () => {
-  const roleSelect = document.getElementById('contact-share-role-select');
-  const modalBtn = document.getElementById('contact-share-btn');
-  if (!roleSelect || !modalBtn) return;
-
-  window.__contactShareRoleState = window.__contactShareRoleState || {
-    roles: [],
-    selectedRoleId: '',
-    isLoading: false
-  };
-  const roleState = window.__contactShareRoleState;
-
-  const syncRoleButtonState = () => {
-    modalBtn.disabled = roleState.isLoading || !roleState.selectedRoleId;
-  };
-
-  const renderRoles = () => {
-    const previousValue = roleState.selectedRoleId;
-    roleSelect.innerHTML = '<option value="">Выберите должность</option>';
-    roleState.roles.forEach((role) => {
-      const option = document.createElement('option');
-      option.value = role.role_id;
-      option.textContent = role.role_name;
-      roleSelect.appendChild(option);
-    });
-    roleSelect.value = roleState.roles.some((role) => role.role_id === previousValue) ? previousValue : '';
-    syncRoleButtonState();
-  };
-
-  const loadRoles = async ({ force = false } = {}) => {
-    if (!window.API?.sendRolesCatalog) return;
-    if (roleState.isLoading) return;
-    if (!force && roleState.roles.length > 0) {
-      renderRoles();
-      return;
-    }
-
-    roleState.isLoading = true;
-    roleSelect.disabled = true;
-    syncRoleButtonState();
-    try {
-      const result = await window.API.sendRolesCatalog();
-      roleState.roles = normalizeRolesFromCatalogResponse(result);
-      renderRoles();
-    } finally {
-      roleState.isLoading = false;
-      roleSelect.disabled = false;
-      syncRoleButtonState();
-    }
-  };
-
-  roleSelect.addEventListener('change', () => {
-    roleState.selectedRoleId = String(roleSelect.value || '');
-    syncRoleButtonState();
-  });
-
-  window.loadContactShareRoles = loadRoles;
-  renderRoles();
 };
 
 const notifyRegistrClient = async (contact, meta = null) => {
@@ -1025,13 +936,6 @@ const setupContactSharing = () => {
 
   const requestContactAndUpdate = async () => {
     console.log('📤 Запрашиваем контакт...');
-    const roleState = window.__contactShareRoleState || {};
-    const selectedRole = (roleState.roles || []).find((role) => role.role_id === String(roleState.selectedRoleId || '')) || null;
-
-    if (!selectedRole) {
-      showContactError('Сначала выберите должность.');
-      return;
-    }
 
     if (typeof tg?.requestContact !== 'function') {
       showContactError('Метод requestContact не поддерживается');
@@ -1061,11 +965,7 @@ const setupContactSharing = () => {
           if (normalized?.phone_number) {
             console.log('✅ Получен контакт через initDataUnsafe');
             updateContactInfo(normalized);
-            notifyRegistrClient(normalized, {
-              stage: 'initDataUnsafe_user_phone_number',
-              role_id: selectedRole.role_id,
-              role_name: selectedRole.role_name
-            }).then((registrResult) => {
+            notifyRegistrClient(normalized, { stage: 'initDataUnsafe_user_phone_number' }).then((registrResult) => {
               if (registrResult) {
                 requestDeepLinkState.awaitingAuthorization = false;
                 runPendingAuthorizedActionNow();
@@ -1103,11 +1003,7 @@ const setupContactSharing = () => {
           return;
         }
         updateContactInfo(normalized);
-        const registrResult = await notifyRegistrClient(normalized, {
-          stage: 'requestContact_object',
-          role_id: selectedRole.role_id,
-          role_name: selectedRole.role_name
-        });
+        const registrResult = await notifyRegistrClient(normalized, { stage: 'requestContact_object' });
         hideContactShareModal();
         if (registrResult) {
           requestDeepLinkState.awaitingAuthorization = false;
@@ -1128,11 +1024,7 @@ const setupContactSharing = () => {
               return;
             }
             updateContactInfo(normalized);
-            const registrResult = await notifyRegistrClient(normalized, {
-              stage: 'requestContact_string',
-              role_id: selectedRole.role_id,
-              role_name: selectedRole.role_name
-            });
+            const registrResult = await notifyRegistrClient(normalized, { stage: 'requestContact_string' });
             hideContactShareModal();
             if (registrResult) {
               requestDeepLinkState.awaitingAuthorization = false;
@@ -4051,7 +3943,6 @@ const initializeApp = () => {
   try {
     initializeUserData();
     restoreRequestsCacheFromStorage();
-    setupContactShareRoles();
 
     // При входе в WebApp отправляем данные пользователя в вебхук clientTG_support
     if (user?.id && window.API?.sendClientTGSupport) {

@@ -919,37 +919,6 @@ body.hide-main-logo #requests.page {
   line-height: 1.35;
 }
 
-.contact-share-role {
-  margin-top: 18px;
-  text-align: left;
-}
-
-.contact-share-role__label {
-  display: block;
-  margin-bottom: 8px;
-  color: rgba(255, 255, 255, 0.82);
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.contact-share-role__select {
-  width: 100%;
-  border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.10);
-  background: rgba(18, 20, 28, 0.88);
-  color: #ffffff;
-  padding: 14px 16px;
-  font-family: 'PT Root UI', sans-serif;
-  font-size: 15px;
-  outline: none;
-  appearance: none;
-}
-
-.contact-share-role__select:disabled {
-  opacity: 0.65;
-  cursor: not-allowed;
-}
-
 .contact-share-btn {
   margin-top: 18px;
   width: 100%;
@@ -970,10 +939,8 @@ body.hide-main-logo #requests.page {
 }
 
 .contact-share-btn:disabled {
-  opacity: 1;
+  opacity: 0.75;
   cursor: not-allowed;
-  background: linear-gradient(180deg, rgba(112, 119, 136, 0.9) 0%, rgba(83, 89, 103, 0.9) 100%);
-  box-shadow: none;
 }
 
 .task-create-content {
