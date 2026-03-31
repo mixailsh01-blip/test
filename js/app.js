@@ -2312,12 +2312,24 @@ const renderRequestsList = () => {
     .join('');
 };
 
-const syncCreatedTasksFromResult = (result) => {
+const syncCreatedTasksFromResult = (result, options = {}) => {
   const items = extractTaskItemsFromResult(result);
-  items
+  const normalizedTasks = items
     .map(normalizeTaskFromWebhook)
-    .filter(Boolean)
-    .forEach((task) => upsertRequestTask(task));
+    .filter(Boolean);
+
+  normalizedTasks.forEach((task) => upsertRequestTask(task));
+
+  if (options.reconcile === true) {
+    const incomingTaskIds = new Set(normalizedTasks.map((task) => String(task.taskId)));
+    requestsState.tasks = requestsState.tasks.filter((task) => incomingTaskIds.has(String(task.taskId)));
+    if (requestsState.activeTaskId && !incomingTaskIds.has(String(requestsState.activeTaskId))) {
+      requestsState.activeTaskId = null;
+    }
+    saveUnreadCountsToStorage();
+    saveRequestsCacheToStorage();
+  }
+
   renderRequestsList();
   window.tryOpenDeepLinkedRequest?.();
   return requestsState.tasks[0] || null;
@@ -2369,7 +2381,7 @@ const syncOpenTasksForKnownEstablishments = async ({ force = false } = {}) => {
   try {
     const result = await window.API.sendOpenTask(establishments, user);
     if (result) {
-      syncCreatedTasksFromResult(result);
+      syncCreatedTasksFromResult(result, { reconcile: true });
     }
     openTaskSyncState.lastSignature = signature;
   } catch (error) {
