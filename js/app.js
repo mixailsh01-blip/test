@@ -354,9 +354,33 @@ const mergeRestaurants = (...restaurantGroups) => {
     });
 };
 
+const loadCachedEstablishments = () => {
+  try {
+    const raw = localStorage.getItem(getScopedStorageKey(ESTABLISHMENTS_CACHE_STORAGE_KEY));
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? mergeRestaurants(parsed) : [];
+  } catch (error) {
+    console.warn('Не удалось загрузить establishments cache из localStorage:', error);
+    return [];
+  }
+};
+
+const saveCachedEstablishments = (restaurants) => {
+  try {
+    localStorage.setItem(
+      getScopedStorageKey(ESTABLISHMENTS_CACHE_STORAGE_KEY),
+      JSON.stringify(mergeRestaurants(restaurants))
+    );
+  } catch (error) {
+    console.warn('Не удалось сохранить establishments cache в localStorage:', error);
+  }
+};
+
 const applyRestaurants = (restaurants) => {
   try {
     const mergedRestaurants = mergeRestaurants(getKnownEstablishments(), restaurants);
+    saveCachedEstablishments(mergedRestaurants);
 
     // Обновляем dropdown на главной (через существующую логику Auth)
     if (window.Auth?.updateRestaurants) {
@@ -1202,7 +1226,7 @@ const setupNavigation = () => {
 
       if (typeof window.startRequestsOpenChatPolling === 'function' && typeof window.stopRequestsOpenChatPolling === 'function') {
         if (pageId === 'requests') {
-          syncOpenTasksForKnownEstablishments();
+          syncOpenTasksForKnownEstablishments({ force: true });
           window.startRequestsOpenChatPolling();
         } else {
           window.stopRequestsOpenChatPolling();
@@ -1477,6 +1501,7 @@ const pendingAuthorizedActionState = {
   timerId: null
 };
 const pendingOutgoingMessagesByTask = new Map();
+const ESTABLISHMENTS_CACHE_STORAGE_KEY = 'miniapp_establishments_cache_v1';
 const UNREAD_STORAGE_KEY = 'miniapp_unread_counts_v1';
 const REQUESTS_CACHE_STORAGE_KEY = 'miniapp_requests_cache_v1';
 const READ_CHAT_SIGNATURES_STORAGE_KEY = 'miniapp_read_chat_signatures_v1';
@@ -1971,6 +1996,7 @@ const saveRequestsCacheToStorage = () => {
 
 const clearRequestsCacheForCurrentUser = () => {
   try {
+    localStorage.removeItem(getScopedStorageKey(ESTABLISHMENTS_CACHE_STORAGE_KEY));
     localStorage.removeItem(getScopedStorageKey(UNREAD_STORAGE_KEY));
     localStorage.removeItem(getScopedStorageKey(REQUESTS_CACHE_STORAGE_KEY));
     localStorage.removeItem(getScopedStorageKey(READ_CHAT_SIGNATURES_STORAGE_KEY));
@@ -2098,7 +2124,25 @@ const normalizeTaskFromWebhook = (item) => {
   if (!item || (!item.task_id && !item.taskId)) return null;
   const taskId = String(item.task_id ?? item.taskId);
   const chatItems = Array.isArray(item.chat) ? item.chat : [];
-  const normalizedChat = chatItems
+  const fallbackPreviewComment = !chatItems.length
+    ? {
+      task_id: taskId,
+      comment_id: item?.comment_id ?? item?.commentId ?? `preview-${taskId}`,
+      author: item?.author ?? item?.sender ?? item?.sender_name ?? item?.senderName ?? item?.username ?? 'Pyrus',
+      text: item?.text ?? item?.message ?? item?.comment ?? item?.body ?? '',
+      date: item?.date ?? item?.updated_at ?? item?.updatedAt ?? item?.last_message_date ?? item?.lastMessageDate ?? item?.created_at ?? item?.createdAt ?? new Date().toISOString(),
+      channel_type: item?.channel_type ?? item?.channelType ?? 'custom',
+      sender_type: item?.sender_type ?? item?.senderType ?? '',
+      message_type: item?.message_type ?? item?.messageType ?? 'TEXT',
+      IDUser: item?.IDUser ?? item?.UserID ?? item?.user_id ?? item?.userId ?? null,
+      attachmentsID: Array.isArray(item?.attachmentsID) ? item.attachmentsID : [],
+      attachmentsName: Array.isArray(item?.attachmentsName) ? item.attachmentsName : [],
+      attachmentsURL: Array.isArray(item?.attachmentsURL) ? item.attachmentsURL : [],
+      attachmentsMD5: Array.isArray(item?.attachmentsMD5) ? item.attachmentsMD5 : []
+    }
+    : null;
+  const sourceComments = chatItems.length > 0 ? chatItems : (fallbackPreviewComment ? [fallbackPreviewComment] : []);
+  const normalizedChat = sourceComments
     .filter((comment) => !isHiddenSystemTaskComment(comment))
     .map((comment) => normalizeTaskComment({
       ...comment,
@@ -2416,14 +2460,14 @@ const syncOpenedChatFromResult = (result, fallbackTaskId = null) => {
 
 const getKnownEstablishments = () => {
   const dropdown = document.getElementById('main-dropdown');
-  if (!dropdown) return [];
-
-  return Array.from(dropdown.options)
+  const dropdownRestaurants = !dropdown ? [] : Array.from(dropdown.options)
     .map((option) => ({
       id: (option.value || '').trim(),
       name: (option.textContent || '').trim()
     }))
     .filter((item) => item.id && item.name && item.name !== 'Выберите заведение');
+
+  return mergeRestaurants(dropdownRestaurants, loadCachedEstablishments());
 };
 
 const syncOpenTasksForKnownEstablishments = async ({ force = false } = {}) => {
