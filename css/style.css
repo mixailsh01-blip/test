@@ -1229,6 +1229,12 @@ body.hide-main-logo #requests.page {
   opacity: 0.92;
 }
 
+.task-create-file-uploading {
+  font-size: 12px;
+  font-weight: 600;
+  color: #73bdff;
+}
+
 .task-create-actions {
   display: block;
   margin-top: 10px;
@@ -1258,12 +1264,19 @@ body.hide-main-logo #requests.page {
   background: #2f3037;
   color: rgba(255, 255, 255, 0.72);
   cursor: default;
+  box-shadow: none;
 }
 
 .task-create-actions .btn-Save.is-disabled:hover,
 .task-create-actions .btn-Save:disabled:hover {
   background: #2f3037;
   color: rgba(255, 255, 255, 0.72);
+}
+
+.task-create-actions .btn-Save.is-loading,
+.task-create-actions .btn-Save.is-loading:hover {
+  background: #3a3d46;
+  color: rgba(255, 255, 255, 0.86);
 }
 
 .contact-share-progress {

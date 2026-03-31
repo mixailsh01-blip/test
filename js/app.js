@@ -2580,6 +2580,7 @@ const setupTaskCreation = () => {
     !attachBtn ||
     !filesList
   ) return;
+  let isTaskCreateSubmitting = false;
 
   const getEstablishmentsFromMainDropdown = () => {
     const dropdown = document.getElementById('main-dropdown');
@@ -2612,6 +2613,7 @@ const setupTaskCreation = () => {
         <div class="task-create-file-meta">
           <div class="task-create-file-title">Файлов: ${files.length}</div>
           <div class="task-create-file-size">${totalSizeLabel}</div>
+          ${isTaskCreateSubmitting ? '<div class="task-create-file-uploading">Загружаем файлы...</div>' : ''}
         </div>
       </div>
     `;
@@ -2620,10 +2622,13 @@ const setupTaskCreation = () => {
   const updateSendButtonState = () => {
     const hasEstablishment = Boolean((establishmentSelect.value || '').trim());
     const hasDescription = Boolean((descriptionInput.value || '').trim());
-    const isReady = hasEstablishment && hasDescription;
+    const hasFiles = Array.from(filesInput.files || []).length > 0;
+    const isReady = hasEstablishment && hasDescription && !isTaskCreateSubmitting;
 
     sendBtn.disabled = !isReady;
-    if (!hasEstablishment) {
+    if (isTaskCreateSubmitting) {
+      sendBtn.textContent = hasFiles ? 'Загрузка файлов...' : 'Создаем...';
+    } else if (!hasEstablishment) {
       sendBtn.textContent = 'Выберите заведение';
     } else if (!hasDescription) {
       sendBtn.textContent = 'Заполните описание';
@@ -2631,6 +2636,7 @@ const setupTaskCreation = () => {
       sendBtn.textContent = 'Создать';
     }
     sendBtn.classList.toggle('is-disabled', !isReady);
+    sendBtn.classList.toggle('is-loading', isTaskCreateSubmitting);
   };
 
   const setEstablishmentValue = (value = '') => {
@@ -2716,9 +2722,12 @@ const setupTaskCreation = () => {
     modal.classList.add('hidden');
     toggleEstablishmentMenu(false);
     syncPlatformBackButton(false);
+    isTaskCreateSubmitting = false;
+    updateSendButtonState();
   };
 
   const openModal = () => {
+    isTaskCreateSubmitting = false;
     renderEstablishmentPicker();
     descriptionInput.value = '';
     filesInput.value = '';
@@ -2747,8 +2756,13 @@ const setupTaskCreation = () => {
       return;
     }
 
-    sendBtn.disabled = true;
-    sendBtn.textContent = 'Отправка...';
+    isTaskCreateSubmitting = true;
+    attachBtn.disabled = true;
+    filesInput.disabled = true;
+    descriptionInput.disabled = true;
+    establishmentToggle.disabled = true;
+    renderSelectedFiles();
+    updateSendButtonState();
     try {
       const taskData = {
         title: 'Новая заявка',
@@ -2787,6 +2801,12 @@ const setupTaskCreation = () => {
           : 'Не удалось отправить заявку. Проверьте сеть и логи.'
       );
     } finally {
+      isTaskCreateSubmitting = false;
+      attachBtn.disabled = false;
+      filesInput.disabled = false;
+      descriptionInput.disabled = false;
+      establishmentToggle.disabled = false;
+      renderSelectedFiles();
       updateSendButtonState();
     }
   };
