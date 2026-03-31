@@ -2129,6 +2129,41 @@ const markMatchingTaskMessagesAsOutgoing = (task, expectedText = '') => {
   });
 };
 
+const ensureCreatedTaskStartsWithOutgoingMessage = (task, expectedText = '') => {
+  if (!task || !expectedText) return;
+  const normalizedExpectedText = normalizePendingMessageText(expectedText);
+  if (!normalizedExpectedText) return;
+
+  const chat = Array.isArray(task.chat) ? [...task.chat] : [];
+  const matchingIndex = chat.findIndex((message) => normalizePendingMessageText(message?.text) === normalizedExpectedText);
+
+  if (matchingIndex >= 0) {
+    const [matchingMessage] = chat.splice(matchingIndex, 1);
+    chat.unshift({
+      ...matchingMessage,
+      isOutgoing: true,
+      author: user?.first_name || user?.username || matchingMessage?.author || 'Вы'
+    });
+    task.chat = chat;
+    saveRequestsCacheToStorage();
+    return;
+  }
+
+  const syntheticMessage = normalizeTaskComment({
+    task_id: task.taskId,
+    comment_id: `created-${task.taskId}`,
+    author: user?.first_name || user?.username || 'Вы',
+    isOutgoing: true,
+    text: expectedText,
+    date: task.createdAt || new Date().toISOString(),
+    channel_type: `${platformName}_webapp`,
+    message_type: 'TEXT'
+  }, expectedText, task.taskId);
+
+  task.chat = [syntheticMessage, ...chat];
+  saveRequestsCacheToStorage();
+};
+
 const extractTaskItemsFromResult = (result) => {
   const rootItems = Array.isArray(result) ? result : [result];
   return rootItems.flatMap((item) => {
@@ -2827,6 +2862,7 @@ const setupTaskCreation = () => {
       if (result) {
         const createdTask = syncCreatedTasksFromResult(result);
         markMatchingTaskMessagesAsOutgoing(createdTask, description);
+        ensureCreatedTaskStartsWithOutgoingMessage(createdTask, description);
         const mainDropdown = document.getElementById('main-dropdown');
         if (mainDropdown && Array.from(mainDropdown.options).some((o) => o.value === establishmentId)) {
           mainDropdown.value = establishmentId;
