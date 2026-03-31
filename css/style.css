@@ -1407,6 +1407,14 @@ body.hide-main-logo #requests.page {
   transition: background-color 0.2s ease;
 }
 
+.establishment-modal-content .establishment-item,
+.establishment-modal-content .btn-RestModal {
+  opacity: 1;
+  transform: none;
+  max-width: none;
+  margin-top: 0;
+}
+
 .establishment-item:active {
   background-color: #0560dc !important;
   transform: scale(0.99);
