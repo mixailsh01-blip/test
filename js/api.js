@@ -373,7 +373,7 @@ const API = {
 
       const result = await response.json().catch(() => null);
       console.log('✅ [API] Ответ message_miniapp:', result);
-      return result;
+      return result ?? { ok: true };
     } catch (error) {
       console.error('❌ [API] Ошибка message_miniapp:', error);
       return null;

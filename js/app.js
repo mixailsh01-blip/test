@@ -3681,6 +3681,7 @@ const setupRequestDetailsView = () => {
       task_id: activeTask.taskId,
       comment_id: `${Date.now()}`,
       author: user?.first_name || user?.username || 'Вы',
+      isOutgoing: true,
       text: file ? text : outgoingText,
       date: new Date().toISOString(),
       channel_type: `${platformName}_webapp`,
