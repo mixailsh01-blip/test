@@ -1194,6 +1194,40 @@ body.hide-main-logo #requests.page {
   padding: 0;
 }
 
+.task-create-file-indicator {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(12, 134, 255, 0.14);
+  color: #ffffff;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.task-create-file-indicator::before {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  border: 2px solid rgba(12, 134, 255, 0.18);
+}
+
+.task-create-file-indicator.is-busy::before {
+  border-color: rgba(255, 255, 255, 0.14);
+  border-top-color: #73bdff;
+  animation: contact-share-spin 0.9s linear infinite;
+}
+
+.task-create-file-indicator__count {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+}
+
 .task-create-file-remove {
   width: 30px;
   height: 30px;

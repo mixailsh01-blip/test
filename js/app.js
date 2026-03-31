@@ -2609,6 +2609,9 @@ const setupTaskCreation = () => {
 
     filesList.innerHTML = `
       <div class="task-create-file-summary">
+        <div class="task-create-file-indicator${isTaskCreatePreparingFiles || isTaskCreateSubmitting ? ' is-busy' : ''}" aria-hidden="true">
+          <span class="task-create-file-indicator__count">${files.length}</span>
+        </div>
         <button type="button" class="task-create-file-remove" aria-label="Удалить файлы">
           <i class="fas fa-trash-alt" aria-hidden="true"></i>
         </button>
