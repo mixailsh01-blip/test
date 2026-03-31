@@ -1481,6 +1481,7 @@ const UNREAD_STORAGE_KEY = 'miniapp_unread_counts_v1';
 const REQUESTS_CACHE_STORAGE_KEY = 'miniapp_requests_cache_v1';
 const READ_CHAT_SIGNATURES_STORAGE_KEY = 'miniapp_read_chat_signatures_v1';
 const OPEN_CHAT_POLL_DELAYS_MS = [4000, 4000, 4000, 8000, 8000, 8000, 16000, 16000, 16000, 24000, 24000, 24000, 48000, 48000, 48000];
+const getScopedStorageKey = (baseKey) => `${baseKey}:${user?.id != null ? String(user.id) : 'guest'}`;
 const LOCAL_PREVIEW_ESTABLISHMENTS = [
   { id: 'demo-1', name: 'ресторан «Я семья»' },
   { id: 'demo-2', name: 'кофейня «Атлас»' },
@@ -1864,7 +1865,7 @@ const delayPendingAuthorizedAction = (delayMs = 2000) => {
 
 const loadUnreadCountsFromStorage = () => {
   try {
-    const raw = localStorage.getItem(UNREAD_STORAGE_KEY);
+    const raw = localStorage.getItem(getScopedStorageKey(UNREAD_STORAGE_KEY));
     if (!raw) return {};
     const parsed = JSON.parse(raw);
     return parsed && typeof parsed === 'object' ? parsed : {};
@@ -1876,7 +1877,7 @@ const loadUnreadCountsFromStorage = () => {
 
 const loadReadChatSignaturesFromStorage = () => {
   try {
-    const raw = localStorage.getItem(READ_CHAT_SIGNATURES_STORAGE_KEY);
+    const raw = localStorage.getItem(getScopedStorageKey(READ_CHAT_SIGNATURES_STORAGE_KEY));
     if (!raw) return {};
     const parsed = JSON.parse(raw);
     return parsed && typeof parsed === 'object' ? parsed : {};
@@ -1888,7 +1889,7 @@ const loadReadChatSignaturesFromStorage = () => {
 
 const saveReadChatSignaturesToStorage = (payload) => {
   try {
-    localStorage.setItem(READ_CHAT_SIGNATURES_STORAGE_KEY, JSON.stringify(payload || {}));
+    localStorage.setItem(getScopedStorageKey(READ_CHAT_SIGNATURES_STORAGE_KEY), JSON.stringify(payload || {}));
   } catch (error) {
     console.warn('Не удалось сохранить read chat signatures в localStorage:', error);
   }
@@ -1911,7 +1912,7 @@ const markTaskChatSignatureAsRead = (task) => {
 
 const loadRequestsCacheFromStorage = () => {
   try {
-    const raw = localStorage.getItem(REQUESTS_CACHE_STORAGE_KEY);
+    const raw = localStorage.getItem(getScopedStorageKey(REQUESTS_CACHE_STORAGE_KEY));
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed) ? parsed : [];
@@ -1956,10 +1957,28 @@ const saveRequestsCacheToStorage = () => {
         }))
         : []
     }));
-    localStorage.setItem(REQUESTS_CACHE_STORAGE_KEY, JSON.stringify(payload));
+    localStorage.setItem(getScopedStorageKey(REQUESTS_CACHE_STORAGE_KEY), JSON.stringify(payload));
   } catch (error) {
     console.warn('Не удалось сохранить requests cache в localStorage:', error);
   }
+};
+
+const clearRequestsCacheForCurrentUser = () => {
+  try {
+    localStorage.removeItem(getScopedStorageKey(UNREAD_STORAGE_KEY));
+    localStorage.removeItem(getScopedStorageKey(REQUESTS_CACHE_STORAGE_KEY));
+    localStorage.removeItem(getScopedStorageKey(READ_CHAT_SIGNATURES_STORAGE_KEY));
+  } catch (error) {
+    console.warn('Не удалось очистить requests cache из localStorage:', error);
+  }
+};
+
+const clearRequestsStateAndCache = () => {
+  requestsState.tasks = [];
+  requestsState.activeTaskId = null;
+  requestsState.isLoading = false;
+  clearRequestsCacheForCurrentUser();
+  renderRequestsList();
 };
 
 const restoreRequestsCacheFromStorage = () => {
@@ -1987,7 +2006,7 @@ const saveUnreadCountsToStorage = () => {
       acc[key] = Number(task.unreadCount || 0);
       return acc;
     }, {});
-    localStorage.setItem(UNREAD_STORAGE_KEY, JSON.stringify(payload));
+    localStorage.setItem(getScopedStorageKey(UNREAD_STORAGE_KEY), JSON.stringify(payload));
   } catch (error) {
     console.warn('Не удалось сохранить unread counts в localStorage:', error);
   }
@@ -2380,9 +2399,7 @@ const syncOpenTasksForKnownEstablishments = async ({ force = false } = {}) => {
   renderRequestsList();
   try {
     const result = await window.API.sendOpenTask(establishments, user);
-    if (result) {
-      syncCreatedTasksFromResult(result, { reconcile: true });
-    }
+    syncCreatedTasksFromResult(result, { reconcile: true });
     openTaskSyncState.lastSignature = signature;
   } catch (error) {
     console.error('❌ Ошибка синхронизации open_task:', error);
@@ -3816,6 +3833,7 @@ const initializeApp = () => {
           }
           return;
         }
+        clearRequestsStateAndCache();
         if (user?.phone_number || user?.phone) return;
         showContactShareModal();
       });
