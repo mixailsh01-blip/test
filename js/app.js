@@ -2648,10 +2648,7 @@ const setupEstablishmentSelection = () => {
   // Открытие модального окна
   selectBtn?.addEventListener('click', openModal);
   profileEstablishmentsBtn?.addEventListener('click', openModal);
-  profileRoleRequestBtn?.addEventListener('click', (e) => {
-    e.preventDefault();
-    showPlatformPopup('Запрос доступа', 'Кнопка для запроса доступа на другую должность уже добавлена. Дальше можно подключить webhook и форму.');
-  });
+  profileRoleRequestBtn?.addEventListener('click', openModal);
 
   // Закрытие по кнопке "Отмена"
   closeBtn.addEventListener('click', () => {
