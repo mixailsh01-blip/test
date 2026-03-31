@@ -1226,8 +1226,10 @@ const setupNavigation = () => {
 
       if (pageId === 'requests') {
         syncOpenTasksForKnownEstablishments({ force: true }).then(() => {
-          window.hydrateRequestsListChatsOnce?.();
+          window.startRequestsListOpenChatPolling?.();
         });
+      } else {
+        window.stopRequestsListOpenChatPolling?.();
       }
 
       const allButtons = newPage.querySelectorAll('[class^="btn-"]');
@@ -1482,10 +1484,6 @@ const requestsOpenChatPollState = {
   timerId: null,
   attempt: 0,
   inFlight: false
-};
-const requestsListOpenChatHydrationState = {
-  inFlight: false,
-  taskIds: new Set()
 };
 const requestDeepLinkState = {
   rawParam: '',
@@ -2445,9 +2443,6 @@ const syncCreatedTasksFromResult = (result, options = {}) => {
   if (options.reconcile === true) {
     const incomingTaskIds = new Set(normalizedTasks.map((task) => String(task.taskId)));
     requestsState.tasks = requestsState.tasks.filter((task) => incomingTaskIds.has(String(task.taskId)));
-    requestsListOpenChatHydrationState.taskIds = new Set(
-      Array.from(requestsListOpenChatHydrationState.taskIds).filter((taskId) => incomingTaskIds.has(String(taskId)))
-    );
     if (requestsState.activeTaskId && !incomingTaskIds.has(String(requestsState.activeTaskId))) {
       requestsState.activeTaskId = null;
     }
@@ -3095,6 +3090,15 @@ const setupRequestDetailsView = () => {
     openChatPollState.attempt = 0;
   };
 
+  const stopRequestsListOpenChatPolling = () => {
+    if (requestsOpenChatPollState.timerId) {
+      clearTimeout(requestsOpenChatPollState.timerId);
+    }
+    requestsOpenChatPollState.timerId = null;
+    requestsOpenChatPollState.attempt = 0;
+    requestsOpenChatPollState.inFlight = false;
+  };
+
   const stopDeepLinkOpenPolling = () => {
     if (requestDeepLinkState.timerId) {
       clearTimeout(requestDeepLinkState.timerId);
@@ -3122,7 +3126,7 @@ const setupRequestDetailsView = () => {
 
     if (document.getElementById('requests')?.classList.contains('active')) {
       syncOpenTasksForKnownEstablishments({ force: true }).then(() => {
-        window.hydrateRequestsListChatsOnce?.();
+        window.startRequestsListOpenChatPolling?.();
       });
     }
   };
@@ -3150,30 +3154,53 @@ const setupRequestDetailsView = () => {
     }
   };
 
-  const hydrateRequestsListChatsOnce = async () => {
-    if (requestsListOpenChatHydrationState.inFlight || !window.API?.sendOpenChat) return;
+  const pollRequestsListOpenChats = async () => {
+    if (requestsOpenChatPollState.inFlight || !window.API?.sendOpenChat) return;
     if (!document.getElementById('requests')?.classList.contains('active')) return;
     if (!dialogModal.classList.contains('hidden')) return;
 
-    const tasksToHydrate = requestsState.tasks.filter((task) => (
+    const tasksToPoll = requestsState.tasks.filter((task) => (
       task?.taskId
       && !isTaskClosed(task)
-      && !requestsListOpenChatHydrationState.taskIds.has(String(task.taskId))
     ));
 
-    if (!tasksToHydrate.length) return;
+    if (!tasksToPoll.length) return;
 
-    requestsListOpenChatHydrationState.inFlight = true;
+    requestsOpenChatPollState.inFlight = true;
     try {
-      for (const task of tasksToHydrate) {
+      for (const task of tasksToPoll) {
         if (!document.getElementById('requests')?.classList.contains('active')) break;
         if (!dialogModal.classList.contains('hidden')) break;
         await requestOpenChat(task);
-        requestsListOpenChatHydrationState.taskIds.add(String(task.taskId));
       }
     } finally {
-      requestsListOpenChatHydrationState.inFlight = false;
+      requestsOpenChatPollState.inFlight = false;
     }
+  };
+
+  const scheduleRequestsListOpenChatPolling = () => {
+    stopRequestsListOpenChatPolling();
+
+    const poll = async () => {
+      if (!document.getElementById('requests')?.classList.contains('active') || !dialogModal.classList.contains('hidden')) {
+        stopRequestsListOpenChatPolling();
+        return;
+      }
+
+      await pollRequestsListOpenChats();
+
+      const delay = getNextOpenChatPollDelay(requestsOpenChatPollState.attempt);
+      if (delay == null) {
+        stopRequestsListOpenChatPolling();
+        showDialogRefreshModal('requests');
+        return;
+      }
+
+      requestsOpenChatPollState.attempt += 1;
+      requestsOpenChatPollState.timerId = setTimeout(poll, delay);
+    };
+
+    poll();
   };
 
   const scheduleOpenChatPolling = (taskId) => {
@@ -3221,7 +3248,7 @@ const setupRequestDetailsView = () => {
     hideDialogRefreshModal();
     if (dialogRefreshContext === 'requests') {
       await syncOpenTasksForKnownEstablishments({ force: true });
-      await hydrateRequestsListChatsOnce();
+      scheduleRequestsListOpenChatPolling();
       return;
     }
     const activeTask = requestsState.tasks.find((item) => item.taskId === requestsState.activeTaskId);
@@ -3371,6 +3398,7 @@ const setupRequestDetailsView = () => {
       }
     }
     requestOpenChat(task);
+    stopRequestsListOpenChatPolling();
     scheduleOpenChatPolling(task.taskId);
   };
 
@@ -3895,7 +3923,8 @@ const setupRequestDetailsView = () => {
     }
   });
 
-  window.hydrateRequestsListChatsOnce = hydrateRequestsListChatsOnce;
+  window.startRequestsListOpenChatPolling = scheduleRequestsListOpenChatPolling;
+  window.stopRequestsListOpenChatPolling = stopRequestsListOpenChatPolling;
 
   renderRequestsList();
 };
