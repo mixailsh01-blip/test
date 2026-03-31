@@ -1809,6 +1809,16 @@ const normalizeTaskComment = (comment, fallbackText = '', taskId = '') => {
 const getCommentIdentity = (comment) => `${comment.commentId}|${comment.date}|${comment.author}|${comment.text}`;
 const getTaskChatSignature = (chat = []) => (Array.isArray(chat) ? chat.map(getCommentIdentity).join('||') : '');
 const getTaskStorageKey = (task) => String(task?.chatId || task?.taskId || '');
+const getCommentTimestamp = (comment) => {
+  const timestamp = new Date(comment?.date || '').getTime();
+  return Number.isNaN(timestamp) ? 0 : timestamp;
+};
+const sortCommentsByDateAsc = (comments = []) => [...comments].sort((a, b) => getCommentTimestamp(a) - getCommentTimestamp(b));
+const getLatestTaskMessage = (task) => {
+  const chat = Array.isArray(task?.chat) ? task.chat : [];
+  if (!chat.length) return null;
+  return sortCommentsByDateAsc(chat)[chat.length - 1] || null;
+};
 
 const normalizeDeepLinkChatId = (value = '') => String(value || '')
   .trim()
@@ -2022,10 +2032,10 @@ const restoreRequestsCacheFromStorage = () => {
       ...task,
       unreadCount: Number(task.unreadCount || 0),
       chat: Array.isArray(task.chat)
-        ? task.chat
+        ? sortCommentsByDateAsc(task.chat
           .filter((comment) => !isHiddenSystemTaskComment(comment))
           .map((comment) => normalizeTaskComment(comment, task.description, task.taskId))
-          .filter(Boolean)
+          .filter(Boolean))
         : []
     }))
     .filter((task) => task?.taskId);
@@ -2149,7 +2159,8 @@ const normalizeTaskFromWebhook = (item) => {
       IDUser: comment?.IDUser ?? comment?.UserID ?? item?.IDUser ?? item?.UserID ?? null
     }, item.description, taskId))
     .filter((comment) => comment.text || (Array.isArray(comment.attachments) && comment.attachments.length > 0));
-  const lastMessage = normalizedChat[normalizedChat.length - 1];
+  const sortedChat = sortCommentsByDateAsc(normalizedChat);
+  const lastMessage = sortedChat[sortedChat.length - 1];
   const description = item.description == null ? '' : String(item.description ?? item.text ?? '');
   const hasStatus = Object.prototype.hasOwnProperty.call(item, 'status');
   const hasClosedFlag =
@@ -2163,7 +2174,7 @@ const normalizeTaskFromWebhook = (item) => {
     status: hasStatus ? String(item.status ?? '') : '',
     chatId: String(item.chat_id ?? item.chatId ?? ''),
     isClosed: hasClosedFlag ? Boolean(item.is_closed ?? item.isClosed ?? false) : undefined,
-    chat: normalizedChat,
+    chat: sortedChat,
     createdAt: lastMessage?.date || new Date().toISOString(),
     unreadCount: 0
   };
@@ -2366,7 +2377,7 @@ const renderRequestsList = () => {
   const search = String(requestsFiltersState.search || '').trim().toLowerCase();
   const establishment = String(requestsFiltersState.establishment || '').trim();
   const filteredTasks = requestsState.tasks.filter((task) => {
-    const previewText = task.chat[task.chat.length - 1]?.text || task.description || '';
+    const previewText = getLatestTaskMessage(task)?.text || task.description || '';
     const matchesSearch = !search || [
       task.taskId,
       task.status,
@@ -2403,7 +2414,7 @@ const renderRequestsList = () => {
 
   list.innerHTML = filteredTasks
     .map((task) => {
-      const previewText = getRequestMessagePreview(task.chat[task.chat.length - 1], task.description || 'Без описания');
+      const previewText = getRequestMessagePreview(getLatestTaskMessage(task), task.description || 'Без описания');
       return `
         <div class="request-card" data-task-id="${escapeHtml(task.taskId)}">
           <div class="request-card-top">
