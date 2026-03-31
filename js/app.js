@@ -2632,6 +2632,7 @@ const setupRequestsFiltersModal = () => {
 const setupEstablishmentSelection = () => {
   const selectBtn = document.getElementById('select-establishment-btn');
   const profileEstablishmentsBtn = document.getElementById('profile-establishments-btn');
+  const profileRoleRequestBtn = document.getElementById('profile-role-request-btn');
   const selectedDisplay = document.getElementById('selected-establishment');
   const modal = document.getElementById('establishment-modal');
   const closeBtn = document.getElementById('close-establishment-modal-btn');
@@ -2647,6 +2648,10 @@ const setupEstablishmentSelection = () => {
   // Открытие модального окна
   selectBtn?.addEventListener('click', openModal);
   profileEstablishmentsBtn?.addEventListener('click', openModal);
+  profileRoleRequestBtn?.addEventListener('click', (e) => {
+    e.preventDefault();
+    showPlatformPopup('Запрос доступа', 'Кнопка для запроса доступа на другую должность уже добавлена. Дальше можно подключить webhook и форму.');
+  });
 
   // Закрытие по кнопке "Отмена"
   closeBtn.addEventListener('click', () => {
