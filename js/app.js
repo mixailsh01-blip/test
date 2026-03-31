@@ -682,6 +682,7 @@ const normalizeRolesFromCatalogResponse = (result) => {
         role_name: roleName
       };
     })
+    .filter((role) => role && role.role_name.toLowerCase() !== 'разработчик')
     .filter(Boolean);
 };
 
