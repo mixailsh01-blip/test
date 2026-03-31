@@ -798,6 +798,16 @@ body.hide-main-logo #requests.page {
   gap: 12px;
 }
 
+.profile-actions-card .btn-SelectRestModal,
+.profile-actions-card .btn-Create,
+.profile-actions-card .btn-Feedback,
+.profile-actions-card .btn-Share {
+  opacity: 1;
+  transform: none;
+  max-width: none;
+  margin-top: 0;
+}
+
 /* ==================== МОДАЛЬНЫЕ ОКНА ==================== */
 /* РЕДАКТИРОВАНИЕ ПРОФИЛЯ */
 .modal {
