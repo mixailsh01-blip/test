@@ -2791,15 +2791,6 @@ const setupEstablishmentSelection = () => {
     const establishmentName = item.textContent.trim();
     const establishmentId = String(item.dataset.establishmentId || '').trim();
 
-    // Сбрасываем предыдущую выбранную кнопку
-    if (currentlySelectedEstablishmentButton) {
-      currentlySelectedEstablishmentButton.classList.remove('selected');
-    }
-
-    // Применяем состояние к новой
-    item.classList.add('selected');
-    currentlySelectedEstablishmentButton = item;
-
     // Обновляем отображение
     selectedDisplay.textContent = establishmentName;
     selectedDisplay.classList.remove('text-gray-400');
