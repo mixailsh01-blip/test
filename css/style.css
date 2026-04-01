@@ -1430,7 +1430,7 @@ body.hide-main-logo #requests.page {
 }
 
 .establishment-staff-name {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   color: #ffffff;
 }
@@ -1457,9 +1457,9 @@ body.hide-main-logo #requests.page {
   border: 1px solid rgba(255, 255, 255, 0.10);
   background: rgba(20, 23, 31, 0.9);
   color: #ffffff;
-  padding: 10px 12px;
+  padding: 8px 10px;
   font-family: 'PT Root UI', sans-serif;
-  font-size: 13px;
+  font-size: 12px;
   text-align: right;
   outline: none;
 }
@@ -1468,7 +1468,7 @@ div.establishment-staff-role-select {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  min-height: 42px;
+  min-height: 36px;
 }
 
 .establishment-staff-empty {
