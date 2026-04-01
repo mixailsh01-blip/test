@@ -1520,6 +1520,40 @@ div.establishment-staff-role-select {
   margin-bottom: 6px;
 }
 
+.establishment-item__label {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding-right: 10px;
+}
+
+.establishment-item__actions {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+}
+
+.establishment-item__share {
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: rgba(12, 134, 255, 0.16);
+  border: 1px solid rgba(12, 134, 255, 0.30);
+  color: #79beff;
+  transition: background-color 0.2s ease, transform 0.2s ease, color 0.2s ease;
+}
+
+.establishment-item__share:active {
+  transform: scale(0.96);
+}
+
+.establishment-item__share i {
+  font-size: 14px;
+}
+
 .establishment-item:active {
   background-color: #0560dc !important;
   transform: scale(0.99);

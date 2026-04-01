@@ -415,8 +415,17 @@ const applyRestaurants = (restaurants) => {
       mergedRestaurants.forEach((restaurant) => {
         const button = document.createElement('button');
         button.className = 'establishment-item btn-RestModal w-full';
-        button.textContent = restaurant.name;
         button.dataset.establishmentId = restaurant.id;
+        button.dataset.establishmentName = restaurant.name;
+        button.type = 'button';
+        button.innerHTML = `
+          <span class="establishment-item__label">${escapeHtml(restaurant.name)}</span>
+          <span class="establishment-item__actions">
+            <span class="establishment-item__share" data-establishment-share="true" role="button" tabindex="0" aria-label="Поделиться ${escapeHtml(restaurant.name)}">
+              <i class="fas fa-share-nodes" aria-hidden="true"></i>
+            </span>
+          </span>
+        `;
         list.appendChild(button);
       });
     }
@@ -2672,6 +2681,44 @@ const setupEstablishmentSelection = () => {
     return rolesCatalogState.roles;
   };
 
+  const shareEstablishmentInvite = async (establishmentId, establishmentName) => {
+    const shareLink = `https://max.ru/id501305283158_bot?startapp=add_restaurant_${encodeURIComponent(establishmentId)}`;
+    const shareText = establishmentName
+      ? `Откройте заведение ${establishmentName}`
+      : 'Откройте заведение';
+
+    try {
+      if (typeof tg?.shareMaxContent === 'function') {
+        await Promise.resolve(tg.shareMaxContent({ text: shareText, link: shareLink }));
+        return;
+      }
+
+      if (typeof tg?.shareContent === 'function') {
+        await Promise.resolve(tg.shareContent(shareText, shareLink));
+        return;
+      }
+
+      if (navigator.share) {
+        await navigator.share({ text: shareText, url: shareLink });
+        return;
+      }
+
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareLink);
+        showPlatformPopup('Ссылка скопирована', 'Ссылка приглашения скопирована в буфер обмена.');
+        return;
+      }
+
+      showPlatformPopup('Ссылка', shareLink);
+    } catch (error) {
+      if (error?.message && /cancel/i.test(error.message)) {
+        return;
+      }
+      console.error('❌ Ошибка шеринга заведения:', error);
+      showPlatformPopup('Ошибка', 'Не удалось открыть экран отправки ссылки.');
+    }
+  };
+
   const renderStaffList = (items = []) => {
     if (!staffList) return;
     if (!items.length) {
@@ -2788,8 +2835,17 @@ const setupEstablishmentSelection = () => {
     const item = e.target.closest('.establishment-item');
     if (!item) return;
 
-    const establishmentName = item.textContent.trim();
+    const shareButton = e.target.closest('[data-establishment-share="true"]');
+    const establishmentName = String(item.dataset.establishmentName || '').trim();
     const establishmentId = String(item.dataset.establishmentId || '').trim();
+
+    if (shareButton) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (!establishmentId) return;
+      await shareEstablishmentInvite(establishmentId, establishmentName);
+      return;
+    }
 
     // Обновляем отображение
     selectedDisplay.textContent = establishmentName;

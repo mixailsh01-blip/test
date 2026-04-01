@@ -1,6 +1,13 @@
 /* ==================== AUTH MODULE ==================== */
 /* Отвечает за авторизацию, кэширование, обновление UI */
 
+const escapeAuthHtml = (value) => String(value ?? '')
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+  .replace(/'/g, '&#39;');
+
 const Auth = {
   tg: window.WebApp ?? window.Telegram?.WebApp ?? null,
   CACHE_KEY: 'user_profile_data',
@@ -210,8 +217,17 @@ const Auth = {
         mergedRestaurants.forEach((restaurant) => {
           const button = document.createElement('button');
           button.className = 'establishment-item btn-RestModal w-full';
-          button.textContent = restaurant.name;
           button.dataset.establishmentId = restaurant.id;
+          button.dataset.establishmentName = restaurant.name;
+          button.type = 'button';
+          button.innerHTML = `
+            <span class="establishment-item__label">${escapeAuthHtml(restaurant.name)}</span>
+            <span class="establishment-item__actions">
+              <span class="establishment-item__share" data-establishment-share="true" role="button" tabindex="0" aria-label="Поделиться ${escapeAuthHtml(restaurant.name)}">
+                <i class="fas fa-share-nodes" aria-hidden="true"></i>
+              </span>
+            </span>
+          `;
           list.appendChild(button);
         });
       }
