@@ -1430,13 +1430,13 @@ body.hide-main-logo #requests.page {
 }
 
 .establishment-staff-name {
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 700;
   color: #ffffff;
 }
 
 .establishment-staff-meta {
-  margin-top: 8px;
+  margin-top: 4px;
   display: flex;
   flex-direction: column;
   gap: 4px;
