@@ -1430,7 +1430,7 @@ body.hide-main-logo #requests.page {
 }
 
 .establishment-staff-name {
-  font-size: 17px;
+  font-size: 15px;
   font-weight: 700;
   color: #ffffff;
 }
@@ -1441,7 +1441,7 @@ body.hide-main-logo #requests.page {
   flex-direction: column;
   gap: 4px;
   color: rgba(255, 255, 255, 0.78);
-  font-size: 14px;
+  font-size: 12px;
 }
 
 .establishment-staff-role {
