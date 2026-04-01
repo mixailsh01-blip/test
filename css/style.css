@@ -805,7 +805,7 @@ body.hide-main-logo #requests.page {
   opacity: 1;
   transform: none;
   max-width: none;
-  margin-top: 0;
+  margin-top: 2px;
 }
 
 /* ==================== МОДАЛЬНЫЕ ОКНА ==================== */
