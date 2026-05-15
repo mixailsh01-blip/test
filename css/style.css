@@ -2782,6 +2782,12 @@ div.establishment-staff-role-select {
   font-weight: 700;
 }
 
+.file-viewer-download-secondary {
+  background: transparent;
+  border: 1px solid #4a5164;
+  color: #d8deef;
+}
+
 @keyframes file-viewer-spin {
   to {
     transform: rotate(360deg);

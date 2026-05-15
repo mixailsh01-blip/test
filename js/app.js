@@ -3833,6 +3833,13 @@ const setupRequestDetailsView = () => {
     anchor.remove();
   };
 
+  const isIosLikeDevice = () => {
+    const ua = window.navigator.userAgent || '';
+    const isAppleMobile = /iPad|iPhone|iPod/i.test(ua);
+    const isIpadOs = window.navigator.platform === 'MacIntel' && window.navigator.maxTouchPoints > 1;
+    return isAppleMobile || isIpadOs;
+  };
+
   const FileViewerModal = {
     open({ blob, fileName = 'file' }) {
       if (!fileViewerModal || !fileViewerBody || !fileViewerTitle) return;
@@ -3858,7 +3865,30 @@ const setupRequestDetailsView = () => {
           </video>
         `;
       } else if (isPdfFile) {
-        fileViewerBody.innerHTML = `<iframe class="file-viewer-pdf" src="${currentFileViewerUrl}" title="${escapeHtml(fileName)}"></iframe>`;
+        if (isIosLikeDevice()) {
+          fileViewerBody.innerHTML = `
+            <div class="file-viewer-fallback">
+              <div class="file-viewer-fallback-icon"><i class="fas fa-file-pdf" aria-hidden="true"></i></div>
+              <div class="file-viewer-fallback-name">${escapeHtml(fileName)}</div>
+              <div class="file-viewer-fallback-size">${formatFileSize(blob.size)}</div>
+              <button id="file-viewer-open-pdf" class="file-viewer-download" type="button">Открыть PDF</button>
+              <button id="file-viewer-download" class="file-viewer-download file-viewer-download-secondary" type="button">Скачать файл</button>
+            </div>
+          `;
+          const openPdfInNewTab = () => {
+            window.open(currentFileViewerUrl, '_blank', 'noopener,noreferrer');
+          };
+          fileViewerBody.querySelector('#file-viewer-open-pdf')?.addEventListener('click', openPdfInNewTab);
+          fileViewerBody.querySelector('#file-viewer-download')?.addEventListener('click', () => {
+            downloadBlobFile(currentFileViewerUrl, fileName);
+          });
+          // In iOS WebView, inline PDF often fails; try opening directly first.
+          setTimeout(() => {
+            openPdfInNewTab();
+          }, 0);
+        } else {
+          fileViewerBody.innerHTML = `<iframe class="file-viewer-pdf" src="${currentFileViewerUrl}" title="${escapeHtml(fileName)}"></iframe>`;
+        }
       } else {
         fileViewerBody.innerHTML = `
           <div class="file-viewer-fallback">
