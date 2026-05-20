@@ -3162,6 +3162,7 @@ const setupRequestDetailsView = () => {
     stopOpenChatPolling();
     stopDialogRefreshReminder();
     dialogModal.classList.add('hidden');
+    dialogChat.innerHTML = '';
     requestsState.activeTaskId = null;
     input.value = '';
     clearSelectedDialogFile();
@@ -4163,6 +4164,14 @@ const setupRequestDetailsView = () => {
   window.startRequestsListOpenChatPolling = scheduleRequestsListOpenChatPolling;
   window.stopRequestsListOpenChatPolling = stopRequestsListOpenChatPolling;
 
+  window.preloadAllChats = async () => {
+    if (!window.API?.sendOpenChat) return;
+    const tasks = requestsState.tasks.filter((t) => t?.taskId && !isTaskClosed(t));
+    for (const task of tasks) {
+      await requestOpenChat(task);
+    }
+  };
+
   renderRequestsList();
 };
 
@@ -4177,7 +4186,7 @@ const initializeApp = () => {
     if (user?.id && window.API?.sendClientTGSupport) {
       fetchClientSupport({ force: true, cacheMs: 0 }).then((result) => {
         applyClientSupportResponse(result);
-        syncOpenTasksForKnownEstablishments();
+        syncOpenTasksForKnownEstablishments().then(() => window.preloadAllChats?.());
         // Если ID пришёл, то всё ок. Если ответ пустой — просим номер телефона.
         if (clientSupportResponseHasId(result)) {
           if (requestDeepLinkState.type === 'add_restaurant' && !requestDeepLinkState.handled) {
