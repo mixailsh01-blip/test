@@ -2152,6 +2152,17 @@ const upsertRequestTask = (task, options = {}) => {
   saveRequestsCacheToStorage();
 };
 
+const getStatusClass = (status) => {
+  const s = String(status || '').toLowerCase();
+  if (s.includes('новая') || s === 'new') return 'request-status--new';
+  if (s.includes('работ')) return 'request-status--progress';
+  if (s.includes('ожида')) return 'request-status--waiting';
+  if (s.includes('сообщ')) return 'request-status--message';
+  if (s.includes('передач') || s.includes('специал')) return 'request-status--transfer';
+  if (s.includes('решен') || s.includes('закрыт') || s.includes('closed')) return 'request-status--resolved';
+  return '';
+};
+
 const getRequestMessagePreview = (message, fallback = 'Без описания') => {
   if (!message) return fallback;
   if (Array.isArray(message.attachments) && message.attachments.length > 0) {
@@ -2261,7 +2272,7 @@ const renderRequestsList = () => {
         <div class="request-card" data-task-id="${escapeHtml(task.taskId)}">
           <div class="request-card-top">
             <span class="request-number">№${escapeHtml(task.taskId)} от ${escapeHtml(formatRequestDate(task.createdAt))}</span>
-            <span class="request-status">${escapeHtml(task.status)}</span>
+            <span class="request-status ${getStatusClass(task.status)}">${escapeHtml(task.status)}</span>
           </div>
           <div class="request-topic">${escapeHtml(task.description || 'Новая заявка')}</div>
           <div class="request-meta-row">
@@ -3435,7 +3446,10 @@ const setupRequestDetailsView = () => {
     const dialogCompany = document.getElementById('request-dialog-company');
 
     if (dialogNumber) dialogNumber.textContent = `№${task.taskId} от ${formatRequestDate(task.createdAt)}`;
-    if (dialogStatus) dialogStatus.textContent = task.status;
+    if (dialogStatus) {
+      dialogStatus.textContent = task.status;
+      dialogStatus.className = `request-status ${getStatusClass(task.status)}`;
+    }
     if (dialogTopic) dialogTopic.textContent = task.description || 'Без описания';
     if (dialogCompany) dialogCompany.textContent = task.org;
 

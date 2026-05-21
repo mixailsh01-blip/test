@@ -2239,9 +2239,20 @@ div.establishment-staff-role-select {
 }
 
 .request-status {
-  color: #8e92a0;
-  font-size: clamp(13px, 2.9vw, 16px);
+  color: #fff;
+  font-size: clamp(11px, 2.4vw, 13px);
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+  background: rgba(140, 146, 160, 0.25);
 }
+.request-status--new       { background: rgba(30,  120, 255, 0.30); }
+.request-status--progress  { background: rgba(255, 140,  30, 0.30); }
+.request-status--waiting   { background: rgba(220, 185,   0, 0.35); }
+.request-status--message   { background: rgba(160,  60, 255, 0.30); }
+.request-status--transfer  { background: rgba( 20, 200, 190, 0.30); }
+.request-status--resolved  { background: rgba( 40, 195,  80, 0.30); }
 
 .request-topic {
   margin-top: 8px;
@@ -2395,8 +2406,11 @@ div.establishment-staff-role-select {
 }
 
 .request-dialog-status {
-  color: #8f94a4;
   font-size: 12px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
 }
 
 .request-dialog-topic {
