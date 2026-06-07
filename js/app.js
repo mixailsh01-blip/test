@@ -4220,7 +4220,11 @@ const initializeApp = () => {
           return;
         }
         clearRequestsStateAndCache();
-        if (user?.phone_number || user?.phone) return;
+        const bridgePhone = user?.phone_number || user?.phone;
+        if (bridgePhone) {
+          notifyRegistrClient({ phone_number: bridgePhone }, { stage: 'auto_from_bridge' });
+          return;
+        }
         showContactShareModal();
       });
     }
