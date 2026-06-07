@@ -289,9 +289,8 @@
             <i class="fas fa-paperclip"></i>
           </button>
           <input id="request-dialog-file" type="file" class="request-composer-file" />
-          <input
+          <textarea
             id="request-dialog-input"
-            type="text"
             class="request-composer-input"
             placeholder="Напишите сообщение..."
             inputmode="text"
@@ -300,7 +299,8 @@
             autocorrect="off"
             autocapitalize="off"
             spellcheck="false"
-          />
+            rows="1"
+          ></textarea>
           <button id="request-dialog-send" class="request-composer-send" aria-label="Отправить">
             <i class="fas fa-paper-plane"></i>
           </button>
