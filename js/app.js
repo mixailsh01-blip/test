@@ -4141,17 +4141,21 @@ const setupRequestDetailsView = () => {
     if (!event.target.closest('.request-composer-file-preview-remove')) return;
     clearSelectedDialogFile();
   });
+  const isMobileDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
   const autoResizeInput = () => {
     input.style.height = 'auto';
     input.style.height = Math.min(input.scrollHeight, 120) + 'px';
   };
   input.addEventListener('input', autoResizeInput);
   input.addEventListener('keydown', (event) => {
-    if (event.key === 'Enter' && !event.shiftKey) {
+    if (event.key !== 'Enter') return;
+    if (isMobileDevice) return; // на телефоне Enter = перенос, отправка только кнопкой
+    if (!event.shiftKey) {
       event.preventDefault();
       sendCurrentMessage();
       input.style.height = 'auto';
     }
+    // Shift+Enter — перенос строки, не перехватываем
   });
   attachBtn.addEventListener('click', openFilePicker);
   window.visualViewport?.addEventListener('resize', syncKeyboardOffset);
